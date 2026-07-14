@@ -1,0 +1,13 @@
+# Maps GitHub repos → catalog titles (Studio project dropdown)
+schema_version: "1.0.0"
+mappings:
+  - github: CourtReinland/sakura-match
+    title_id: title.sakura_tea_house
+    label: Sakura Tea House
+    notes: Shipping Three.js + otome Chapter 1/2 prototype
+  - github: CourtReinland/sakurastudio
+    title_id: null
+    label: Sakura Studio (this repo)
+    notes: Catalog + CLI + dashboard; not a playable title
+  # Local / unpublished Unity sketch — appears via catalog titles only
+  # title.sakura_match

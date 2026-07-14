@@ -1,0 +1,41 @@
+id: job.sakura_match.rebind_tiles
+title_id: title.sakura_match
+role: art_integrator
+status: draft
+goal: >
+  Ensure all five board tile slots are bound to pastel v1 library assets
+  and bindings are ready for human review. Do not invent new slot names.
+constraints:
+  only_edit:
+    - catalog/titles/sakura-match/bindings.yaml
+    - catalog/assets/library/
+  do_not_edit:
+    - catalog/titles/sakura-match/ggd.yaml
+    - catalog/titles/sakura-match/slots.yaml
+    - catalog/titles/sakura-match/cast.yaml
+  no_merge_to_main: true
+scope:
+  slot_ids:
+    - slot.tile.red
+    - slot.tile.blue
+    - slot.tile.green
+    - slot.tile.yellow
+    - slot.tile.purple
+  asset_ids:
+    - asset.tile_red_pastel_v1
+    - asset.tile_blue_pastel_v1
+    - asset.tile_green_pastel_v1
+    - asset.tile_yellow_pastel_v1
+    - asset.tile_purple_pastel_v1
+acceptance:
+  - validate_bindings
+  - all_scoped_slots_bound
+  - "binding_status_at_least:review"
+  - no_edits_outside_constraints
+handoff:
+  branch: feature/catalog-tile-bindings
+  base_branch: master
+  open_pr: true
+notes: >
+  Replaces free-form "swap image 8 with 201" style tasks.
+  When generating art, create a new asset.* id (v2) rather than overwriting v1 in place.

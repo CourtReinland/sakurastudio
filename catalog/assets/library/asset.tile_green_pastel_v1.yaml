@@ -1,0 +1,18 @@
+id: asset.tile_green_pastel_v1
+label: Match tile — green (pastel)
+status: draft
+brand_id: brand.sakura_soft
+kind: sprite
+tags: [tile, match3, green, pastel]
+files:
+  - role: master
+    path: assets/files/tiles/green_pastel_v1.png
+    mime: image/png
+    width: 128
+    height: 128
+provenance:
+  source: internal
+  tool: pending
+  prompt: "soft pastel green candy tile, kawaii match-3, no text, square"
+  created_at: "2026-07-14"
+  license: internal_all_rights

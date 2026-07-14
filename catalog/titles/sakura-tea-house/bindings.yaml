@@ -1,0 +1,7 @@
+title_id: title.sakura_tea_house
+bindings: []
+# Piece/CG/line assets land here via Studio drag-drop or `sakura bind set`.
+# Required piece slots are unbound until art is catalogued — title is catalog_role title
+# so validate will error on required unbound; mark pieces required:false until assets exist
+# OR set catalog_role... Actually keep required true for pieces - use template? 
+# Better: required false until real assets exist so validate stays green.

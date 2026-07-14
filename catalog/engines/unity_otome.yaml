@@ -1,0 +1,23 @@
+id: engine.unity_otome
+label: Unity Otome / VN Kit
+status: draft
+runtime: unity
+unity:
+  min_version: "2022.3"
+# repo_path omitted until a title owns the first implementation
+capabilities:
+  - vn.dialogue
+  - vn.choices
+  - vn.affection
+  - vn.gallery
+  - vn.save
+  - ui.menus
+exports:
+  bindings_consumer: Addressables
+  dialogue_consumer: external_json_or_ink
+  notes: Scaffold only — no title wired yet. Use titles/_examples/otome-skeleton.
+tags:
+  - otome
+  - vn
+  - unity
+  - mobile

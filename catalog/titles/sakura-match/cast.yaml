@@ -1,0 +1,9 @@
+title_id: title.sakura_match
+entries:
+  - character_id: chr.sakura_match.miko
+    billing: heroine
+    unlock: always
+    notes: Soft mascot / meta host for tutorial and seasonal events (TBD).
+  - character_id: chr.sakura_match.system
+    billing: system
+    unlock: always

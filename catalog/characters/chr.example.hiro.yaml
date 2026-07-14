@@ -1,0 +1,14 @@
+id: chr.example.hiro
+label: Hiro
+status: draft
+brand_id: brand.sakura_soft
+role_tags: [love_interest, route_lead]
+profile:
+  age: 24
+  occupation: architect
+  one_liner: Quiet hands, loud storms.
+  personality: [reserved, loyal, dry_humor]
+visual:
+  hair: black, slightly messy
+  eyes: grey
+  default_outfit: casual_coat

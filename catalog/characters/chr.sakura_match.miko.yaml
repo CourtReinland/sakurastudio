@@ -1,0 +1,23 @@
+id: chr.sakura_match.miko
+label: Miko
+status: draft
+brand_id: brand.sakura_soft
+role_tags:
+  - heroine
+  - mascot
+  - tutorial_host
+profile:
+  one_liner: Your pastel guide through every cascade.
+  personality:
+    - cheerful
+    - encouraging
+    - lightly teasing
+visual:
+  hair: soft pink, bob
+  eyes: amber
+  default_outfit: shrine_casual_kawaii
+voice:
+  register: bright-mid
+  notes: Never harsh; celebrate combos warmly.
+tags:
+  - sakura_match

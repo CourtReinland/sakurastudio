@@ -1,0 +1,15 @@
+title_id: title.sakura_tea_house
+entries:
+  - character_id: chr.tea.keeper
+    billing: heroine
+    unlock: always
+  - character_id: chr.tea.ren
+    billing: love_interest
+    unlock: always
+    notes: Route A · Foxfire Heart; also ally on other routes
+  - character_id: chr.tea.mizu
+    billing: love_interest
+    unlock: scene.sixth_lantern
+  - character_id: chr.tea.akira
+    billing: love_interest
+    unlock: scene.coin_remembers

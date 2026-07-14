@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sakurasoft.local/schemas/engine.schema.json",
+  "title": "Engine pack",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "label", "status", "runtime"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^engine\\.[a-z0-9_]+(\\.[a-z0-9_]+)*$"
+    },
+    "label": { "type": "string", "minLength": 1 },
+    "status": { "$ref": "common.json#/$defs/Status" },
+    "runtime": {
+      "type": "string",
+      "enum": ["unity", "web", "godot", "other"]
+    },
+    "aliases": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "notes": { "type": "string" },
+    "unity": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "min_version": { "type": "string" }
+      }
+    },
+    "repo_path": { "type": ["string", "null"] },
+    "capabilities": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "exports": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  }
+}

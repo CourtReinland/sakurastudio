@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sakurasoft.local/schemas/cast.schema.json",
+  "title": "Title cast",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["title_id", "entries"],
+  "properties": {
+    "title_id": {
+      "type": "string",
+      "pattern": "^title\\.[a-z0-9_]+(\\.[a-z0-9_]+)*$"
+    },
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["character_id"],
+        "properties": {
+          "character_id": {
+            "type": "string",
+            "pattern": "^chr\\.[a-z0-9_]+(\\.[a-z0-9_]+)*$"
+          },
+          "billing": {
+            "type": "string",
+            "enum": [
+              "heroine",
+              "love_interest",
+              "side",
+              "antagonist",
+              "system",
+              "cameo",
+              "other"
+            ]
+          },
+          "unlock": {
+            "type": "string",
+            "description": "always | flag:<id> | freeform gate expression"
+          },
+          "notes": { "type": "string" }
+        }
+      }
+    }
+  }
+}

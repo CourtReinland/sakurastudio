@@ -1,0 +1,65 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Unity only under projects/ (do not match catalog/assets/library)
+projects/**/[Ll]ibrary/
+projects/**/[Tt]emp/
+projects/**/[Oo]bj/
+projects/**/[Bb]uild/
+projects/**/[Bb]uilds/
+projects/**/[Ll]ogs/
+projects/**/[Uu]ser[Ss]ettings/
+**/MemoryCaptures/
+**/Recordings/
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+sysinfo.txt
+*.apk
+*.aab
+*.app
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*~
+
+# Secrets
+.env
+.env.*
+!.env.example
+*.pem
+
+# Local agent / orchestrator noise
+**/.claude/
+**/worktrees/
+**/node_modules/
+
+# Graphify local outs (regenerate)
+**/graphify-out/cost.json
+projects/

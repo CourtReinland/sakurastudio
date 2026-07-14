@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sakurasoft.local/schemas/character.schema.json",
+  "title": "Character",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "label", "status"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^chr\\.[a-z0-9_]+(\\.[a-z0-9_]+)*$"
+    },
+    "label": { "type": "string", "minLength": 1 },
+    "status": { "$ref": "common.json#/$defs/Status" },
+    "brand_id": {
+      "type": "string",
+      "pattern": "^brand\\.[a-z0-9_]+(\\.[a-z0-9_]+)*$"
+    },
+    "aliases": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "role_tags": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "notes": { "type": "string" },
+    "profile": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "age": { "type": ["integer", "string"] },
+        "occupation": { "type": "string" },
+        "one_liner": { "type": "string" },
+        "personality": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "voice": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "visual": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "relationships": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["character_id", "kind"],
+        "additionalProperties": false,
+        "properties": {
+          "character_id": {
+            "type": "string",
+            "pattern": "^chr\\.[a-z0-9_]+(\\.[a-z0-9_]+)*$"
+          },
+          "kind": { "type": "string" },
+          "notes": { "type": "string" }
+        }
+      }
+    }
+  }
+}

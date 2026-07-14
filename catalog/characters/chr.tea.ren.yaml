@@ -1,0 +1,16 @@
+id: chr.tea.ren
+label: Ren
+status: approved
+brand_id: brand.sakura_soft
+role_tags: [love_interest, route_lead, fox_spirit]
+profile:
+  occupation: threshold guardian / old customer
+  one_liner: Quiet foxfire; freedom that is chosen, not owed.
+  personality: [warm, careful, evasive-about-the-past]
+voice:
+  register: low-warm
+  notes: Web Speech pitch ~0.78
+visual:
+  eyes: amber
+  default_outfit: pale traveling coat
+  signature: foxfire

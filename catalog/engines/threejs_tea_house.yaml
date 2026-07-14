@@ -1,0 +1,22 @@
+id: engine.threejs_tea_house
+label: Three.js Tea House (Vite + Capacitor)
+status: approved
+runtime: web
+repo_path: null
+capabilities:
+  - match3.board
+  - vn.scenes
+  - vn.choices
+  - vn.affinity
+  - meta.progress
+  - audio.voice_pitch
+exports:
+  bindings_consumer: public/assets paths + content modules
+  dialogue_consumer: src/meta/content + story modules
+  notes: Shipping prototype at CourtReinland/sakura-match
+tags:
+  - threejs
+  - vite
+  - capacitor
+  - otome
+  - match3

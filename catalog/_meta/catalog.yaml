@@ -1,0 +1,20 @@
+schema_version: "1.0.0"
+studio: sakura_soft
+default_locale: en
+locales:
+  - en
+  - ja
+path_conventions:
+  # Binary files live next to metadata; paths in asset records are relative to catalog/
+  asset_files_root: assets/files
+id_prefixes:
+  brand: brand
+  character: chr
+  asset: asset
+  engine: engine
+  title: title
+  slot: slot
+  node: node
+  edge: edge
+  job: job
+  string: str

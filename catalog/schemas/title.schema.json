@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sakurasoft.local/schemas/title.schema.json",
+  "title": "Title root",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "label", "status", "brand_id", "engine_id"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^title\\.[a-z0-9_]+(\\.[a-z0-9_]+)*$"
+    },
+    "label": { "type": "string", "minLength": 1 },
+    "status": { "$ref": "common.json#/$defs/Status" },
+    "brand_id": {
+      "type": "string",
+      "pattern": "^brand\\.[a-z0-9_]+(\\.[a-z0-9_]+)*$"
+    },
+    "engine_id": {
+      "type": "string",
+      "pattern": "^engine\\.[a-z0-9_]+(\\.[a-z0-9_]+)*$"
+    },
+    "aliases": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "genre_tags": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "platforms": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["ios", "android", "web", "steam", "switch", "other"]
+      }
+    },
+    "repo_path": { "type": ["string", "null"] },
+    "default_locale": { "type": "string" },
+    "notes": { "type": "string" },
+    "content_files": {
+      "type": "object",
+      "additionalProperties": { "type": "string" },
+      "properties": {
+        "cast": { "type": "string" },
+        "ggd": { "type": "string" },
+        "slots": { "type": "string" },
+        "bindings": { "type": "string" },
+        "levels": { "type": "string" }
+      }
+    },
+    "gates": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "require_approved_bindings_for_release": { "type": "boolean" },
+        "require_approved_player_facing_nodes": { "type": "boolean" }
+      }
+    },
+    "catalog_role": {
+      "type": "string",
+      "enum": ["title", "template"],
+      "description": "template softens unbound required slots to warnings"
+    }
+  }
+}

@@ -1,0 +1,8 @@
+title_id: title.example_otome
+entries:
+  - character_id: chr.example.protagonist
+    billing: heroine
+    unlock: always
+  - character_id: chr.example.hiro
+    billing: love_interest
+    unlock: always

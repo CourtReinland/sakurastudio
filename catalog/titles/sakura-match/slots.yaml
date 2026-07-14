@@ -1,0 +1,81 @@
+title_id: title.sakura_match
+slots:
+  - id: slot.tile.red
+    label: Board tile — Red
+    kind: sprite
+    required: true
+    status: approved
+    constraints:
+      max_width: 256
+      max_height: 256
+      aspect_ratio: "1:1"
+      tags_all: [tile, match3, red]
+      mime_any: [image/png]
+    used_by:
+      - node.system.board
+
+  - id: slot.tile.blue
+    label: Board tile — Blue
+    kind: sprite
+    required: true
+    status: approved
+    constraints:
+      max_width: 256
+      max_height: 256
+      aspect_ratio: "1:1"
+      tags_all: [tile, match3, blue]
+      mime_any: [image/png]
+    used_by:
+      - node.system.board
+
+  - id: slot.tile.green
+    label: Board tile — Green
+    kind: sprite
+    required: true
+    status: approved
+    constraints:
+      max_width: 256
+      max_height: 256
+      aspect_ratio: "1:1"
+      tags_all: [tile, match3, green]
+      mime_any: [image/png]
+    used_by:
+      - node.system.board
+
+  - id: slot.tile.yellow
+    label: Board tile — Yellow
+    kind: sprite
+    required: true
+    status: approved
+    constraints:
+      max_width: 256
+      max_height: 256
+      aspect_ratio: "1:1"
+      tags_all: [tile, match3, yellow]
+      mime_any: [image/png]
+    used_by:
+      - node.system.board
+
+  - id: slot.tile.purple
+    label: Board tile — Purple
+    kind: sprite
+    required: true
+    status: approved
+    constraints:
+      max_width: 256
+      max_height: 256
+      aspect_ratio: "1:1"
+      tags_all: [tile, match3, purple]
+      mime_any: [image/png]
+    used_by:
+      - node.system.board
+
+  - id: slot.ui.logo_title
+    label: Title logo
+    kind: ui
+    required: false
+    status: draft
+    constraints:
+      tags_any: [logo, ui]
+    used_by:
+      - node.ui_screen.title

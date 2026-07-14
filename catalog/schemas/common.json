@@ -1,0 +1,143 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sakurasoft.local/schemas/common.json",
+  "title": "SakuraSoft common definitions",
+  "$defs": {
+    "Status": {
+      "type": "string",
+      "enum": ["draft", "review", "approved", "deprecated", "blocked"]
+    },
+    "Id": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 128,
+      "pattern": "^[a-z][a-z0-9_]*(\\.[a-z0-9_]+)+$"
+    },
+    "BrandId": {
+      "type": "string",
+      "pattern": "^brand\\.[a-z0-9_]+(\\.[a-z0-9_]+)*$"
+    },
+    "CharacterId": {
+      "type": "string",
+      "pattern": "^chr\\.[a-z0-9_]+(\\.[a-z0-9_]+)*$"
+    },
+    "AssetId": {
+      "type": "string",
+      "pattern": "^asset\\.[a-z0-9_]+(\\.[a-z0-9_]+)*$"
+    },
+    "EngineId": {
+      "type": "string",
+      "pattern": "^engine\\.[a-z0-9_]+(\\.[a-z0-9_]+)*$"
+    },
+    "TitleId": {
+      "type": "string",
+      "pattern": "^title\\.[a-z0-9_]+(\\.[a-z0-9_]+)*$"
+    },
+    "SlotId": {
+      "type": "string",
+      "pattern": "^slot\\.[a-z0-9_]+(\\.[a-z0-9_]+)*$"
+    },
+    "NodeId": {
+      "type": "string",
+      "pattern": "^node\\.[a-z0-9_]+(\\.[a-z0-9_]+)*$"
+    },
+    "EdgeId": {
+      "type": "string",
+      "pattern": "^edge\\.[a-z0-9_]+(\\.[a-z0-9_]+)*$"
+    },
+    "JobId": {
+      "type": "string",
+      "pattern": "^job\\.[a-z0-9_]+(\\.[a-z0-9_]+)*$"
+    },
+    "StringId": {
+      "type": "string",
+      "pattern": "^str\\.[a-z0-9_]+(\\.[a-z0-9_]+)*$"
+    },
+    "IsoDate": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    "IsoDateTime": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "AssetKind": {
+      "type": "string",
+      "enum": [
+        "sprite",
+        "texture",
+        "cg",
+        "portrait",
+        "ui",
+        "icon",
+        "bg",
+        "audio_bgm",
+        "audio_sfx",
+        "audio_voice",
+        "font",
+        "video",
+        "spine",
+        "other"
+      ]
+    },
+    "NodeKind": {
+      "type": "string",
+      "enum": [
+        "route",
+        "scene",
+        "beat",
+        "choice",
+        "gate",
+        "ending",
+        "level",
+        "system",
+        "ui_screen",
+        "cg_moment",
+        "flag",
+        "minigame"
+      ]
+    },
+    "EdgeKind": {
+      "type": "string",
+      "enum": [
+        "leads_to",
+        "unlocks",
+        "requires",
+        "uses_slot",
+        "modifies",
+        "contains",
+        "references"
+      ]
+    },
+    "AgentRole": {
+      "type": "string",
+      "enum": [
+        "narrative",
+        "art_integrator",
+        "gameplay",
+        "qa",
+        "architect",
+        "release",
+        "queen"
+      ]
+    },
+    "LabeledEntity": {
+      "type": "object",
+      "required": ["id", "label"],
+      "properties": {
+        "id": { "$ref": "#/$defs/Id" },
+        "label": { "type": "string", "minLength": 1 },
+        "status": { "$ref": "#/$defs/Status" },
+        "aliases": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "notes": { "type": "string" }
+      }
+    }
+  }
+}

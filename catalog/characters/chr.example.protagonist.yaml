@@ -1,0 +1,8 @@
+id: chr.example.protagonist
+label: Protagonist
+status: draft
+brand_id: brand.sakura_soft
+role_tags: [heroine, player]
+profile:
+  one_liner: New in town, sharper than she looks.
+  personality: [curious, kind, stubborn]

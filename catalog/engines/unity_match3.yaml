@@ -1,0 +1,23 @@
+id: engine.unity_match3
+label: Unity Match-3 Kit
+status: draft
+runtime: unity
+unity:
+  min_version: "2022.3"
+repo_path: projects/sakura-match
+capabilities:
+  - match3.grid
+  - match3.swap
+  - match3.cascade
+  - match3.goals
+  - ui.basic
+exports:
+  bindings_consumer: Resources
+  config_consumer: ScriptableObjects
+  notes: >
+    Until extracted into engines/unity-match3-kit, the living implementation
+    is titles.sakura_match repo_path. Catalog slots map to TileType + sprite paths.
+tags:
+  - match3
+  - unity
+  - mobile

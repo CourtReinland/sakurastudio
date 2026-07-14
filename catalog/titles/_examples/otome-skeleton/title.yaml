@@ -1,0 +1,24 @@
+id: title.example_otome
+label: Example Otome (skeleton)
+status: draft
+catalog_role: template
+brand_id: brand.sakura_soft
+engine_id: engine.unity_otome
+genre_tags:
+  - otome
+  - vn
+  - romance
+platforms:
+  - ios
+  - android
+
+default_locale: en
+content_files:
+  cast: cast.yaml
+  ggd: ggd.yaml
+  slots: slots.yaml
+  bindings: bindings.yaml
+gates:
+  require_approved_bindings_for_release: true
+  require_approved_player_facing_nodes: true
+notes: Template only — copy to titles/<new_id>/ when starting a real romance title.

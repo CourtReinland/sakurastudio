@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sakurasoft.local/schemas/job.schema.json",
+  "title": "Agent job package",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "title_id", "role", "goal", "status"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^job\\.[a-z0-9_]+(\\.[a-z0-9_]+)*$"
+    },
+    "title_id": {
+      "type": "string",
+      "pattern": "^title\\.[a-z0-9_]+(\\.[a-z0-9_]+)*$"
+    },
+    "role": { "$ref": "common.json#/$defs/AgentRole" },
+    "status": { "$ref": "common.json#/$defs/Status" },
+    "goal": { "type": "string", "minLength": 1 },
+    "constraints": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "only_edit": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "do_not_edit": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "no_merge_to_main": { "type": "boolean" }
+      }
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "slot_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^slot\\.[a-z0-9_]+(\\.[a-z0-9_]+)*$"
+          }
+        },
+        "node_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^node\\.[a-z0-9_]+(\\.[a-z0-9_]+)*$"
+          }
+        },
+        "asset_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^asset\\.[a-z0-9_]+(\\.[a-z0-9_]+)*$"
+          }
+        }
+      }
+    },
+    "acceptance": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "handoff": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "branch": { "type": "string" },
+        "open_pr": { "type": "boolean" },
+        "base_branch": { "type": "string" }
+      }
+    },
+    "notes": { "type": "string" }
+  }
+}

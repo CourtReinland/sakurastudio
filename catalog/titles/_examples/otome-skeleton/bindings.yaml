@@ -1,0 +1,4 @@
+title_id: title.example_otome
+bindings: []
+# Intentionally empty: skeleton shows slots without art yet.
+# Agents fill via rebind jobs once assets exist in catalog/assets/library/.

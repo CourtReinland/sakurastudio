@@ -1,0 +1,48 @@
+{
+  "schema_version": "1.0.0",
+  "title_id": "title.sakura_match",
+  "imported_at": "2026-07-14T02:40:15Z",
+  "source_catalog": "/Users/capricorn/SakuraSoft/catalog",
+  "bindings": [
+    {
+      "slot_id": "slot.tile.red",
+      "asset_id": "asset.tile_red_pastel_v1",
+      "status": "review",
+      "resources_path": "Catalog/sakura_match/slots/slot_tile_red",
+      "kind": "sprite",
+      "tile_type": "Red"
+    },
+    {
+      "slot_id": "slot.tile.blue",
+      "asset_id": "asset.tile_blue_pastel_v1",
+      "status": "review",
+      "resources_path": "Catalog/sakura_match/slots/slot_tile_blue",
+      "kind": "sprite",
+      "tile_type": "Blue"
+    },
+    {
+      "slot_id": "slot.tile.green",
+      "asset_id": "asset.tile_green_pastel_v1",
+      "status": "review",
+      "resources_path": "Catalog/sakura_match/slots/slot_tile_green",
+      "kind": "sprite",
+      "tile_type": "Green"
+    },
+    {
+      "slot_id": "slot.tile.yellow",
+      "asset_id": "asset.tile_yellow_pastel_v1",
+      "status": "review",
+      "resources_path": "Catalog/sakura_match/slots/slot_tile_yellow",
+      "kind": "sprite",
+      "tile_type": "Yellow"
+    },
+    {
+      "slot_id": "slot.tile.purple",
+      "asset_id": "asset.tile_purple_pastel_v1",
+      "status": "review",
+      "resources_path": "Catalog/sakura_match/slots/slot_tile_purple",
+      "kind": "sprite",
+      "tile_type": "Purple"
+    }
+  ]
+}

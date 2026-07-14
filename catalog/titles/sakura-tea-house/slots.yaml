@@ -1,0 +1,114 @@
+title_id: title.sakura_tea_house
+slots:
+  # --- Game pieces (swappable) ---
+  - id: slot.piece.tea_leaf
+    label: Gem · Tea Leaf
+    kind: sprite
+    required: false
+    status: draft
+    tags: [swap, piece]
+    constraints: { tags_any: [piece, gem, tea] }
+    used_by: [node.system.board, node.level.1, node.level.8]
+  - id: slot.piece.flower
+    label: Gem · Flower / Petal
+    kind: sprite
+    required: false
+    status: draft
+    tags: [swap, piece]
+    constraints: { tags_any: [piece, gem, flower] }
+    used_by: [node.system.board, node.level.2, node.level.11]
+  - id: slot.piece.lantern
+    label: Gem · Lantern
+    kind: sprite
+    required: false
+    status: draft
+    tags: [swap, piece]
+    constraints: { tags_any: [piece, gem, lantern] }
+    used_by: [node.system.board, node.level.3, node.level.7]
+  - id: slot.piece.coin
+    label: Gem · Spirit Coin
+    kind: sprite
+    required: false
+    status: draft
+    tags: [swap, piece]
+    constraints: { tags_any: [piece, gem, coin] }
+    used_by: [node.system.board, node.level.4, node.level.10]
+  - id: slot.piece.charm
+    label: Gem · Charm
+    kind: sprite
+    required: false
+    status: draft
+    tags: [swap, piece]
+    constraints: { tags_any: [piece, gem, charm] }
+    used_by: [node.system.board, node.level.5, node.level.9]
+  - id: slot.piece.wagashi
+    label: Gem · Wagashi
+    kind: sprite
+    required: false
+    status: draft
+    tags: [swap, piece]
+    constraints: { tags_any: [piece, gem, wagashi] }
+    used_by: [node.system.board, node.level.6]
+
+  # --- Cinematics / graphics (swappable) ---
+  - id: slot.cg.scene_01_rainy_arrival
+    label: CG · Scene 01 rainy arrival
+    kind: cg
+    required: false
+    status: draft
+    tags: [swap, graphic, cinematic]
+    used_by: [node.scene.visitor_dusk]
+  - id: slot.cg.scene_03_rain_spirit
+    label: CG · Scene 03 rain spirit
+    kind: cg
+    required: false
+    status: draft
+    tags: [swap, graphic, cinematic]
+    used_by: [node.scene.sixth_lantern]
+  - id: slot.cg.scene_11_three_hearts
+    label: CG · Scene 11 three hearts
+    kind: cg
+    required: false
+    status: draft
+    tags: [swap, graphic, cinematic]
+    used_by: [node.scene.moonlit_door]
+  - id: slot.portrait.ren.neutral
+    label: Portrait · Ren neutral
+    kind: portrait
+    required: false
+    status: draft
+    tags: [swap, graphic, character]
+    used_by: [node.scene.visitor_dusk]
+  - id: slot.bg.entry_hall_dirty
+    label: BG · Entry hall (dirty)
+    kind: bg
+    required: false
+    status: draft
+    tags: [swap, graphic, room]
+  - id: slot.ui.board_lacquer
+    label: UI · Board lacquer texture
+    kind: ui
+    required: false
+    status: draft
+    tags: [swap, graphic, ui]
+
+  # --- Character lines (swappable text assets) ---
+  - id: slot.line.ren.welcome
+    label: Line · Ren welcome at dusk
+    kind: other
+    required: false
+    status: draft
+    tags: [swap, dialogue, ren]
+    notes: Binds to dialogue asset / string table key when importer exists
+  - id: slot.line.mizu.guest
+    label: Line · Mizu guest intro
+    kind: other
+    required: false
+    status: draft
+    tags: [swap, dialogue, mizu]
+  - id: slot.line.akira.ledger
+    label: Line · Akira ledger voice
+    kind: other
+    required: false
+    status: draft
+    tags: [swap, dialogue, akira]

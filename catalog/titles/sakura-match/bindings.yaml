@@ -1,0 +1,28 @@
+title_id: title.sakura_match
+bindings:
+- slot_id: slot.tile.red
+  asset_id: asset.tile_red_pastel_v1
+  status: review
+  bound_at: '2026-07-14T02:40:59Z'
+  bound_by: studio.test
+  notes: Maps to TileType.Red / Resources path once importer exists.
+- slot_id: slot.tile.blue
+  asset_id: asset.tile_blue_pastel_v1
+  status: review
+  bound_at: '2026-07-14T12:00:00Z'
+  bound_by: schema.bootstrap
+- slot_id: slot.tile.green
+  asset_id: asset.tile_green_pastel_v1
+  status: review
+  bound_at: '2026-07-14T12:00:00Z'
+  bound_by: schema.bootstrap
+- slot_id: slot.tile.yellow
+  asset_id: asset.tile_yellow_pastel_v1
+  status: review
+  bound_at: '2026-07-14T12:00:00Z'
+  bound_by: schema.bootstrap
+- slot_id: slot.tile.purple
+  asset_id: asset.tile_purple_pastel_v1
+  status: review
+  bound_at: '2026-07-14T12:00:00Z'
+  bound_by: schema.bootstrap

@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sakurasoft.local/schemas/asset.schema.json",
+  "title": "Library asset",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "label", "status", "kind", "files"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^asset\\.[a-z0-9_]+(\\.[a-z0-9_]+)*$"
+    },
+    "label": { "type": "string", "minLength": 1 },
+    "status": { "$ref": "common.json#/$defs/Status" },
+    "brand_id": {
+      "type": "string",
+      "pattern": "^brand\\.[a-z0-9_]+(\\.[a-z0-9_]+)*$"
+    },
+    "kind": { "$ref": "common.json#/$defs/AssetKind" },
+    "aliases": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "notes": { "type": "string" },
+    "characters": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^chr\\.[a-z0-9_]+(\\.[a-z0-9_]+)*$"
+      }
+    },
+    "files": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["role", "path"],
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": ["master", "preview", "thumbnail", "locale_variant", "other"]
+          },
+          "path": { "type": "string", "minLength": 1 },
+          "mime": { "type": "string" },
+          "width": { "type": "integer", "minimum": 1 },
+          "height": { "type": "integer", "minimum": 1 },
+          "duration_ms": { "type": "integer", "minimum": 0 },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "locale": { "type": "string" }
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "source": {
+          "type": "string",
+          "enum": ["generated", "commissioned", "stock", "internal", "unknown"]
+        },
+        "tool": { "type": "string" },
+        "prompt": { "type": "string" },
+        "created_at": { "type": "string" },
+        "license": { "type": "string" },
+        "author": { "type": "string" }
+      }
+    },
+    "variants": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^asset\\.[a-z0-9_]+(\\.[a-z0-9_]+)*$"
+      }
+    }
+  }
+}

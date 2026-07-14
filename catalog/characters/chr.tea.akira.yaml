@@ -1,0 +1,14 @@
+id: chr.tea.akira
+label: Akira
+status: approved
+brand_id: brand.sakura_soft
+role_tags: [love_interest, route_lead, scholar_spirit]
+profile:
+  one_liner: Ledger-bound scholar; wants to write with the keeper, not only of them.
+  personality: [precise, ink-quiet, yearning]
+voice:
+  register: mid-low-precise
+  notes: pitch ~0.86; never foxfire
+visual:
+  signature: ink robes, red cord, ink-black eyes
+notes: First appears Scene 4 · A Coin That Remembers

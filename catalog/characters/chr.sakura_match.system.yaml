@@ -1,0 +1,9 @@
+id: chr.sakura_match.system
+label: System
+status: approved
+brand_id: brand.sakura_soft
+role_tags:
+  - system
+profile:
+  one_liner: Non-diegetic UI voice.
+notes: Placeholder speaker for system strings; not shown as a character card.

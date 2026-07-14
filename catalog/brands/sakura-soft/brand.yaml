@@ -1,0 +1,27 @@
+id: brand.sakura_soft
+label: Sakura Soft
+status: approved
+aliases:
+  - SakuraSoft
+  - sakurasoft
+tags:
+  - anime
+  - casual
+  - romance-friendly
+style:
+  aesthetic: soft pastel anime, kawaii
+  audience: women 18-35
+  palette:
+    primary: "#FF8FAB"
+    secondary: "#C8B6FF"
+    accent: "#FFD6A5"
+    tile_red: "#FF6B6B"
+    tile_blue: "#6BB5FF"
+    tile_green: "#6BFF8A"
+    tile_yellow: "#FFE66B"
+    tile_purple: "#B56BFF"
+docs:
+  - path: ../../shared/style-guides/
+    label: Style guides directory
+notes: >
+  Portfolio brand for anime-skinned proven casual mechanics and otome/romance titles.

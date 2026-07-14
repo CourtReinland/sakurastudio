@@ -1,0 +1,27 @@
+id: title.sakura_tea_house
+label: Sakura Tea House
+status: draft
+brand_id: brand.sakura_soft
+engine_id: engine.threejs_tea_house
+genre_tags:
+  - match3
+  - otome
+  - vn
+  - mystery-romance
+platforms:
+  - ios
+  - android
+  - web
+default_locale: en
+content_files:
+  cast: cast.yaml
+  ggd: ggd.yaml
+  slots: slots.yaml
+  bindings: bindings.yaml
+  levels: levels.yaml
+gates:
+  require_approved_bindings_for_release: true
+  require_approved_player_facing_nodes: false
+notes: >
+  Maps to GitHub CourtReinland/sakura-match (Three.js prototype).
+  GDD: docs/GDD-current.md in that repo. Catalog holds swappable surface.

@@ -1,0 +1,78 @@
+title_id: title.sakura_match
+nodes:
+  - id: node.ui_screen.title
+    kind: ui_screen
+    label: Title Screen
+    status: draft
+    data:
+      shows: [play, settings]
+
+  - id: node.system.board
+    kind: system
+    label: Match-3 Board
+    status: draft
+    data:
+      default_grid: { width: 8, height: 8 }
+      tile_spacing: 1.1
+
+  - id: node.level.1_1
+    kind: level
+    label: 1-1 First Bloom
+    status: draft
+    tags: [chapter_1, tutorial_adjacent]
+    data:
+      chapter: 1
+      index: 1
+
+  - id: node.level.1_2
+    kind: level
+    label: 1-2 Soft Cascade
+    status: draft
+    tags: [chapter_1]
+    data:
+      chapter: 1
+      index: 2
+
+edges:
+  - id: edge.title.leads_to.board
+    kind: leads_to
+    from: node.ui_screen.title
+    to: node.system.board
+    label: Play
+
+  - id: edge.level.1_1.requires.board
+    kind: requires
+    from: node.level.1_1
+    to: node.system.board
+
+  - id: edge.level.1_1.leads_to.1_2
+    kind: leads_to
+    from: node.level.1_1
+    to: node.level.1_2
+    data:
+      on: clear
+
+  - id: edge.board.uses.tile_red
+    kind: uses_slot
+    from: node.system.board
+    to: slot.tile.red
+
+  - id: edge.board.uses.tile_blue
+    kind: uses_slot
+    from: node.system.board
+    to: slot.tile.blue
+
+  - id: edge.board.uses.tile_green
+    kind: uses_slot
+    from: node.system.board
+    to: slot.tile.green
+
+  - id: edge.board.uses.tile_yellow
+    kind: uses_slot
+    from: node.system.board
+    to: slot.tile.yellow
+
+  - id: edge.board.uses.tile_purple
+    kind: uses_slot
+    from: node.system.board
+    to: slot.tile.purple

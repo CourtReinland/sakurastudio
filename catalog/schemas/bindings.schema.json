@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sakurasoft.local/schemas/bindings.schema.json",
+  "title": "Title bindings",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["title_id", "bindings"],
+  "properties": {
+    "title_id": {
+      "type": "string",
+      "pattern": "^title\\.[a-z0-9_]+(\\.[a-z0-9_]+)*$"
+    },
+    "bindings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["slot_id", "asset_id"],
+        "properties": {
+          "slot_id": {
+            "type": "string",
+            "pattern": "^slot\\.[a-z0-9_]+(\\.[a-z0-9_]+)*$"
+          },
+          "asset_id": {
+            "type": "string",
+            "pattern": "^asset\\.[a-z0-9_]+(\\.[a-z0-9_]+)*$"
+          },
+          "status": { "$ref": "common.json#/$defs/Status" },
+          "bound_at": { "type": "string" },
+          "bound_by": { "type": "string" },
+          "notes": { "type": "string" },
+          "locale": {
+            "type": "string",
+            "description": "If set, binding applies only to this locale"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,116 @@
+title_id: title.example_otome
+nodes:
+  - id: node.route.common
+    kind: route
+    label: Common Route
+    status: draft
+
+  - id: node.route.hiro
+    kind: route
+    label: Hiro's Route
+    status: draft
+    data:
+      love_interest: chr.example.hiro
+
+  - id: node.scene.prologue.cafe
+    kind: scene
+    label: Prologue — Cafe Meet-Cute
+    status: draft
+    data:
+      location: cafe
+      estimated_minutes: 6
+
+  - id: node.scene.park_date
+    kind: scene
+    label: Park Date
+    status: draft
+    data:
+      location: city_park
+      estimated_minutes: 8
+      body_ref: scenes/park_date.yaml
+
+  - id: node.choice.park_confession
+    kind: choice
+    label: Park — lean in or hold back
+    status: draft
+
+  - id: node.cg.park_kiss
+    kind: cg_moment
+    label: Park kiss CG
+    status: draft
+
+  - id: node.gate.affection_hiro_30
+    kind: gate
+    label: Hiro affection ≥ 30
+    status: draft
+    data:
+      flag: affection.hiro
+      op: gte
+      value: 30
+
+  - id: node.ending.hiro_good
+    kind: ending
+    label: Hiro — Good End
+    status: draft
+    tags: [good_end]
+
+edges:
+  - id: edge.common.contains.prologue
+    kind: contains
+    from: node.route.common
+    to: node.scene.prologue.cafe
+
+  - id: edge.prologue.leads_to.hiro_route
+    kind: leads_to
+    from: node.scene.prologue.cafe
+    to: node.route.hiro
+    data:
+      on: choose_hiro
+
+  - id: edge.hiro.contains.park
+    kind: contains
+    from: node.route.hiro
+    to: node.scene.park_date
+
+  - id: edge.park.leads_to.choice
+    kind: leads_to
+    from: node.scene.park_date
+    to: node.choice.park_confession
+
+  - id: edge.choice.leads_to.cg
+    kind: leads_to
+    from: node.choice.park_confession
+    to: node.cg.park_kiss
+    label: Lean in
+    data:
+      option_id: lean_in
+
+  - id: edge.cg.requires.gate
+    kind: requires
+    from: node.cg.park_kiss
+    to: node.gate.affection_hiro_30
+
+  - id: edge.cg.leads_to.good_end
+    kind: leads_to
+    from: node.cg.park_kiss
+    to: node.ending.hiro_good
+
+  - id: edge.park.uses.bg
+    kind: uses_slot
+    from: node.scene.park_date
+    to: slot.bg.city_park
+
+  - id: edge.park.uses.portrait_neutral
+    kind: uses_slot
+    from: node.scene.park_date
+    to: slot.portrait.hiro.neutral
+
+  - id: edge.park.uses.portrait_smile
+    kind: uses_slot
+    from: node.scene.park_date
+    to: slot.portrait.hiro.smile
+
+  - id: edge.cg.uses.slot
+    kind: uses_slot
+    from: node.cg.park_kiss
+    to: slot.cg.hiro.park_kiss

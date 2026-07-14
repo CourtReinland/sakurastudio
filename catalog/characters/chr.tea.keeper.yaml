@@ -1,0 +1,9 @@
+id: chr.tea.keeper
+label: The Keeper (player)
+status: approved
+brand_id: brand.sakura_soft
+role_tags: [heroine, player]
+profile:
+  one_liner: Heir of the threshold; decides why the door opens.
+  personality: [curious, kind, stubborn]
+notes: Player-chosen name 1–16 letters; default display traveler.

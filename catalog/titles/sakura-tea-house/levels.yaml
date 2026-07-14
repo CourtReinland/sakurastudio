@@ -1,0 +1,27 @@
+title_id: title.sakura_tea_house
+levels:
+  - id: node.level.1
+    chapter: 1
+    index: 1
+    moves: 25
+    grid: { width: 8, height: 8 }
+    tile_pool: [slot.piece.tea_leaf, slot.piece.flower, slot.piece.lantern, slot.piece.coin, slot.piece.charm, slot.piece.wagashi]
+    goals: [{ type: collect, value: 20, slot_id: slot.piece.tea_leaf }]
+    status: approved
+    notes: Gather tea leaves — first pot after inheritance
+  - id: node.level.2
+    chapter: 1
+    index: 2
+    moves: 25
+    grid: { width: 8, height: 8 }
+    tile_pool: [slot.piece.tea_leaf, slot.piece.flower, slot.piece.lantern, slot.piece.coin, slot.piece.charm, slot.piece.wagashi]
+    goals: [{ type: collect, value: 22, slot_id: slot.piece.flower }]
+    status: approved
+  - id: node.level.3
+    chapter: 1
+    index: 3
+    moves: 24
+    grid: { width: 8, height: 8 }
+    tile_pool: [slot.piece.tea_leaf, slot.piece.flower, slot.piece.lantern, slot.piece.coin, slot.piece.charm, slot.piece.wagashi]
+    goals: [{ type: collect, value: 23, slot_id: slot.piece.lantern }]
+    status: approved

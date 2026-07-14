@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sakurasoft.local/schemas/ggd.schema.json",
+  "title": "Game Graph Document",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["title_id", "nodes", "edges"],
+  "properties": {
+    "title_id": {
+      "type": "string",
+      "pattern": "^title\\.[a-z0-9_]+(\\.[a-z0-9_]+)*$"
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "kind", "label"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^node\\.[a-z0-9_]+(\\.[a-z0-9_]+)*$"
+          },
+          "kind": { "$ref": "common.json#/$defs/NodeKind" },
+          "label": { "type": "string", "minLength": 1 },
+          "status": { "$ref": "common.json#/$defs/Status" },
+          "aliases": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "tags": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "notes": { "type": "string" },
+          "data": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Kind-specific payload (grid size, affection deltas, body_ref, etc.)"
+          }
+        }
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind", "from", "to"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^edge\\.[a-z0-9_]+(\\.[a-z0-9_]+)*$"
+          },
+          "kind": { "$ref": "common.json#/$defs/EdgeKind" },
+          "from": {
+            "type": "string",
+            "description": "Usually node.*; uses_slot may point from node to slot.*",
+            "pattern": "^(node|slot)\\.[a-z0-9_]+(\\.[a-z0-9_]+)*$"
+          },
+          "to": {
+            "type": "string",
+            "pattern": "^(node|slot|chr|str)\\.[a-z0-9_]+(\\.[a-z0-9_]+)*$"
+          },
+          "label": { "type": "string" },
+          "data": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      }
+    }
+  }
+}

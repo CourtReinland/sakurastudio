@@ -1,0 +1,192 @@
+title_id: title.sakura_tea_house
+nodes:
+  # --- Routes / arcs ---
+  - id: node.route.common
+    kind: route
+    label: Common route (Ch.1 inheritance)
+    status: approved
+    tags: [chapter_1, plot_spine]
+  - id: node.route.ren
+    kind: route
+    label: Arc A · Ren · Foxfire Heart
+    status: approved
+    data: { love_interest: chr.tea.ren }
+  - id: node.route.mizu
+    kind: route
+    label: Arc B · Mizu · Rain on the Roof
+    status: approved
+    data: { love_interest: chr.tea.mizu }
+  - id: node.route.akira
+    kind: route
+    label: Arc C · Akira · Two Hands on the Ledger
+    status: approved
+    data: { love_interest: chr.tea.akira }
+
+  # --- System ---
+  - id: node.system.board
+    kind: system
+    label: Match-3 board (lacquer)
+    status: approved
+    data: { diegesis: house arranging energy }
+
+  # --- Levels (puzzle) ---
+  - id: node.level.1
+    kind: level
+    label: 1 · Gather tea leaves
+    status: approved
+    data: { chapter: 1, index: 1, story_verb: gather }
+  - id: node.level.2
+    kind: level
+    label: 2 · Follow the white petals
+    status: approved
+    data: { chapter: 1, index: 2, story_verb: follow }
+  - id: node.level.3
+    kind: level
+    label: 3 · Wake the sixth lantern
+    status: approved
+    data: { chapter: 1, index: 3, story_verb: kindle }
+  - id: node.level.4
+    kind: level
+    label: 4 · Polish the spirit coins
+    status: approved
+    data: { chapter: 1, index: 4, story_verb: polish }
+  - id: node.level.5
+    kind: level
+    label: 5 · Strengthen the keeper's charms
+    status: approved
+    data: { chapter: 1, index: 5, story_verb: ward }
+  - id: node.level.6
+    kind: level
+    label: 6 · Prepare the returned offering
+    status: approved
+    data: { chapter: 1, index: 6, story_verb: offer }
+  - id: node.level.7
+    kind: level
+    label: 7 · Trace the hidden stair
+    status: approved
+    data: { chapter: 2, index: 7, story_verb: trace }
+  - id: node.level.8
+    kind: level
+    label: 8 · Brew the moonlit tea
+    status: approved
+    data: { chapter: 2, index: 8, story_verb: brew }
+  - id: node.level.9
+    kind: level
+    label: 9 · Bind the broken vow
+    status: approved
+    data: { chapter: 2, index: 9, story_verb: bind }
+  - id: node.level.10
+    kind: level
+    label: 10 · Pay the foxfire debt
+    status: approved
+    data: { chapter: 2, index: 10, story_verb: reclaim }
+  - id: node.level.11
+    kind: level
+    label: 11 · Open the moonlit door
+    status: approved
+    data: { chapter: 2, index: 11, story_verb: open }
+
+  # --- Scenes ---
+  - id: node.scene.visitor_dusk
+    kind: scene
+    label: A Visitor at Dusk
+    status: approved
+    data: { choice_node: welcome-choice, space: entry_hall }
+  - id: node.scene.petal_trail
+    kind: scene
+    label: The Petal's Trail
+    status: approved
+    data: { choice_node: letter-choice }
+  - id: node.scene.sixth_lantern
+    kind: scene
+    label: The Sixth Lantern
+    status: approved
+    data: { choice_node: guest-choice, introduces: chr.tea.mizu }
+  - id: node.scene.coin_remembers
+    kind: scene
+    label: A Coin That Remembers
+    status: approved
+    data: { choice_node: ledger-choice, introduces: chr.tea.akira }
+  - id: node.scene.keepers_rule
+    kind: scene
+    label: The Keeper's Rule
+    status: approved
+    data: { choice_node: ward-choice }
+  - id: node.scene.offering_returned
+    kind: scene
+    label: An Offering Returned
+    status: approved
+    data: { choice_node: final-choice, major_fork: true }
+  - id: node.scene.beneath_floor
+    kind: scene
+    label: Beneath the Floor
+    status: approved
+    data: { choice_node: stair-choice, chapter: 2 }
+  - id: node.scene.tea_for_two
+    kind: scene
+    label: Tea for Two
+    status: approved
+    data: { choice_node: tea-choice }
+  - id: node.scene.broken_vow
+    kind: scene
+    label: The Broken Vow
+    status: approved
+    data: { choice_node: vow-choice }
+  - id: node.scene.foxfire_debt
+    kind: scene
+    label: The Foxfire Debt
+    status: approved
+    data: { choice_node: debt-choice }
+  - id: node.scene.moonlit_door
+    kind: scene
+    label: The Moonlit Door
+    status: approved
+    data: { choice_node: moon-choice }
+
+  # --- Endings ---
+  - id: node.ending.ren_kiss
+    kind: ending
+    label: ending-ren-kiss
+    status: approved
+    tags: [good_end, ren]
+  - id: node.ending.mizu_rain
+    kind: ending
+    label: ending-mizu-rain
+    status: approved
+    tags: [good_end, mizu]
+  - id: node.ending.akira_ledger
+    kind: ending
+    label: ending-akira-ledger
+    status: approved
+    tags: [good_end, akira]
+
+edges:
+  - { id: edge.common.contains.s1, kind: contains, from: node.route.common, to: node.scene.visitor_dusk }
+  - { id: edge.l1.leads_to.s1, kind: leads_to, from: node.level.1, to: node.scene.visitor_dusk }
+  - { id: edge.l2.leads_to.s2, kind: leads_to, from: node.level.2, to: node.scene.petal_trail }
+  - { id: edge.l3.leads_to.s3, kind: leads_to, from: node.level.3, to: node.scene.sixth_lantern }
+  - { id: edge.l4.leads_to.s4, kind: leads_to, from: node.level.4, to: node.scene.coin_remembers }
+  - { id: edge.l5.leads_to.s5, kind: leads_to, from: node.level.5, to: node.scene.keepers_rule }
+  - { id: edge.l6.leads_to.s6, kind: leads_to, from: node.level.6, to: node.scene.offering_returned }
+  - { id: edge.l7.leads_to.s7, kind: leads_to, from: node.level.7, to: node.scene.beneath_floor }
+  - { id: edge.l8.leads_to.s8, kind: leads_to, from: node.level.8, to: node.scene.tea_for_two }
+  - { id: edge.l9.leads_to.s9, kind: leads_to, from: node.level.9, to: node.scene.broken_vow }
+  - { id: edge.l10.leads_to.s10, kind: leads_to, from: node.level.10, to: node.scene.foxfire_debt }
+  - { id: edge.l11.leads_to.s11, kind: leads_to, from: node.level.11, to: node.scene.moonlit_door }
+  - { id: edge.s1.leads_to.l2, kind: leads_to, from: node.scene.visitor_dusk, to: node.level.2 }
+  - { id: edge.s6.fork.ren, kind: unlocks, from: node.scene.offering_returned, to: node.route.ren, data: { choice: invite_ren_below } }
+  - { id: edge.s6.fork.mizu, kind: unlocks, from: node.scene.offering_returned, to: node.route.mizu, data: { choice: invite_mizu_below } }
+  - { id: edge.s6.fork.akira, kind: unlocks, from: node.scene.offering_returned, to: node.route.akira, data: { choice: invite_akira_below } }
+  - { id: edge.moon.ren, kind: leads_to, from: node.scene.moonlit_door, to: node.ending.ren_kiss, data: { choice: choose_ren } }
+  - { id: edge.moon.mizu, kind: leads_to, from: node.scene.moonlit_door, to: node.ending.mizu_rain, data: { choice: choose_mizu } }
+  - { id: edge.moon.akira, kind: leads_to, from: node.scene.moonlit_door, to: node.ending.akira_ledger, data: { choice: choose_akira } }
+  - { id: edge.board.uses.piece_tea, kind: uses_slot, from: node.system.board, to: slot.piece.tea_leaf }
+  - { id: edge.board.uses.piece_flower, kind: uses_slot, from: node.system.board, to: slot.piece.flower }
+  - { id: edge.board.uses.piece_lantern, kind: uses_slot, from: node.system.board, to: slot.piece.lantern }
+  - { id: edge.board.uses.piece_coin, kind: uses_slot, from: node.system.board, to: slot.piece.coin }
+  - { id: edge.board.uses.piece_charm, kind: uses_slot, from: node.system.board, to: slot.piece.charm }
+  - { id: edge.board.uses.piece_wagashi, kind: uses_slot, from: node.system.board, to: slot.piece.wagashi }
+  - { id: edge.s1.uses.cg, kind: uses_slot, from: node.scene.visitor_dusk, to: slot.cg.scene_01_rainy_arrival }
+  - { id: edge.s1.uses.portrait_ren, kind: uses_slot, from: node.scene.visitor_dusk, to: slot.portrait.ren.neutral }
+  - { id: edge.s3.uses.cg, kind: uses_slot, from: node.scene.sixth_lantern, to: slot.cg.scene_03_rain_spirit }
+  - { id: edge.s11.uses.cg, kind: uses_slot, from: node.scene.moonlit_door, to: slot.cg.scene_11_three_hearts }

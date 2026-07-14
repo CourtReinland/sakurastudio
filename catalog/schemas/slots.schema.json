@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sakurasoft.local/schemas/slots.schema.json",
+  "title": "Title slots",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["title_id", "slots"],
+  "properties": {
+    "title_id": {
+      "type": "string",
+      "pattern": "^title\\.[a-z0-9_]+(\\.[a-z0-9_]+)*$"
+    },
+    "slots": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "label", "kind"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^slot\\.[a-z0-9_]+(\\.[a-z0-9_]+)*$"
+          },
+          "label": { "type": "string", "minLength": 1 },
+          "kind": { "$ref": "common.json#/$defs/AssetKind" },
+          "required": { "type": "boolean", "default": true },
+          "status": { "$ref": "common.json#/$defs/Status" },
+          "notes": { "type": "string" },
+          "tags": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "constraints": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+              "max_width": { "type": "integer", "minimum": 1 },
+              "max_height": { "type": "integer", "minimum": 1 },
+              "min_width": { "type": "integer", "minimum": 1 },
+              "min_height": { "type": "integer", "minimum": 1 },
+              "aspect_ratio": { "type": "string" },
+              "tags_any": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "tags_all": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "mime_any": {
+                "type": "array",
+                "items": { "type": "string" }
+              }
+            }
+          },
+          "used_by": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^node\\.[a-z0-9_]+(\\.[a-z0-9_]+)*$"
+            }
+          }
+        }
+      }
+    }
+  }
+}

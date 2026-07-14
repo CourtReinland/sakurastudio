@@ -1,0 +1,14 @@
+id: chr.tea.mizu
+label: Mizu
+status: approved
+brand_id: brand.sakura_soft
+role_tags: [love_interest, route_lead, rain_spirit]
+profile:
+  one_liner: Guest of the sixth lantern; shelter without bargains.
+  personality: [soft, transient, grateful]
+voice:
+  register: soft-high
+  notes: pitch ~1.22
+visual:
+  signature: silver-blue mist, wet sleeves
+notes: First appears Scene 3 · The Sixth Lantern

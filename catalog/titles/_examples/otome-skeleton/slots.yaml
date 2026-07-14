@@ -1,0 +1,41 @@
+title_id: title.example_otome
+slots:
+  - id: slot.portrait.hiro.neutral
+    label: Hiro portrait — neutral
+    kind: portrait
+    required: true
+    status: draft
+    constraints:
+      tags_any: [portrait, hiro]
+    used_by:
+      - node.scene.park_date
+
+  - id: slot.portrait.hiro.smile
+    label: Hiro portrait — smile
+    kind: portrait
+    required: true
+    status: draft
+    constraints:
+      tags_any: [portrait, hiro]
+    used_by:
+      - node.scene.park_date
+
+  - id: slot.cg.hiro.park_kiss
+    label: CG — park kiss
+    kind: cg
+    required: true
+    status: draft
+    constraints:
+      tags_any: [cg, hiro, romance]
+    used_by:
+      - node.cg.park_kiss
+
+  - id: slot.bg.city_park
+    label: Background — city park
+    kind: bg
+    required: true
+    status: draft
+    constraints:
+      tags_any: [bg, park]
+    used_by:
+      - node.scene.park_date

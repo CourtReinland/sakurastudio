@@ -1,0 +1,33 @@
+title_id: title.sakura_match
+levels:
+  - id: node.level.1_1
+    chapter: 1
+    index: 1
+    moves: 20
+    grid: { width: 8, height: 8 }
+    tile_pool:
+      - slot.tile.red
+      - slot.tile.blue
+      - slot.tile.green
+      - slot.tile.yellow
+      - slot.tile.purple
+    goals:
+      - type: score
+        value: 5000
+    status: draft
+
+  - id: node.level.1_2
+    chapter: 1
+    index: 2
+    moves: 25
+    grid: { width: 8, height: 8 }
+    tile_pool:
+      - slot.tile.red
+      - slot.tile.blue
+      - slot.tile.green
+      - slot.tile.yellow
+      - slot.tile.purple
+    goals:
+      - type: score
+        value: 8000
+    status: draft

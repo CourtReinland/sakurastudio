@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sakurasoft.local/schemas/levels.schema.json",
+  "title": "Match-3 / progression levels",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["title_id", "levels"],
+  "properties": {
+    "title_id": {
+      "type": "string",
+      "pattern": "^title\\.[a-z0-9_]+(\\.[a-z0-9_]+)*$"
+    },
+    "levels": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^node\\.[a-z0-9_]+(\\.[a-z0-9_]+)*$",
+            "description": "Should match a GGD node of kind level"
+          },
+          "chapter": { "type": "integer", "minimum": 1 },
+          "index": { "type": "integer", "minimum": 1 },
+          "moves": { "type": "integer", "minimum": 1 },
+          "grid": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["width", "height"],
+            "properties": {
+              "width": { "type": "integer", "minimum": 1 },
+              "height": { "type": "integer", "minimum": 1 }
+            }
+          },
+          "tile_pool": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^slot\\.[a-z0-9_]+(\\.[a-z0-9_]+)*$"
+            }
+          },
+          "goals": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["type", "value"],
+              "additionalProperties": true,
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": ["score", "collect", "clear", "other"]
+                },
+                "value": { "type": ["integer", "string"] },
+                "slot_id": {
+                  "type": "string",
+                  "pattern": "^slot\\.[a-z0-9_]+(\\.[a-z0-9_]+)*$"
+                }
+              }
+            }
+          },
+          "status": { "$ref": "common.json#/$defs/Status" },
+          "notes": { "type": "string" }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,26 @@
+id: title.sakura_match
+label: Sakura Match
+status: draft
+brand_id: brand.sakura_soft
+engine_id: engine.unity_match3
+genre_tags:
+  - match3
+  - casual
+  - anime
+platforms:
+  - ios
+  - android
+repo_path: projects/sakura-match
+default_locale: en
+content_files:
+  cast: cast.yaml
+  ggd: ggd.yaml
+  slots: slots.yaml
+  bindings: bindings.yaml
+  levels: levels.yaml
+gates:
+  require_approved_bindings_for_release: true
+  require_approved_player_facing_nodes: false
+notes: >
+  First live title on the catalog. Sprint focus: board tiles as slots/bindings
+  so agents stop path-string thrashing.

@@ -1,0 +1,21 @@
+id: asset.tile_red_pastel_v1
+label: Match tile — red (pastel)
+status: draft
+brand_id: brand.sakura_soft
+kind: sprite
+tags: [tile, match3, red, pastel]
+files:
+  - role: master
+    path: assets/files/tiles/red_pastel_v1.png
+    mime: image/png
+    width: 128
+    height: 128
+provenance:
+  source: internal
+  tool: pending
+  prompt: "soft pastel red candy tile, kawaii match-3, no text, square"
+  created_at: "2026-07-14"
+  license: internal_all_rights
+notes: >
+  Placeholder path until sprite is generated. Binding may point here before file exists;
+  validate should warn on missing files.
