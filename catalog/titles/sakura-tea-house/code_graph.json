@@ -1,0 +1,1632 @@
+{
+  "schema_version": "1.0.0",
+  "title_id": "title.sakura_tea_house",
+  "source_repo": "CourtReinland/sakura-match",
+  "style": "graphify-inspired (local AST-free import graph)",
+  "stats": {
+    "nodes": 77,
+    "edges": 141,
+    "communities": 17
+  },
+  "god_nodes": [
+    {
+      "id": "pkg.vitest",
+      "label": "vitest",
+      "degree": 24,
+      "community": "external"
+    },
+    {
+      "id": "code.src.core.board.test.ts",
+      "label": "src/core/board.test.ts",
+      "degree": 17,
+      "community": "src/core"
+    },
+    {
+      "id": "code.src.core.gems.ts",
+      "label": "src/core/gems.ts",
+      "degree": 14,
+      "community": "src/core"
+    },
+    {
+      "id": "code.src.core.game.test.ts",
+      "label": "src/core/game.test.ts",
+      "degree": 12,
+      "community": "src/core"
+    },
+    {
+      "id": "code.src.core.level.ts",
+      "label": "src/core/level.ts",
+      "degree": 12,
+      "community": "src/core"
+    },
+    {
+      "id": "code.src.core.swaps.ts",
+      "label": "src/core/swaps.ts",
+      "degree": 11,
+      "community": "src/core"
+    },
+    {
+      "id": "code.src.core.index.ts",
+      "label": "src/core/index.ts",
+      "degree": 11,
+      "community": "src/core"
+    },
+    {
+      "id": "code.src.core.matches.ts",
+      "label": "src/core/matches.ts",
+      "degree": 11,
+      "community": "src/core"
+    },
+    {
+      "id": "code.src.core.resolution.ts",
+      "label": "src/core/resolution.ts",
+      "degree": 10,
+      "community": "src/core"
+    },
+    {
+      "id": "code.src.core.random.test.ts",
+      "label": "src/core/random.test.ts",
+      "degree": 9,
+      "community": "src/core"
+    },
+    {
+      "id": "code.src.core.generator.ts",
+      "label": "src/core/generator.ts",
+      "degree": 9,
+      "community": "src/core"
+    },
+    {
+      "id": "code.src.core.game.ts",
+      "label": "src/core/game.ts",
+      "degree": 9,
+      "community": "src/core"
+    },
+    {
+      "id": "code.src.core.resolution.test.ts",
+      "label": "src/core/resolution.test.ts",
+      "degree": 8,
+      "community": "src/core"
+    },
+    {
+      "id": "code.src.meta.content.test.ts",
+      "label": "src/meta/content.test.ts",
+      "degree": 8,
+      "community": "src/meta"
+    },
+    {
+      "id": "code.src.meta.progress.test.ts",
+      "label": "src/meta/progress.test.ts",
+      "degree": 7,
+      "community": "src/meta"
+    },
+    {
+      "id": "code.src.core.generator.test.ts",
+      "label": "src/core/generator.test.ts",
+      "degree": 6,
+      "community": "src/core"
+    },
+    {
+      "id": "code.src.app.PrototypeApp.flow.test.ts",
+      "label": "src/app/PrototypeApp.flow.test.ts",
+      "degree": 6,
+      "community": "src/app"
+    },
+    {
+      "id": "code.src.meta.affinity.test.ts",
+      "label": "src/meta/affinity.test.ts",
+      "degree": 6,
+      "community": "src/meta"
+    },
+    {
+      "id": "code.src.core.mechanics.ts",
+      "label": "src/core/mechanics.ts",
+      "degree": 5,
+      "community": "src/core"
+    },
+    {
+      "id": "code.src.core.replay.test.ts",
+      "label": "src/core/replay.test.ts",
+      "degree": 5,
+      "community": "src/core"
+    },
+    {
+      "id": "code.src.app.PuzzleController.test.ts",
+      "label": "src/app/PuzzleController.test.ts",
+      "degree": 5,
+      "community": "src/app"
+    },
+    {
+      "id": "code.src.ui.storyCinematics.test.ts",
+      "label": "src/ui/storyCinematics.test.ts",
+      "degree": 4,
+      "community": "src/ui"
+    },
+    {
+      "id": "code.src.core.replay.ts",
+      "label": "src/core/replay.ts",
+      "degree": 4,
+      "community": "src/core"
+    },
+    {
+      "id": "code.src.core.swaps.test.ts",
+      "label": "src/core/swaps.test.ts",
+      "degree": 4,
+      "community": "src/core"
+    },
+    {
+      "id": "code.src.core.matches.test.ts",
+      "label": "src/core/matches.test.ts",
+      "degree": 4,
+      "community": "src/core"
+    }
+  ],
+  "communities": {
+    "src/core": {
+      "count": 21,
+      "sample": [
+        "code.src.core.resolution.ts",
+        "code.src.core.swaps.ts",
+        "code.src.core.board.test.ts",
+        "code.src.core.random.test.ts",
+        "code.src.core.game.test.ts",
+        "code.src.core.level.ts",
+        "code.src.core.generator.ts",
+        "code.src.core.replay.ts"
+      ]
+    },
+    "docs": {
+      "count": 13,
+      "sample": [
+        "code.docs.ios-readiness.md",
+        "code.docs.GDD-current.md",
+        "code.docs.story-arc-map.md",
+        "code.docs.campaign-story-stage-bible.md",
+        "code.docs.chapter-1-milestone.md",
+        "code.docs.vertical-slice.md",
+        "code.docs.chapter-2-expansion.md",
+        "code.docs.gameplay-mechanics-v1.md"
+      ]
+    },
+    "src/meta": {
+      "count": 10,
+      "sample": [
+        "code.src.meta.content.test.ts",
+        "code.src.meta.progress.test.ts",
+        "code.src.meta.affinity.test.ts",
+        "code.src.meta.progress.ts",
+        "code.src.meta.storage.ts",
+        "code.src.meta.content.ts",
+        "code.src.meta.progressV1.ts",
+        "code.src.meta.affinity.ts"
+      ]
+    },
+    "src/app": {
+      "count": 8,
+      "sample": [
+        "code.src.app.PausableCountdown.ts",
+        "code.src.app.PrototypeApp.flow.test.ts",
+        "code.src.app.route.test.ts",
+        "code.src.app.PuzzleController.test.ts",
+        "code.src.app.PrototypeApp.ts",
+        "code.src.app.route.ts",
+        "code.src.app.PausableCountdown.test.ts",
+        "code.src.app.PuzzleController.ts"
+      ]
+    },
+    "src/audio": {
+      "count": 4,
+      "sample": [
+        "code.src.audio.GameAudio.test.ts",
+        "code.src.audio.GameAudio.ts",
+        "code.src.audio.index.ts",
+        "code.src.audio.StoryVoice.ts"
+      ]
+    },
+    "src/campaign": {
+      "count": 4,
+      "sample": [
+        "code.src.campaign.levels.ts",
+        "code.src.campaign.index.ts",
+        "code.src.campaign.balance.test.ts",
+        "code.src.campaign.levels.test.ts"
+      ]
+    },
+    "src/ui": {
+      "count": 3,
+      "sample": [
+        "code.src.ui.MetaFlowView.ts",
+        "code.src.ui.storyCinematics.test.ts",
+        "code.src.ui.storyCinematics.ts"
+      ]
+    },
+    "external": {
+      "count": 3,
+      "sample": [
+        "pkg.vitest",
+        "pkg.happy-dom",
+        "pkg.three"
+      ]
+    },
+    "src/input": {
+      "count": 2,
+      "sample": [
+        "code.src.input.BoardPointerInput.test.ts",
+        "code.src.input.BoardPointerInput.ts"
+      ]
+    },
+    "src/render": {
+      "count": 2,
+      "sample": [
+        "code.src.render.Match3BoardView.ts",
+        "code.src.render.Match3BoardView.test.ts"
+      ]
+    },
+    "README.md": {
+      "count": 1,
+      "sample": [
+        "code.README.md"
+      ]
+    },
+    "package.json": {
+      "count": 1,
+      "sample": [
+        "code.package.json"
+      ]
+    },
+    "tsconfig.json": {
+      "count": 1,
+      "sample": [
+        "code.tsconfig.json"
+      ]
+    },
+    "capacitor.config.json": {
+      "count": 1,
+      "sample": [
+        "code.capacitor.config.json"
+      ]
+    },
+    "vite.config.ts": {
+      "count": 1,
+      "sample": [
+        "code.vite.config.ts"
+      ]
+    },
+    "src/main.ts": {
+      "count": 1,
+      "sample": [
+        "code.src.main.ts"
+      ]
+    },
+    "src/styles": {
+      "count": 1,
+      "sample": [
+        "code.src.styles.main.css"
+      ]
+    }
+  },
+  "nodes": [
+    {
+      "id": "code.README.md",
+      "label": "README.md",
+      "path": "README.md",
+      "kind": "doc",
+      "community": "README.md",
+      "degree": 0
+    },
+    {
+      "id": "code.package.json",
+      "label": "package.json",
+      "path": "package.json",
+      "kind": "module",
+      "community": "package.json",
+      "degree": 0
+    },
+    {
+      "id": "code.tsconfig.json",
+      "label": "tsconfig.json",
+      "path": "tsconfig.json",
+      "kind": "module",
+      "community": "tsconfig.json",
+      "degree": 0
+    },
+    {
+      "id": "code.capacitor.config.json",
+      "label": "capacitor.config.json",
+      "path": "capacitor.config.json",
+      "kind": "module",
+      "community": "capacitor.config.json",
+      "degree": 0
+    },
+    {
+      "id": "code.vite.config.ts",
+      "label": "vite.config.ts",
+      "path": "vite.config.ts",
+      "kind": "module",
+      "community": "vite.config.ts",
+      "degree": 1
+    },
+    {
+      "id": "code.docs.ios-readiness.md",
+      "label": "docs/ios-readiness.md",
+      "path": "docs/ios-readiness.md",
+      "kind": "doc",
+      "community": "docs",
+      "degree": 0
+    },
+    {
+      "id": "code.docs.GDD-current.md",
+      "label": "docs/GDD-current.md",
+      "path": "docs/GDD-current.md",
+      "kind": "doc",
+      "community": "docs",
+      "degree": 0
+    },
+    {
+      "id": "code.docs.story-arc-map.md",
+      "label": "docs/story-arc-map.md",
+      "path": "docs/story-arc-map.md",
+      "kind": "doc",
+      "community": "docs",
+      "degree": 0
+    },
+    {
+      "id": "code.docs.campaign-story-stage-bible.md",
+      "label": "docs/campaign-story-stage-bible.md",
+      "path": "docs/campaign-story-stage-bible.md",
+      "kind": "doc",
+      "community": "docs",
+      "degree": 0
+    },
+    {
+      "id": "code.docs.chapter-1-milestone.md",
+      "label": "docs/chapter-1-milestone.md",
+      "path": "docs/chapter-1-milestone.md",
+      "kind": "doc",
+      "community": "docs",
+      "degree": 0
+    },
+    {
+      "id": "code.docs.vertical-slice.md",
+      "label": "docs/vertical-slice.md",
+      "path": "docs/vertical-slice.md",
+      "kind": "doc",
+      "community": "docs",
+      "degree": 0
+    },
+    {
+      "id": "code.docs.chapter-2-expansion.md",
+      "label": "docs/chapter-2-expansion.md",
+      "path": "docs/chapter-2-expansion.md",
+      "kind": "doc",
+      "community": "docs",
+      "degree": 0
+    },
+    {
+      "id": "code.docs.gameplay-mechanics-v1.md",
+      "label": "docs/gameplay-mechanics-v1.md",
+      "path": "docs/gameplay-mechanics-v1.md",
+      "kind": "doc",
+      "community": "docs",
+      "degree": 0
+    },
+    {
+      "id": "code.docs.device-matrix.md",
+      "label": "docs/device-matrix.md",
+      "path": "docs/device-matrix.md",
+      "kind": "doc",
+      "community": "docs",
+      "degree": 0
+    },
+    {
+      "id": "code.src.main.ts",
+      "label": "src/main.ts",
+      "path": "src/main.ts",
+      "kind": "module",
+      "community": "src/main.ts",
+      "degree": 1
+    },
+    {
+      "id": "code.src.ui.MetaFlowView.ts",
+      "label": "src/ui/MetaFlowView.ts",
+      "path": "src/ui/MetaFlowView.ts",
+      "kind": "module",
+      "community": "src/ui",
+      "degree": 1
+    },
+    {
+      "id": "code.src.ui.storyCinematics.test.ts",
+      "label": "src/ui/storyCinematics.test.ts",
+      "path": "src/ui/storyCinematics.test.ts",
+      "kind": "module",
+      "community": "src/ui",
+      "degree": 4
+    },
+    {
+      "id": "code.src.ui.storyCinematics.ts",
+      "label": "src/ui/storyCinematics.ts",
+      "path": "src/ui/storyCinematics.ts",
+      "kind": "module",
+      "community": "src/ui",
+      "degree": 0
+    },
+    {
+      "id": "code.src.core.resolution.ts",
+      "label": "src/core/resolution.ts",
+      "path": "src/core/resolution.ts",
+      "kind": "module",
+      "community": "src/core",
+      "degree": 10
+    },
+    {
+      "id": "code.src.core.swaps.ts",
+      "label": "src/core/swaps.ts",
+      "path": "src/core/swaps.ts",
+      "kind": "module",
+      "community": "src/core",
+      "degree": 11
+    },
+    {
+      "id": "code.src.core.board.test.ts",
+      "label": "src/core/board.test.ts",
+      "path": "src/core/board.test.ts",
+      "kind": "module",
+      "community": "src/core",
+      "degree": 17
+    },
+    {
+      "id": "code.src.core.random.test.ts",
+      "label": "src/core/random.test.ts",
+      "path": "src/core/random.test.ts",
+      "kind": "module",
+      "community": "src/core",
+      "degree": 9
+    },
+    {
+      "id": "code.src.core.game.test.ts",
+      "label": "src/core/game.test.ts",
+      "path": "src/core/game.test.ts",
+      "kind": "module",
+      "community": "src/core",
+      "degree": 12
+    },
+    {
+      "id": "code.src.core.level.ts",
+      "label": "src/core/level.ts",
+      "path": "src/core/level.ts",
+      "kind": "module",
+      "community": "src/core",
+      "degree": 12
+    },
+    {
+      "id": "code.src.core.generator.ts",
+      "label": "src/core/generator.ts",
+      "path": "src/core/generator.ts",
+      "kind": "module",
+      "community": "src/core",
+      "degree": 9
+    },
+    {
+      "id": "code.src.core.replay.ts",
+      "label": "src/core/replay.ts",
+      "path": "src/core/replay.ts",
+      "kind": "module",
+      "community": "src/core",
+      "degree": 4
+    },
+    {
+      "id": "code.src.core.gems.ts",
+      "label": "src/core/gems.ts",
+      "path": "src/core/gems.ts",
+      "kind": "module",
+      "community": "src/core",
+      "degree": 14
+    },
+    {
+      "id": "code.src.core.resolution.test.ts",
+      "label": "src/core/resolution.test.ts",
+      "path": "src/core/resolution.test.ts",
+      "kind": "module",
+      "community": "src/core",
+      "degree": 8
+    },
+    {
+      "id": "code.src.core.random.ts",
+      "label": "src/core/random.ts",
+      "path": "src/core/random.ts",
+      "kind": "module",
+      "community": "src/core",
+      "degree": 0
+    },
+    {
+      "id": "code.src.core.mechanics.ts",
+      "label": "src/core/mechanics.ts",
+      "path": "src/core/mechanics.ts",
+      "kind": "module",
+      "community": "src/core",
+      "degree": 5
+    },
+    {
+      "id": "code.src.core.level.test.ts",
+      "label": "src/core/level.test.ts",
+      "path": "src/core/level.test.ts",
+      "kind": "module",
+      "community": "src/core",
+      "degree": 3
+    },
+    {
+      "id": "code.src.core.replay.test.ts",
+      "label": "src/core/replay.test.ts",
+      "path": "src/core/replay.test.ts",
+      "kind": "module",
+      "community": "src/core",
+      "degree": 5
+    },
+    {
+      "id": "code.src.core.game.ts",
+      "label": "src/core/game.ts",
+      "path": "src/core/game.ts",
+      "kind": "module",
+      "community": "src/core",
+      "degree": 9
+    },
+    {
+      "id": "code.src.core.swaps.test.ts",
+      "label": "src/core/swaps.test.ts",
+      "path": "src/core/swaps.test.ts",
+      "kind": "module",
+      "community": "src/core",
+      "degree": 4
+    },
+    {
+      "id": "code.src.core.index.ts",
+      "label": "src/core/index.ts",
+      "path": "src/core/index.ts",
+      "kind": "module",
+      "community": "src/core",
+      "degree": 11
+    },
+    {
+      "id": "code.src.core.matches.ts",
+      "label": "src/core/matches.ts",
+      "path": "src/core/matches.ts",
+      "kind": "module",
+      "community": "src/core",
+      "degree": 11
+    },
+    {
+      "id": "code.src.core.board.ts",
+      "label": "src/core/board.ts",
+      "path": "src/core/board.ts",
+      "kind": "module",
+      "community": "src/core",
+      "degree": 1
+    },
+    {
+      "id": "code.src.core.matches.test.ts",
+      "label": "src/core/matches.test.ts",
+      "path": "src/core/matches.test.ts",
+      "kind": "module",
+      "community": "src/core",
+      "degree": 4
+    },
+    {
+      "id": "code.src.core.generator.test.ts",
+      "label": "src/core/generator.test.ts",
+      "path": "src/core/generator.test.ts",
+      "kind": "module",
+      "community": "src/core",
+      "degree": 6
+    },
+    {
+      "id": "code.src.app.PausableCountdown.ts",
+      "label": "src/app/PausableCountdown.ts",
+      "path": "src/app/PausableCountdown.ts",
+      "kind": "module",
+      "community": "src/app",
+      "degree": 2
+    },
+    {
+      "id": "code.src.app.PrototypeApp.flow.test.ts",
+      "label": "src/app/PrototypeApp.flow.test.ts",
+      "path": "src/app/PrototypeApp.flow.test.ts",
+      "kind": "module",
+      "community": "src/app",
+      "degree": 6
+    },
+    {
+      "id": "code.src.app.route.test.ts",
+      "label": "src/app/route.test.ts",
+      "path": "src/app/route.test.ts",
+      "kind": "module",
+      "community": "src/app",
+      "degree": 4
+    },
+    {
+      "id": "code.src.app.PuzzleController.test.ts",
+      "label": "src/app/PuzzleController.test.ts",
+      "path": "src/app/PuzzleController.test.ts",
+      "kind": "module",
+      "community": "src/app",
+      "degree": 5
+    },
+    {
+      "id": "code.src.app.PrototypeApp.ts",
+      "label": "src/app/PrototypeApp.ts",
+      "path": "src/app/PrototypeApp.ts",
+      "kind": "module",
+      "community": "src/app",
+      "degree": 2
+    },
+    {
+      "id": "code.src.app.route.ts",
+      "label": "src/app/route.ts",
+      "path": "src/app/route.ts",
+      "kind": "module",
+      "community": "src/app",
+      "degree": 0
+    },
+    {
+      "id": "code.src.app.PausableCountdown.test.ts",
+      "label": "src/app/PausableCountdown.test.ts",
+      "path": "src/app/PausableCountdown.test.ts",
+      "kind": "module",
+      "community": "src/app",
+      "degree": 2
+    },
+    {
+      "id": "code.src.app.PuzzleController.ts",
+      "label": "src/app/PuzzleController.ts",
+      "path": "src/app/PuzzleController.ts",
+      "kind": "module",
+      "community": "src/app",
+      "degree": 1
+    },
+    {
+      "id": "code.src.input.BoardPointerInput.test.ts",
+      "label": "src/input/BoardPointerInput.test.ts",
+      "path": "src/input/BoardPointerInput.test.ts",
+      "kind": "module",
+      "community": "src/input",
+      "degree": 3
+    },
+    {
+      "id": "code.src.input.BoardPointerInput.ts",
+      "label": "src/input/BoardPointerInput.ts",
+      "path": "src/input/BoardPointerInput.ts",
+      "kind": "module",
+      "community": "src/input",
+      "degree": 0
+    },
+    {
+      "id": "code.src.render.Match3BoardView.ts",
+      "label": "src/render/Match3BoardView.ts",
+      "path": "src/render/Match3BoardView.ts",
+      "kind": "module",
+      "community": "src/render",
+      "degree": 2
+    },
+    {
+      "id": "code.src.render.Match3BoardView.test.ts",
+      "label": "src/render/Match3BoardView.test.ts",
+      "path": "src/render/Match3BoardView.test.ts",
+      "kind": "module",
+      "community": "src/render",
+      "degree": 3
+    },
+    {
+      "id": "code.src.meta.content.test.ts",
+      "label": "src/meta/content.test.ts",
+      "path": "src/meta/content.test.ts",
+      "kind": "module",
+      "community": "src/meta",
+      "degree": 8
+    },
+    {
+      "id": "code.src.meta.progress.test.ts",
+      "label": "src/meta/progress.test.ts",
+      "path": "src/meta/progress.test.ts",
+      "kind": "module",
+      "community": "src/meta",
+      "degree": 7
+    },
+    {
+      "id": "code.src.meta.affinity.test.ts",
+      "label": "src/meta/affinity.test.ts",
+      "path": "src/meta/affinity.test.ts",
+      "kind": "module",
+      "community": "src/meta",
+      "degree": 6
+    },
+    {
+      "id": "code.src.meta.progress.ts",
+      "label": "src/meta/progress.ts",
+      "path": "src/meta/progress.ts",
+      "kind": "module",
+      "community": "src/meta",
+      "degree": 3
+    },
+    {
+      "id": "code.src.meta.storage.ts",
+      "label": "src/meta/storage.ts",
+      "path": "src/meta/storage.ts",
+      "kind": "module",
+      "community": "src/meta",
+      "degree": 4
+    },
+    {
+      "id": "code.src.meta.content.ts",
+      "label": "src/meta/content.ts",
+      "path": "src/meta/content.ts",
+      "kind": "module",
+      "community": "src/meta",
+      "degree": 0
+    },
+    {
+      "id": "code.src.meta.progressV1.ts",
+      "label": "src/meta/progressV1.ts",
+      "path": "src/meta/progressV1.ts",
+      "kind": "module",
+      "community": "src/meta",
+      "degree": 2
+    },
+    {
+      "id": "code.src.meta.affinity.ts",
+      "label": "src/meta/affinity.ts",
+      "path": "src/meta/affinity.ts",
+      "kind": "module",
+      "community": "src/meta",
+      "degree": 0
+    },
+    {
+      "id": "code.src.meta.storage.test.ts",
+      "label": "src/meta/storage.test.ts",
+      "path": "src/meta/storage.test.ts",
+      "kind": "module",
+      "community": "src/meta",
+      "degree": 4
+    },
+    {
+      "id": "code.src.meta.index.ts",
+      "label": "src/meta/index.ts",
+      "path": "src/meta/index.ts",
+      "kind": "module",
+      "community": "src/meta",
+      "degree": 4
+    },
+    {
+      "id": "code.src.styles.main.css",
+      "label": "src/styles/main.css",
+      "path": "src/styles/main.css",
+      "kind": "module",
+      "community": "src/styles",
+      "degree": 0
+    },
+    {
+      "id": "code.src.audio.GameAudio.test.ts",
+      "label": "src/audio/GameAudio.test.ts",
+      "path": "src/audio/GameAudio.test.ts",
+      "kind": "module",
+      "community": "src/audio",
+      "degree": 4
+    },
+    {
+      "id": "code.src.audio.GameAudio.ts",
+      "label": "src/audio/GameAudio.ts",
+      "path": "src/audio/GameAudio.ts",
+      "kind": "module",
+      "community": "src/audio",
+      "degree": 0
+    },
+    {
+      "id": "code.src.audio.index.ts",
+      "label": "src/audio/index.ts",
+      "path": "src/audio/index.ts",
+      "kind": "module",
+      "community": "src/audio",
+      "degree": 2
+    },
+    {
+      "id": "code.src.audio.StoryVoice.ts",
+      "label": "src/audio/StoryVoice.ts",
+      "path": "src/audio/StoryVoice.ts",
+      "kind": "module",
+      "community": "src/audio",
+      "degree": 1
+    },
+    {
+      "id": "code.src.campaign.levels.ts",
+      "label": "src/campaign/levels.ts",
+      "path": "src/campaign/levels.ts",
+      "kind": "module",
+      "community": "src/campaign",
+      "degree": 3
+    },
+    {
+      "id": "code.src.campaign.index.ts",
+      "label": "src/campaign/index.ts",
+      "path": "src/campaign/index.ts",
+      "kind": "module",
+      "community": "src/campaign",
+      "degree": 1
+    },
+    {
+      "id": "code.src.campaign.balance.test.ts",
+      "label": "src/campaign/balance.test.ts",
+      "path": "src/campaign/balance.test.ts",
+      "kind": "module",
+      "community": "src/campaign",
+      "degree": 2
+    },
+    {
+      "id": "code.src.campaign.levels.test.ts",
+      "label": "src/campaign/levels.test.ts",
+      "path": "src/campaign/levels.test.ts",
+      "kind": "module",
+      "community": "src/campaign",
+      "degree": 2
+    },
+    {
+      "id": "code.docs.adr.0001-threejs-mobile-architecture.md",
+      "label": "docs/adr/0001-threejs-mobile-architecture.md",
+      "path": "docs/adr/0001-threejs-mobile-architecture.md",
+      "kind": "doc",
+      "community": "docs",
+      "degree": 0
+    },
+    {
+      "id": "code.docs.art.cinematic-stills-v1.md",
+      "label": "docs/art/cinematic-stills-v1.md",
+      "path": "docs/art/cinematic-stills-v1.md",
+      "kind": "doc",
+      "community": "docs",
+      "degree": 0
+    },
+    {
+      "id": "code.docs.art.vertical-slice-assets.md",
+      "label": "docs/art/vertical-slice-assets.md",
+      "path": "docs/art/vertical-slice-assets.md",
+      "kind": "doc",
+      "community": "docs",
+      "degree": 0
+    },
+    {
+      "id": "code.docs.art.protagonist-concept-v1.md",
+      "label": "docs/art/protagonist-concept-v1.md",
+      "path": "docs/art/protagonist-concept-v1.md",
+      "kind": "doc",
+      "community": "docs",
+      "degree": 0
+    },
+    {
+      "id": "pkg.vitest",
+      "label": "vitest",
+      "path": null,
+      "kind": "package",
+      "community": "external",
+      "degree": 24
+    },
+    {
+      "id": "pkg.happy-dom",
+      "label": "happy-dom",
+      "path": null,
+      "kind": "package",
+      "community": "external",
+      "degree": 1
+    },
+    {
+      "id": "pkg.three",
+      "label": "three",
+      "path": null,
+      "kind": "package",
+      "community": "external",
+      "degree": 2
+    }
+  ],
+  "edges": [
+    {
+      "from": "code.vite.config.ts",
+      "to": "pkg.vitest",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.main.ts",
+      "to": "code.src.app.PrototypeApp.flow.test.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.ui.MetaFlowView.ts",
+      "to": "code.src.ui.storyCinematics.test.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.ui.storyCinematics.test.ts",
+      "to": "code.src.ui.storyCinematics.test.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.ui.storyCinematics.test.ts",
+      "to": "pkg.vitest",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.resolution.ts",
+      "to": "code.src.core.board.test.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.resolution.ts",
+      "to": "code.src.core.gems.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.resolution.ts",
+      "to": "code.src.core.matches.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.resolution.ts",
+      "to": "code.src.core.level.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.resolution.ts",
+      "to": "code.src.core.random.test.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.resolution.ts",
+      "to": "code.src.core.mechanics.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.resolution.ts",
+      "to": "code.src.core.swaps.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.swaps.ts",
+      "to": "code.src.core.board.test.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.swaps.ts",
+      "to": "code.src.core.matches.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.board.test.ts",
+      "to": "code.src.core.gems.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.board.test.ts",
+      "to": "code.src.core.board.test.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.board.test.ts",
+      "to": "pkg.vitest",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.random.test.ts",
+      "to": "code.src.core.random.test.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.random.test.ts",
+      "to": "pkg.vitest",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.game.test.ts",
+      "to": "code.src.core.board.test.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.game.test.ts",
+      "to": "code.src.core.gems.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.game.test.ts",
+      "to": "code.src.core.level.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.game.test.ts",
+      "to": "code.src.core.matches.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.game.test.ts",
+      "to": "pkg.vitest",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.game.test.ts",
+      "to": "code.src.core.swaps.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.game.test.ts",
+      "to": "code.src.core.mechanics.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.game.test.ts",
+      "to": "code.src.core.game.test.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.level.ts",
+      "to": "code.src.core.gems.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.level.ts",
+      "to": "code.src.core.random.test.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.level.ts",
+      "to": "code.src.core.board.test.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.generator.ts",
+      "to": "code.src.core.board.test.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.generator.ts",
+      "to": "code.src.core.gems.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.generator.ts",
+      "to": "code.src.core.matches.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.generator.ts",
+      "to": "code.src.core.level.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.generator.ts",
+      "to": "code.src.core.random.test.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.generator.ts",
+      "to": "code.src.core.swaps.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.replay.ts",
+      "to": "code.src.core.game.test.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.replay.ts",
+      "to": "code.src.core.level.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.resolution.test.ts",
+      "to": "code.src.core.resolution.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.resolution.test.ts",
+      "to": "code.src.core.board.test.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.resolution.test.ts",
+      "to": "code.src.core.gems.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.resolution.test.ts",
+      "to": "code.src.core.matches.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.resolution.test.ts",
+      "to": "code.src.core.level.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.resolution.test.ts",
+      "to": "code.src.core.random.test.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.resolution.test.ts",
+      "to": "pkg.vitest",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.resolution.test.ts",
+      "to": "code.src.core.swaps.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.mechanics.ts",
+      "to": "code.src.core.board.test.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.level.test.ts",
+      "to": "code.src.core.gems.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.level.test.ts",
+      "to": "pkg.vitest",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.level.test.ts",
+      "to": "code.src.core.level.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.replay.test.ts",
+      "to": "code.src.core.replay.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.replay.test.ts",
+      "to": "code.src.core.level.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.replay.test.ts",
+      "to": "pkg.vitest",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.replay.test.ts",
+      "to": "code.src.core.swaps.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.replay.test.ts",
+      "to": "code.src.core.game.test.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.game.ts",
+      "to": "code.src.core.resolution.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.game.ts",
+      "to": "code.src.core.board.test.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.game.ts",
+      "to": "code.src.core.generator.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.game.ts",
+      "to": "code.src.core.gems.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.game.ts",
+      "to": "code.src.core.matches.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.game.ts",
+      "to": "code.src.core.level.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.game.ts",
+      "to": "code.src.core.random.test.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.game.ts",
+      "to": "code.src.core.mechanics.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.game.ts",
+      "to": "code.src.core.swaps.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.swaps.test.ts",
+      "to": "code.src.core.gems.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.swaps.test.ts",
+      "to": "code.src.core.swaps.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.swaps.test.ts",
+      "to": "code.src.core.board.test.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.swaps.test.ts",
+      "to": "pkg.vitest",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.index.ts",
+      "to": "code.src.core.resolution.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.index.ts",
+      "to": "code.src.core.replay.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.index.ts",
+      "to": "code.src.core.board.test.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.index.ts",
+      "to": "code.src.core.generator.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.index.ts",
+      "to": "code.src.core.gems.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.index.ts",
+      "to": "code.src.core.level.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.index.ts",
+      "to": "code.src.core.matches.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.index.ts",
+      "to": "code.src.core.random.test.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.index.ts",
+      "to": "code.src.core.swaps.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.index.ts",
+      "to": "code.src.core.mechanics.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.index.ts",
+      "to": "code.src.core.game.test.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.matches.ts",
+      "to": "code.src.core.gems.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.matches.ts",
+      "to": "code.src.core.board.test.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.board.ts",
+      "to": "code.src.core.gems.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.matches.test.ts",
+      "to": "code.src.core.gems.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.matches.test.ts",
+      "to": "code.src.core.board.test.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.matches.test.ts",
+      "to": "pkg.vitest",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.matches.test.ts",
+      "to": "code.src.core.matches.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.generator.test.ts",
+      "to": "code.src.core.board.test.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.generator.test.ts",
+      "to": "code.src.core.generator.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.generator.test.ts",
+      "to": "code.src.core.gems.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.generator.test.ts",
+      "to": "code.src.core.matches.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.generator.test.ts",
+      "to": "pkg.vitest",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.core.generator.test.ts",
+      "to": "code.src.core.swaps.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.app.PrototypeApp.flow.test.ts",
+      "to": "pkg.happy-dom",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.app.PrototypeApp.flow.test.ts",
+      "to": "pkg.vitest",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.app.PrototypeApp.flow.test.ts",
+      "to": "code.src.app.PuzzleController.test.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.app.PrototypeApp.flow.test.ts",
+      "to": "code.src.app.PrototypeApp.flow.test.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.app.route.test.ts",
+      "to": "code.src.app.route.test.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.app.route.test.ts",
+      "to": "pkg.vitest",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.app.PuzzleController.test.ts",
+      "to": "pkg.vitest",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.app.PuzzleController.test.ts",
+      "to": "code.src.app.PuzzleController.test.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.app.PrototypeApp.ts",
+      "to": "code.src.app.route.test.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.app.PrototypeApp.ts",
+      "to": "code.src.app.PuzzleController.test.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.app.PausableCountdown.test.ts",
+      "to": "pkg.vitest",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.app.PausableCountdown.test.ts",
+      "to": "code.src.app.PausableCountdown.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.app.PuzzleController.ts",
+      "to": "code.src.app.PausableCountdown.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.input.BoardPointerInput.test.ts",
+      "to": "code.src.input.BoardPointerInput.test.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.input.BoardPointerInput.test.ts",
+      "to": "pkg.vitest",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.render.Match3BoardView.ts",
+      "to": "pkg.three",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.render.Match3BoardView.test.ts",
+      "to": "pkg.three",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.render.Match3BoardView.test.ts",
+      "to": "pkg.vitest",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.render.Match3BoardView.test.ts",
+      "to": "code.src.render.Match3BoardView.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.meta.content.test.ts",
+      "to": "pkg.vitest",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.meta.content.test.ts",
+      "to": "code.src.meta.content.test.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.meta.progress.test.ts",
+      "to": "code.src.meta.progress.test.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.meta.progress.test.ts",
+      "to": "pkg.vitest",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.meta.progress.test.ts",
+      "to": "code.src.meta.content.test.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.meta.affinity.test.ts",
+      "to": "code.src.meta.affinity.test.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.meta.affinity.test.ts",
+      "to": "pkg.vitest",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.meta.affinity.test.ts",
+      "to": "code.src.meta.content.test.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.meta.progress.ts",
+      "to": "code.src.meta.progressV1.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.meta.progress.ts",
+      "to": "code.src.meta.affinity.test.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.meta.progress.ts",
+      "to": "code.src.meta.content.test.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.meta.storage.ts",
+      "to": "code.src.meta.progressV1.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.meta.storage.ts",
+      "to": "code.src.meta.progress.test.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.meta.storage.test.ts",
+      "to": "code.src.meta.storage.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.meta.storage.test.ts",
+      "to": "code.src.meta.content.test.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.meta.storage.test.ts",
+      "to": "pkg.vitest",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.meta.storage.test.ts",
+      "to": "code.src.meta.progress.test.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.meta.index.ts",
+      "to": "code.src.meta.progress.test.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.meta.index.ts",
+      "to": "code.src.meta.affinity.test.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.meta.index.ts",
+      "to": "code.src.meta.storage.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.meta.index.ts",
+      "to": "code.src.meta.content.test.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.audio.GameAudio.test.ts",
+      "to": "pkg.vitest",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.audio.GameAudio.test.ts",
+      "to": "code.src.audio.GameAudio.test.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.audio.index.ts",
+      "to": "code.src.audio.StoryVoice.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.audio.index.ts",
+      "to": "code.src.audio.GameAudio.test.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.campaign.index.ts",
+      "to": "code.src.campaign.levels.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.campaign.balance.test.ts",
+      "to": "code.src.campaign.levels.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.campaign.balance.test.ts",
+      "to": "pkg.vitest",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.campaign.levels.test.ts",
+      "to": "code.src.campaign.levels.ts",
+      "kind": "imports"
+    },
+    {
+      "from": "code.src.campaign.levels.test.ts",
+      "to": "pkg.vitest",
+      "kind": "imports"
+    }
+  ]
+}

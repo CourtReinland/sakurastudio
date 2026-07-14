@@ -1,0 +1,24 @@
+id: asset.cg.tea.scene_01_fox_shadow
+label: CG · scene-01-fox-shadow
+status: approved
+brand_id: brand.sakura_soft
+kind: cg
+tags:
+- tea_house
+- swap
+- graphic
+- cinematic
+- scene_01_fox_shadow
+characters: []
+files:
+- role: master
+  path: assets/files/tea_house/cinematics/scene-01-fox-shadow.webp
+  mime: image/webp
+  width: 941
+  height: 1672
+provenance:
+  source: internal
+  tool: tea_house_sync
+  created_at: '2026-07-14'
+  license: internal_all_rights
+  author: CourtReinland/sakura-match

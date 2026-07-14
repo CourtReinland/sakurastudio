@@ -1,0 +1,23 @@
+id: asset.line.tea.the_broken_vow.embrace_answer
+label: Line · The Broken Vow · embrace-answer
+status: approved
+brand_id: brand.sakura_soft
+kind: other
+tags:
+- dialogue
+- line
+- tea_house
+- narrator
+- the_broken_vow
+characters: []
+files:
+- role: master
+  path: assets/files/tea_house/dialogue/the_broken_vow/embrace_answer.txt
+  mime: text/plain
+provenance:
+  source: internal
+  tool: gdd_import
+  prompt: Imported from GDD dialogue ledger scene=the-broken-vow node=embrace-answer
+  created_at: '2026-07-14'
+  license: internal_all_rights
+notes: speaker=narrator; string_id=str.tea.the_broken_vow.embrace_answer

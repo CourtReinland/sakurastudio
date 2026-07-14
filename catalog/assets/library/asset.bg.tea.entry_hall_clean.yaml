@@ -1,0 +1,23 @@
+id: asset.bg.tea.entry_hall_clean
+label: BG · entry hall clean
+status: approved
+brand_id: brand.sakura_soft
+kind: bg
+tags:
+- tea_house
+- swap
+- graphic
+- bg
+characters: []
+files:
+- role: master
+  path: assets/files/tea_house/backgrounds/entry-hall-dusk-clean.webp
+  mime: image/webp
+  width: 1080
+  height: 844
+provenance:
+  source: internal
+  tool: tea_house_sync
+  created_at: '2026-07-14'
+  license: internal_all_rights
+  author: CourtReinland/sakura-match

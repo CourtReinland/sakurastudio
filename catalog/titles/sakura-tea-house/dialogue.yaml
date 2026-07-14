@@ -1,0 +1,800 @@
+title_id: title.sakura_tea_house
+source: docs/GDD-current.md §13 / src/meta/content.ts
+imported_at: '2026-07-14T08:19:35Z'
+scenes:
+- id: a-visitor-at-dusk
+  label: A Visitor at Dusk
+  start_node: arrival-1
+  nodes:
+  - id: arrival-1
+    kind: line
+    speaker: narrator
+    text: Dusk settles over the tea house as the last ribbon of dust disappears beneath your cloth. The entry hall is still
+      scarred, but the floor catches the lantern light again.
+  - id: arrival-2
+    kind: line
+    speaker: narrator
+    text: A soft knock sounds from the open doorway. A stranger stands there in a pale traveling coat, rain-dark hair framing
+      eyes bright as amber.
+  - id: arrival-3
+    kind: line
+    speaker: ren
+    text: You worked later than she ever did.
+  - id: arrival-4
+    kind: line
+    speaker: you
+    text: She?
+  - id: arrival-5
+    kind: line
+    speaker: ren
+    text: Your grandmother. She used to leave this door open at dusk, even when no human guests were expected.
+  - id: arrival-6
+    kind: line
+    speaker: narrator
+    text: He steps across the threshold without a sound, studying the clean boards as if they have answered a question.
+  - id: arrival-7
+    kind: line
+    speaker: ren
+    text: Ren. An old customer, if the house still remembers me.
+  - id: welcome-choice
+    kind: choice
+    speaker: null
+    text: '**How do you welcome him?**'
+  - id: warm_welcome
+    kind: option
+    speaker: → `warm-look`
+    text: 'Then let me make you tea. _(affinity: ren+2)_'
+  - id: curious_challenge
+    kind: option
+    speaker: → `curious-look`
+    text: 'What kind of customer comes only at dusk? _(affinity: ren+1, akira+1)_'
+  - id: warm-look
+    kind: line
+    speaker: narrator
+    text: A smile touches his mouth.
+  - id: warm-reply
+    kind: line
+    speaker: ren
+    text: Warmth first, questions after. You are like her in the most dangerous way.
+  - id: curious-look
+    kind: line
+    speaker: narrator
+    text: His amber gaze sharpens, amused.
+  - id: curious-reply
+    kind: line
+    speaker: ren
+    text: The careful kind asks who; the interesting kind asks what. Keep that instinct.
+  - id: shadow
+    kind: line
+    speaker: narrator
+    text: For one heartbeat, a fox-shaped shadow flickers behind him, though Ren has not moved.
+  - id: wake
+    kind: line
+    speaker: ren
+    text: I wondered whether this place would wake for you. Tonight, it has.
+  - id: departure
+    kind: line
+    speaker: narrator
+    text: The lantern flame lifts. When you look back from the kettle, the doorway is empty, and a single white petal rests
+      on the newly swept floor.
+  - id: end
+    kind: end
+    speaker: null
+    text: —
+  terminal_paths:
+  - warm_welcome
+  - curious_challenge
+- id: the-petals-trail
+  label: The Petal's Trail
+  start_node: petal-stirs
+  nodes:
+  - id: petal-stirs
+    kind: line
+    speaker: narrator
+    text: The white petal Ren left behind trembles, then skims across the floor against the draft.
+  - id: ren-returns
+    kind: line
+    speaker: you
+    text: Ren?
+  - id: not-far
+    kind: line
+    speaker: ren
+    text: I did not go far. The house seemed reluctant to let the evening end.
+  - id: loose-board
+    kind: line
+    speaker: narrator
+    text: The petal settles over a warped board. Beneath it waits a folded scrap in your grandmother's hand.
+  - id: first-message
+    kind: line
+    speaker: you
+    text: When the house chooses its keeper, six lights will wake.
+  - id: letter-choice
+    kind: choice
+    speaker: null
+    text: '**What do you say to Ren?**'
+  - id: share_the_letter
+    kind: option
+    speaker: → `shared-answer`
+    text: 'I will read the rest with you. _(affinity: ren+2)_'
+  - id: ask_about_the_petal
+    kind: option
+    speaker: → `careful-answer`
+    text: 'Why did your petal lead me here? _(affinity: ren+1, mizu+1)_'
+  - id: shared-answer
+    kind: line
+    speaker: ren
+    text: Then I will try to deserve the invitation.
+  - id: careful-answer
+    kind: line
+    speaker: ren
+    text: A careful question. It moved because the house wanted you to look.
+  - id: house-answers
+    kind: line
+    speaker: narrator
+    text: From the dark entryway comes the soft click of a lantern wick catching by itself.
+  - id: next-warning
+    kind: line
+    speaker: ren
+    text: Whatever wakes next, you should not have to meet it alone.
+  - id: end
+    kind: end
+    speaker: null
+    text: —
+  terminal_paths:
+  - share_the_letter
+  - ask_about_the_petal
+- id: the-sixth-lantern
+  label: The Sixth Lantern
+  start_node: five-lanterns
+  nodes:
+  - id: five-lanterns
+    kind: line
+    speaker: narrator
+    text: Five restored lanterns glow warmly. The sixth remains cold beneath your hand.
+  - id: not-the-oil
+    kind: line
+    speaker: you
+    text: The wick is new. Why will it not light?
+  - id: ren-knows
+    kind: line
+    speaker: ren
+    text: Because it is waiting for a guest, not a flame.
+  - id: blue-light
+    kind: line
+    speaker: narrator
+    text: Fox-blue fire blossoms in the lantern. Rain gathers in the doorway and takes the shape of a traveler with sleeves
+      like wet paper.
+  - id: guest-request
+    kind: line
+    speaker: mizu
+    text: Keeper {name}… is the house accepting guests again? I am called Mizu, when names still matter.
+  - id: guest-choice
+    kind: choice
+    speaker: null
+    text: '**How do you answer the rain spirit?**'
+  - id: welcome_the_guest
+    kind: option
+    speaker: → `welcome-reply`
+    text: 'You are welcome, Mizu. Come in from the rain. _(affinity: mizu+3)_'
+  - id: question_the_guest
+    kind: option
+    speaker: → `question-reply`
+    text: 'Before I pour, what are you asking of me? _(affinity: mizu+1, ren+1)_'
+  - id: defer_to_ren
+    kind: option
+    speaker: → `defer-reply`
+    text: 'Ren—should a spirit guest enter tonight? _(affinity: ren+2, mizu+1)_'
+  - id: welcome-reply
+    kind: line
+    speaker: mizu
+    text: Then the old welcome still has a voice. I will remember the sound of yours.
+  - id: question-reply
+    kind: line
+    speaker: mizu
+    text: Only shelter, and a cup. Rain does not take what is not offered.
+  - id: defer-reply
+    kind: line
+    speaker: ren
+    text: The keeper decides. I will only say this guest has never broken a cup or a promise.
+  - id: first-cup
+    kind: line
+    speaker: narrator
+    text: Mizu drinks one steaming cup, bows, and dissolves into silver drops. A pale coin remains on the mat—still faintly
+      warm from rain-hands.
+  - id: proof
+    kind: line
+    speaker: ren
+    text: Your first guest has paid. Keep the coin; the house may remember where it belongs.
+  - id: end
+    kind: end
+    speaker: null
+    text: —
+  terminal_paths:
+  - welcome_the_guest
+  - question_the_guest
+  - defer_to_ren
+- id: a-coin-that-remembers
+  label: A Coin That Remembers
+  start_node: coin-rolls
+  nodes:
+  - id: coin-rolls
+    kind: line
+    speaker: narrator
+    text: The spirit coin rolls from your palm, crosses the room, and vanishes beneath the old counter.
+  - id: ledger-found
+    kind: line
+    speaker: narrator
+    text: You reach after it and pull out a dust-softened guest ledger wrapped in faded red cord.
+  - id: familiar-writing
+    kind: line
+    speaker: you
+    text: This is Grandmother's writing. But these pages look much older than the others.
+  - id: fox-seal
+    kind: line
+    speaker: narrator
+    text: Moonlight touches the paper. A tiny fox-paw seal appears beside a second mark in scholarly ink—and a soft voice
+      speaks from the binding.
+  - id: akira-stirs
+    kind: line
+    speaker: akira
+    text: Page… after page… I kept them. I am Akira. Your grandmother bound me to remember what foxfire forgets.
+  - id: ren-admits
+    kind: line
+    speaker: ren
+    text: The fox seal is mine. The ink is theirs. Your grandmother kept better records than either of us hoped.
+  - id: ledger-choice
+    kind: choice
+    speaker: null
+    text: '**Whom do you answer first?**'
+  - id: ask_about_grandmother
+    kind: option
+    speaker: → `trust-answer`
+    text: 'Ren—she trusted you, did she not? _(affinity: ren+2)_'
+  - id: ask_about_the_seal
+    kind: option
+    speaker: → `age-answer`
+    text: 'How old is that seal, Ren? _(affinity: ren+1, akira+1)_'
+  - id: call_to_the_ledger
+    kind: option
+    speaker: → `akira-answer`
+    text: 'Akira—what should I know before I open another page? _(affinity: akira+3)_'
+  - id: trust-answer
+    kind: line
+    speaker: ren
+    text: Enough to leave some truths in my care. Not enough to make them mine to give.
+  - id: age-answer
+    kind: line
+    speaker: ren
+    text: Older than this house’s paint, younger than the first guest who asked to leave free. That is all I will say without
+      lying.
+  - id: akira-answer
+    kind: line
+    speaker: akira
+    text: Every name in me is a door, keeper {name}. Open carefully. Some doors remember who knocked first—and open back.
+  - id: ledger-closes
+    kind: line
+    speaker: narrator
+    text: The ledger snaps shut. The silver coin remains pressed between two marked pages, and Akira’s voice settles into
+      quiet ink.
+  - id: earned-answers
+    kind: line
+    speaker: ren
+    text: This house gives nothing merely because it is demanded. We will have to earn the next page.
+  - id: end
+    kind: end
+    speaker: null
+    text: —
+  terminal_paths:
+  - ask_about_grandmother
+  - ask_about_the_seal
+  - call_to_the_ledger
+- id: the-keepers-rule
+  label: The Keeper's Rule
+  start_node: charm-warms
+  nodes:
+  - id: charm-warms
+    kind: line
+    speaker: narrator
+    text: The last repaired charm warms over the ledger. Hidden ink threads across an empty page.
+  - id: rule-read
+    kind: line
+    speaker: you
+    text: No bargain beneath this roof binds without the keeper's freely given word.
+  - id: shadow-calls
+    kind: line
+    speaker: narrator
+    text: Something tall darkens the doorway and repeats your name in your grandmother's voice.
+  - id: ren-warns
+    kind: line
+    speaker: ren
+    text: Do not answer the voice. Answer the house.
+  - id: threshold-bends
+    kind: line
+    speaker: narrator
+    text: The threshold groans. Ren braces one hand against the doorframe and offers you the other.
+  - id: ward-choice
+    kind: choice
+    speaker: null
+    text: '**How do you hold the threshold?**'
+  - id: follow_rens_lead
+    kind: option
+    speaker: → `trust-reply`
+    text: 'Ren—tell me what to do. _(affinity: ren+2)_'
+  - id: stand_as_equals
+    kind: option
+    speaker: → `resolve-reply`
+    text: 'Stand beside me and explain. _(affinity: ren+1, akira+1)_'
+  - id: speak_for_the_house
+    kind: option
+    speaker: → `house-reply`
+    text: 'I speak for the house. Watch my back. _(affinity: akira+2, mizu+1)_'
+  - id: trust-reply
+    kind: line
+    speaker: ren
+    text: Tell it no. I will make certain it listens.
+  - id: resolve-reply
+    kind: line
+    speaker: ren
+    text: Gladly. Your word closes the door; mine only shows it the way out.
+  - id: house-reply
+    kind: line
+    speaker: akira
+    text: Good. A keeper who remembers the rule is harder to counterfeit than any charm I ever inked.
+  - id: keeper-refuses
+    kind: line
+    speaker: you
+    text: You have no welcome and no bargain here. Leave.
+  - id: shadow-breaks
+    kind: line
+    speaker: narrator
+    text: The charm rings like porcelain. The shadow folds into the night and the door slams shut.
+  - id: choice-heard
+    kind: line
+    speaker: ren
+    text: The house heard you choose. That matters more than any ward.
+  - id: end
+    kind: end
+    speaker: null
+    text: —
+  terminal_paths:
+  - follow_rens_lead
+  - stand_as_equals
+  - speak_for_the_house
+- id: an-offering-returned
+  label: An Offering Returned
+  start_node: offering-set
+  nodes:
+  - id: offering-set
+    kind: line
+    speaker: narrator
+    text: At dusk you set fresh wagashi on Grandmother's lacquer tray and place it beside the sealed ledger.
+  - id: ren-explains
+    kind: line
+    speaker: ren
+    text: An offering is not a bargain. It promises kindness without demanding an answer.
+  - id: tray-returns
+    kind: line
+    speaker: narrator
+    text: The lamps dim. The tray vanishes, then returns empty except for the missing half of Grandmother's letter.
+  - id: second-message
+    kind: line
+    speaker: you
+    text: I did not leave you a business. I left you a threshold, and the right to decide whom it opens for.
+  - id: knock-below
+    kind: line
+    speaker: narrator
+    text: Three knocks answer beneath the floor. Rain beads on the sill. The ledger’s cord loosens of its own accord. The
+      house asks whom you trust most to descend.
+  - id: final-choice
+    kind: choice
+    speaker: null
+    text: '**Who walks with you toward the buried threshold?**'
+  - id: invite_ren_below
+    kind: option
+    speaker: → `ren-invite-reply`
+    text: 'Ren—stay close. We face it together. _(affinity: ren+3)_'
+  - id: invite_mizu_below
+    kind: option
+    speaker: → `mizu-invite-reply`
+    text: 'Mizu—if rain can find every crack, guide me. _(affinity: mizu+3)_'
+  - id: invite_akira_below
+    kind: option
+    speaker: → `akira-invite-reply`
+    text: 'Akira—bring every name the ledger knows. _(affinity: akira+3)_'
+  - id: ren-invite-reply
+    kind: line
+    speaker: ren
+    text: Together, then. Not because I am bound to protect you—because I want to.
+  - id: mizu-invite-reply
+    kind: line
+    speaker: mizu
+    text: Rain finds every crack, keeper {name}. I will make a path soft enough to walk.
+  - id: akira-invite-reply
+    kind: line
+    speaker: akira
+    text: Then I step out of the counter’s shadow. The pages travel with us—truth first. If love comes, it will be written
+      freely, not filed.
+  - id: knocking-stops
+    kind: line
+    speaker: narrator
+    text: The knocking stops. Beneath your feet, something scratches once across the wood—as if the house has marked your
+      companion for the stair.
+  - id: tomorrow
+    kind: line
+    speaker: ren
+    text: Tomorrow the stair opens. The one you named will be expected—and so will you, {name}. I will not pretend I am unafraid.
+  - id: end
+    kind: end
+    speaker: null
+    text: —
+  terminal_paths:
+  - invite_ren_below
+  - invite_mizu_below
+  - invite_akira_below
+- id: beneath-the-floor
+  label: Beneath the Floor
+  start_node: stair-opens
+  nodes:
+  - id: stair-opens
+    kind: line
+    speaker: narrator
+    text: At moonrise the lifted board unfolds into a narrow stair. Foxfire, rain-mist, and faint ink-light braid along the
+      steps—the house still arguing over who may lead.
+  - id: ren-confesses
+    kind: line
+    speaker: ren
+    text: Your grandmother bound my silence here. I could protect her heir, but I could not tell you what waited below until
+      you chose to descend.
+  - id: wrist-mark
+    kind: line
+    speaker: narrator
+    text: Ren bares his wrist. A fading cord of light circles it. When your fingers hover near, the mark answers your warmth—and
+      the stair holds its breath.
+  - id: stair-choice
+    kind: choice
+    speaker: null
+    text: '**How do you answer the buried threshold?**'
+  - id: take_his_hand
+    kind: option
+    speaker: → `hand-answer`
+    text: 'No more descending alone. Take my hand, Ren. _(affinity: ren+2)_'
+  - id: ask_for_trust
+    kind: option
+    speaker: → `trust-answer-two`
+    text: 'Then begin again—with the truth this time. _(affinity: ren+1, akira+1)_'
+  - id: listen_for_rain
+    kind: option
+    speaker: → `rain-answer`
+    text: 'Mizu—if you are near, cool the dark for us. _(affinity: mizu+2)_'
+  - id: hand-answer
+    kind: line
+    speaker: ren
+    text: You make obedience feel dangerously like hope. Stay close—I will not let the stair take you without me.
+  - id: trust-answer-two
+    kind: line
+    speaker: ren
+    text: Ask. If the answer costs me, I will pay it. I am done hiding behind duty.
+  - id: rain-answer
+    kind: line
+    speaker: mizu
+    text: I am near, {name}. Walk. I will not let the dark swallow your breath.
+  - id: close-descent
+    kind: line
+    speaker: narrator
+    text: You descend. In the narrow dark, a traveling sleeve, a cool rain-presence, or the whisper of turning pages stays
+      near enough to feel intentional.
+  - id: sealed-room
+    kind: line
+    speaker: narrator
+    text: 'Below waits a sealed tearoom: two cups, a third place set by habit, and a door painted with a silver moon.'
+  - id: end
+    kind: end
+    speaker: null
+    text: —
+  terminal_paths:
+  - take_his_hand
+  - ask_for_trust
+  - listen_for_rain
+- id: tea-for-two
+  label: Tea for Two
+  start_node: cups-warm
+  nodes:
+  - id: cups-warm
+    kind: line
+    speaker: narrator
+    text: The waiting cups warm when you pour. The moon-door stays shut, granting a rare quiet between dangers.
+  - id: ren-tastes
+    kind: line
+    speaker: ren
+    text: I had forgotten that waiting beside someone could feel different from waiting alone.
+  - id: close-cup
+    kind: line
+    speaker: narrator
+    text: When the cup returns, fingers brush. No one names the touch. The tearoom listens harder than the door.
+  - id: tea-choice
+    kind: choice
+    speaker: null
+    text: '**What do you let the quiet become?**'
+  - id: ask_him_to_stay
+    kind: option
+    speaker: → `stay-answer`
+    text: 'Ren—stay after the door opens. As yourself. _(affinity: ren+2)_'
+  - id: tease_his_patience
+    kind: option
+    speaker: → `tease-answer`
+    text: 'For an immortal customer, you are very easy to fluster. _(affinity: ren+1, mizu+1)_'
+  - id: offer_a_second_cup
+    kind: option
+    speaker: → `second-cup-answer`
+    text: 'Pour a second cup—for rain, ink, or whoever the house loves next. _(affinity: mizu+2, akira+1)_'
+  - id: stay-answer
+    kind: line
+    speaker: ren
+    text: If you ask me that again when we survive this, I may become impossible to send away.
+  - id: tease-answer
+    kind: line
+    speaker: ren
+    text: Only by one particular keeper. I am learning to resent your advantage—and enjoy it.
+  - id: second-cup-answer
+    kind: line
+    speaker: mizu
+    text: 'Rain beads on a second cup’s rim. From the ledger’s edge, Akira adds softly: hospitality is also a kind of love,
+      {name}.'
+  - id: shared-smile
+    kind: line
+    speaker: narrator
+    text: Soft laughter—or a shared breath—fills the sealed tearoom. The silver moon on the door opens one luminous eye.
+  - id: door-listens
+    kind: line
+    speaker: ren
+    text: It listens for honesty. Whoever you love after this, love them without a chain—including me, if that is still true.
+  - id: end
+    kind: end
+    speaker: null
+    text: —
+  terminal_paths:
+  - ask_him_to_stay
+  - tease_his_patience
+  - offer_a_second_cup
+- id: the-broken-vow
+  label: The Broken Vow
+  start_node: mirror-wakes
+  nodes:
+  - id: mirror-wakes
+    kind: line
+    speaker: narrator
+    text: A black mirror wakes beyond the moon-door and shows Ren kneeling before your grandmother, surrendering his true
+      name to seal the house.
+  - id: cost-revealed
+    kind: line
+    speaker: you
+    text: Every year the seal held, it took a memory from you. That is what she asked?
+  - id: ren-deflects
+    kind: line
+    speaker: ren
+    text: “It was a fair price then.” His voice breaks on the last word, and the mirror steals the memory of your first meeting
+      from his reflection.
+  - id: vow-choice
+    kind: choice
+    speaker: null
+    text: '**How do you pull the vanishing memory back?**'
+  - id: hold_him_close
+    kind: option
+    speaker: → `embrace-answer`
+    text: 'Hold on to me, Ren. I will remember for both of us. _(affinity: ren+3)_'
+  - id: call_the_rain
+    kind: option
+    speaker: → `rain-vow-answer`
+    text: 'Mizu—cool the mirror before it takes him. _(affinity: mizu+3)_'
+  - id: open_the_ledger
+    kind: option
+    speaker: → `ledger-vow-answer`
+    text: 'Akira—write his name where the mirror cannot erase it. _(affinity: akira+3)_'
+  - id: embrace-answer
+    kind: line
+    speaker: narrator
+    text: You pull Ren against you. After one startled breath, his arms close around your back—ally and almost-lover, held
+      by choice rather than seal.
+  - id: rain-vow-answer
+    kind: line
+    speaker: mizu
+    text: Silver rain sheets the black glass. Memories of water are hard to steal. Ren’s eyes clear.
+  - id: ledger-vow-answer
+    kind: line
+    speaker: akira
+    text: 'Ink flares across the air: Ren—guest, guardian, free to be named. The mirror cannot unwrite a true ledger line.'
+  - id: vow-breaks
+    kind: line
+    speaker: ren
+    text: I remember you. That is no longer the house commanding me—it is me, choosing to stay present.
+  - id: mirror-cracks
+    kind: line
+    speaker: narrator
+    text: The black mirror cracks. Behind it, foxfire gathers into the shape of a waiting creditor.
+  - id: end
+    kind: end
+    speaker: null
+    text: —
+  terminal_paths:
+  - hold_him_close
+  - call_the_rain
+  - open_the_ledger
+- id: the-foxfire-debt
+  label: The Foxfire Debt
+  start_node: creditor-arrives
+  nodes:
+  - id: creditor-arrives
+    kind: line
+    speaker: narrator
+    text: The creditor steps from blue flame wearing Ren’s shadow like a ceremonial robe. It offers the house his freedom
+      in exchange for his return—as if a person were currency.
+  - id: ren-steps-forward
+    kind: line
+    speaker: ren
+    text: If one of us must be claimed, it will not be the keeper. I have practiced sacrifice too well.
+  - id: you-refuse
+    kind: line
+    speaker: you
+    text: You catch the back of his coat and refuse to let him turn sacrifice into another form of silence.
+  - id: debt-choice
+    kind: choice
+    speaker: null
+    text: '**What truth do you place against the debt?**'
+  - id: claim_partnership
+    kind: option
+    speaker: → `partner-answer`
+    text: 'He stands with us by choice. You cannot own that. _(affinity: ren+2)_'
+  - id: confess_your_fear
+    kind: option
+    speaker: → `fear-answer`
+    text: 'I will not lose him before I can tell him what he means to me. _(affinity: ren+1, mizu+1)_'
+  - id: name_every_guest
+    kind: option
+    speaker: → `guests-answer`
+    text: 'This roof has many loves. None of them are currency. _(affinity: mizu+1, akira+2)_'
+  - id: partner-answer
+    kind: line
+    speaker: ren
+    text: By choice—say it again. Those words burn brighter than the creditor’s flame.
+  - id: fear-answer
+    kind: line
+    speaker: ren
+    text: Then tell me tomorrow. I intend to be free—and present—to hear it.
+  - id: guests-answer
+    kind: line
+    speaker: akira
+    text: 'Recorded: no soul under this roof is payment. Mizu’s rain hisses against the flame as if agreeing in another language.'
+  - id: ren-truth
+    kind: line
+    speaker: ren
+    text: What frightens me is not captivity. It is becoming someone who can no longer find the people who chose me freely.
+  - id: debt-burns
+    kind: line
+    speaker: narrator
+    text: The spirit coins ignite one by one. The debt burns away. The moon-door waits—and with it, a free choice of heart.
+  - id: end
+    kind: end
+    speaker: null
+    text: —
+  terminal_paths:
+  - claim_partnership
+  - confess_your_fear
+  - name_every_guest
+- id: the-moonlit-door
+  label: The Moonlit Door
+  start_node: door-opens
+  nodes:
+  - id: door-opens
+    kind: line
+    speaker: narrator
+    text: The moon-door opens onto the tea house garden beneath an impossible full moon. Every white petal hangs motionless
+      in the air.
+  - id: grandmother-farewell
+    kind: line
+    speaker: spirit
+    text: A keeper is not the one who never opens the door. She is the one who chooses why—and for whom.
+  - id: ren-free
+    kind: line
+    speaker: narrator
+    text: The binding vanishes from Ren’s wrist. Soft rain gathers where Mizu stands. Akira steps free of ledger-shadow into
+      moonlight—ink-stained cuffs, no foxfire. Three distinct hearts wait.
+  - id: ren-asks
+    kind: line
+    speaker: ren
+    text: Keeper {name}—if love stays now, it must be free. The fox, the rain, and the ledger all stand unbound. Whom does
+      your door open for?
+  - id: moon-choice
+    kind: choice
+    speaker: null
+    text: '**What promise do you choose?**'
+  - id: choose_ren
+    kind: option
+    speaker: → `kiss-answer`
+    text: 'Ren—stay, and love me without the house’s permission. _(affinity: ren+4)_'
+  - id: choose_mizu
+    kind: option
+    speaker: → `mizu-answer`
+    text: 'Mizu—when the sky clears, remain as rain on my roof. _(affinity: mizu+4)_'
+  - id: choose_akira
+    kind: option
+    speaker: → `akira-end-answer`
+    text: 'Akira—write our names on the last free page. _(affinity: akira+4)_'
+  - id: kiss-answer
+    kind: line
+    speaker: narrator
+    text: Ren’s smile is unguarded. He touches your cheek, waits for your nod, and kisses you beneath the suspended petals.
+  - id: mizu-answer
+    kind: line
+    speaker: mizu
+    text: Then I will fall gently, {name}, for as long as you leave a cup out. Ren bows once—freed friend, not rival—and steps
+      back into dusk.
+  - id: akira-end-answer
+    kind: line
+    speaker: akira
+    text: Then I am no longer a record. I am a guest who chose the keeper back. Write with me—not above me.
+  - id: new-promise
+    kind: line
+    speaker: narrator
+    text: 'No bargain. No binding. Under a moon that finally allows the petals to fall, the chosen heart answers without a
+      seal: I choose you.'
+  - id: petals-fall
+    kind: line
+    speaker: narrator
+    text: The petals fall. Hand in hand—or rain-cool fingers, or ink-warm palms—you return upstairs to open the tea house
+      for morning.
+  - id: end
+    kind: end
+    speaker: null
+    text: —
+  - id: '#'
+    kind: ID
+    speaker: Title
+    text: Story purpose
+  - id: '1'
+    kind: '`level-001`'
+    speaker: Gather tea leaves
+    text: Clear the neglected entry hall and prepare the first pot.
+  - id: '2'
+    kind: '`level-002`'
+    speaker: Follow the white petals
+    text: Gather the glowing petal trail before it fades into the draft.
+  - id: '3'
+    kind: '`level-003`'
+    speaker: Wake the sixth lantern
+    text: Kindle the spirit lanterns so the house can welcome a guest.
+  - id: '4'
+    kind: '`level-004`'
+    speaker: Polish the spirit coins
+    text: Clean the rain spirit’s payment before moonlight steals its path.
+  - id: '5'
+    kind: '`level-005`'
+    speaker: Strengthen the keeper's charms
+    text: Repair threshold charms before the calling shadow tests the door.
+  - id: '6'
+    kind: '`level-006`'
+    speaker: Prepare the returned offering
+    text: Assemble a sincere offering before the dusk lamps go out.
+  - id: '7'
+    kind: '`level-007`'
+    speaker: Trace the hidden stair
+    text: Light each careful step and loosen the first seal on the stair.
+  - id: '8'
+    kind: '`level-008`'
+    speaker: Brew the moonlit tea
+    text: Brew the tea that warms two cups while moonlight still listens.
+  - id: '9'
+    kind: '`level-009`'
+    speaker: Bind the broken vow
+    text: Stabilize Ren’s true name before the mirror steals another memory.
+  - id: '10'
+    kind: '`level-010`'
+    speaker: Pay the foxfire debt
+    text: Reclaim the spiritual payments before the creditor closes its claim.
+  - id: '11'
+    kind: '`level-011`'
+    speaker: Open the moonlit door
+    text: Gather free-chosen petals and open the door while the moon still holds.
+  terminal_paths:
+  - choose_ren
+  - choose_mizu
+  - choose_akira

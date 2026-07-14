@@ -85,4 +85,17 @@ sakura studio --catalog /path/to/catalog
 # open http://127.0.0.1:8787/
 ```
 
-Card UI: preview assets, bind / approve / unbind, validate, import to Unity.
+Tabs: Overview · Swaps (drag-drop) · Story · **Dialogue** · Cast · **Code map**.
+
+## Sync Tea House (from sakura-match checkout)
+
+```bash
+git clone https://github.com/CourtReinland/sakura-match.git /tmp/sakura-match
+sakura sync-tea-house --catalog catalog --source /tmp/sakura-match
+# imports GDD §13 dialogue, public/assets → library, code_graph.json
+```
+
+```bash
+sakura code-graph --source /tmp/sakura-match --title title.sakura_tea_house \
+  --repo CourtReinland/sakura-match
+```

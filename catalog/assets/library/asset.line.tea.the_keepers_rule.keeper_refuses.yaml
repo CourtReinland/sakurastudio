@@ -1,0 +1,24 @@
+id: asset.line.tea.the_keepers_rule.keeper_refuses
+label: Line · The Keeper's Rule · keeper-refuses
+status: approved
+brand_id: brand.sakura_soft
+kind: other
+tags:
+- dialogue
+- line
+- tea_house
+- you
+- the_keepers_rule
+characters:
+- chr.tea.keeper
+files:
+- role: master
+  path: assets/files/tea_house/dialogue/the_keepers_rule/keeper_refuses.txt
+  mime: text/plain
+provenance:
+  source: internal
+  tool: gdd_import
+  prompt: Imported from GDD dialogue ledger scene=the-keepers-rule node=keeper-refuses
+  created_at: '2026-07-14'
+  license: internal_all_rights
+notes: speaker=you; string_id=str.tea.the_keepers_rule.keeper_refuses

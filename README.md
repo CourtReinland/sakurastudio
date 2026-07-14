@@ -37,6 +37,9 @@ sakura bind list --title title.sakura_match
 sakura bind set slot.tile.red asset.tile_red_pastel_v2 --title title.sakura_match
 sakura import --title title.sakura_match
 sakura studio --catalog catalog
+
+# Refresh Tea House content from a sakura-match clone
+sakura sync-tea-house --catalog catalog --source /path/to/sakura-match
 ```
 
 ## Related games

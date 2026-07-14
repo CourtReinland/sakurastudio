@@ -1,0 +1,217 @@
+locale: en
+title_id: title.sakura_tea_house
+strings:
+  str.tea.a_visitor_at_dusk.arrival_1: Dusk settles over the tea house as the last ribbon of dust disappears beneath your
+    cloth. The entry hall is still scarred, but the floor catches the lantern light again.
+  str.tea.a_visitor_at_dusk.arrival_2: A soft knock sounds from the open doorway. A stranger stands there in a pale traveling
+    coat, rain-dark hair framing eyes bright as amber.
+  str.tea.a_visitor_at_dusk.arrival_3: You worked later than she ever did.
+  str.tea.a_visitor_at_dusk.arrival_4: She?
+  str.tea.a_visitor_at_dusk.arrival_5: Your grandmother. She used to leave this door open at dusk, even when no human guests
+    were expected.
+  str.tea.a_visitor_at_dusk.arrival_6: He steps across the threshold without a sound, studying the clean boards as if they
+    have answered a question.
+  str.tea.a_visitor_at_dusk.arrival_7: Ren. An old customer, if the house still remembers me.
+  str.tea.a_visitor_at_dusk.welcome_choice: '**How do you welcome him?**'
+  str.tea.a_visitor_at_dusk.warm_welcome: 'Then let me make you tea. _(affinity: ren+2)_'
+  str.tea.a_visitor_at_dusk.curious_challenge: 'What kind of customer comes only at dusk? _(affinity: ren+1, akira+1)_'
+  str.tea.a_visitor_at_dusk.warm_look: A smile touches his mouth.
+  str.tea.a_visitor_at_dusk.warm_reply: Warmth first, questions after. You are like her in the most dangerous way.
+  str.tea.a_visitor_at_dusk.curious_look: His amber gaze sharpens, amused.
+  str.tea.a_visitor_at_dusk.curious_reply: The careful kind asks who; the interesting kind asks what. Keep that instinct.
+  str.tea.a_visitor_at_dusk.shadow: For one heartbeat, a fox-shaped shadow flickers behind him, though Ren has not moved.
+  str.tea.a_visitor_at_dusk.wake: I wondered whether this place would wake for you. Tonight, it has.
+  str.tea.a_visitor_at_dusk.departure: The lantern flame lifts. When you look back from the kettle, the doorway is empty,
+    and a single white petal rests on the newly swept floor.
+  str.tea.the_petals_trail.petal_stirs: The white petal Ren left behind trembles, then skims across the floor against the
+    draft.
+  str.tea.the_petals_trail.ren_returns: Ren?
+  str.tea.the_petals_trail.not_far: I did not go far. The house seemed reluctant to let the evening end.
+  str.tea.the_petals_trail.loose_board: The petal settles over a warped board. Beneath it waits a folded scrap in your grandmother's
+    hand.
+  str.tea.the_petals_trail.first_message: When the house chooses its keeper, six lights will wake.
+  str.tea.the_petals_trail.letter_choice: '**What do you say to Ren?**'
+  str.tea.the_petals_trail.share_the_letter: 'I will read the rest with you. _(affinity: ren+2)_'
+  str.tea.the_petals_trail.ask_about_the_petal: 'Why did your petal lead me here? _(affinity: ren+1, mizu+1)_'
+  str.tea.the_petals_trail.shared_answer: Then I will try to deserve the invitation.
+  str.tea.the_petals_trail.careful_answer: A careful question. It moved because the house wanted you to look.
+  str.tea.the_petals_trail.house_answers: From the dark entryway comes the soft click of a lantern wick catching by itself.
+  str.tea.the_petals_trail.next_warning: Whatever wakes next, you should not have to meet it alone.
+  str.tea.the_sixth_lantern.five_lanterns: Five restored lanterns glow warmly. The sixth remains cold beneath your hand.
+  str.tea.the_sixth_lantern.not_the_oil: The wick is new. Why will it not light?
+  str.tea.the_sixth_lantern.ren_knows: Because it is waiting for a guest, not a flame.
+  str.tea.the_sixth_lantern.blue_light: Fox-blue fire blossoms in the lantern. Rain gathers in the doorway and takes the shape
+    of a traveler with sleeves like wet paper.
+  str.tea.the_sixth_lantern.guest_request: Keeper {name}… is the house accepting guests again? I am called Mizu, when names
+    still matter.
+  str.tea.the_sixth_lantern.guest_choice: '**How do you answer the rain spirit?**'
+  str.tea.the_sixth_lantern.welcome_the_guest: 'You are welcome, Mizu. Come in from the rain. _(affinity: mizu+3)_'
+  str.tea.the_sixth_lantern.question_the_guest: 'Before I pour, what are you asking of me? _(affinity: mizu+1, ren+1)_'
+  str.tea.the_sixth_lantern.defer_to_ren: 'Ren—should a spirit guest enter tonight? _(affinity: ren+2, mizu+1)_'
+  str.tea.the_sixth_lantern.welcome_reply: Then the old welcome still has a voice. I will remember the sound of yours.
+  str.tea.the_sixth_lantern.question_reply: Only shelter, and a cup. Rain does not take what is not offered.
+  str.tea.the_sixth_lantern.defer_reply: The keeper decides. I will only say this guest has never broken a cup or a promise.
+  str.tea.the_sixth_lantern.first_cup: Mizu drinks one steaming cup, bows, and dissolves into silver drops. A pale coin remains
+    on the mat—still faintly warm from rain-hands.
+  str.tea.the_sixth_lantern.proof: Your first guest has paid. Keep the coin; the house may remember where it belongs.
+  str.tea.a_coin_that_remembers.coin_rolls: The spirit coin rolls from your palm, crosses the room, and vanishes beneath the
+    old counter.
+  str.tea.a_coin_that_remembers.ledger_found: You reach after it and pull out a dust-softened guest ledger wrapped in faded
+    red cord.
+  str.tea.a_coin_that_remembers.familiar_writing: This is Grandmother's writing. But these pages look much older than the
+    others.
+  str.tea.a_coin_that_remembers.fox_seal: Moonlight touches the paper. A tiny fox-paw seal appears beside a second mark in
+    scholarly ink—and a soft voice speaks from the binding.
+  str.tea.a_coin_that_remembers.akira_stirs: Page… after page… I kept them. I am Akira. Your grandmother bound me to remember
+    what foxfire forgets.
+  str.tea.a_coin_that_remembers.ren_admits: The fox seal is mine. The ink is theirs. Your grandmother kept better records
+    than either of us hoped.
+  str.tea.a_coin_that_remembers.ledger_choice: '**Whom do you answer first?**'
+  str.tea.a_coin_that_remembers.ask_about_grandmother: 'Ren—she trusted you, did she not? _(affinity: ren+2)_'
+  str.tea.a_coin_that_remembers.ask_about_the_seal: 'How old is that seal, Ren? _(affinity: ren+1, akira+1)_'
+  str.tea.a_coin_that_remembers.call_to_the_ledger: 'Akira—what should I know before I open another page? _(affinity: akira+3)_'
+  str.tea.a_coin_that_remembers.trust_answer: Enough to leave some truths in my care. Not enough to make them mine to give.
+  str.tea.a_coin_that_remembers.age_answer: Older than this house’s paint, younger than the first guest who asked to leave
+    free. That is all I will say without lying.
+  str.tea.a_coin_that_remembers.akira_answer: Every name in me is a door, keeper {name}. Open carefully. Some doors remember
+    who knocked first—and open back.
+  str.tea.a_coin_that_remembers.ledger_closes: The ledger snaps shut. The silver coin remains pressed between two marked pages,
+    and Akira’s voice settles into quiet ink.
+  str.tea.a_coin_that_remembers.earned_answers: This house gives nothing merely because it is demanded. We will have to earn
+    the next page.
+  str.tea.the_keepers_rule.charm_warms: The last repaired charm warms over the ledger. Hidden ink threads across an empty
+    page.
+  str.tea.the_keepers_rule.rule_read: No bargain beneath this roof binds without the keeper's freely given word.
+  str.tea.the_keepers_rule.shadow_calls: Something tall darkens the doorway and repeats your name in your grandmother's voice.
+  str.tea.the_keepers_rule.ren_warns: Do not answer the voice. Answer the house.
+  str.tea.the_keepers_rule.threshold_bends: The threshold groans. Ren braces one hand against the doorframe and offers you
+    the other.
+  str.tea.the_keepers_rule.ward_choice: '**How do you hold the threshold?**'
+  str.tea.the_keepers_rule.follow_rens_lead: 'Ren—tell me what to do. _(affinity: ren+2)_'
+  str.tea.the_keepers_rule.stand_as_equals: 'Stand beside me and explain. _(affinity: ren+1, akira+1)_'
+  str.tea.the_keepers_rule.speak_for_the_house: 'I speak for the house. Watch my back. _(affinity: akira+2, mizu+1)_'
+  str.tea.the_keepers_rule.trust_reply: Tell it no. I will make certain it listens.
+  str.tea.the_keepers_rule.resolve_reply: Gladly. Your word closes the door; mine only shows it the way out.
+  str.tea.the_keepers_rule.house_reply: Good. A keeper who remembers the rule is harder to counterfeit than any charm I ever
+    inked.
+  str.tea.the_keepers_rule.keeper_refuses: You have no welcome and no bargain here. Leave.
+  str.tea.the_keepers_rule.shadow_breaks: The charm rings like porcelain. The shadow folds into the night and the door slams
+    shut.
+  str.tea.the_keepers_rule.choice_heard: The house heard you choose. That matters more than any ward.
+  str.tea.an_offering_returned.offering_set: At dusk you set fresh wagashi on Grandmother's lacquer tray and place it beside
+    the sealed ledger.
+  str.tea.an_offering_returned.ren_explains: An offering is not a bargain. It promises kindness without demanding an answer.
+  str.tea.an_offering_returned.tray_returns: The lamps dim. The tray vanishes, then returns empty except for the missing half
+    of Grandmother's letter.
+  str.tea.an_offering_returned.second_message: I did not leave you a business. I left you a threshold, and the right to decide
+    whom it opens for.
+  str.tea.an_offering_returned.knock_below: Three knocks answer beneath the floor. Rain beads on the sill. The ledger’s cord
+    loosens of its own accord. The house asks whom you trust most to descend.
+  str.tea.an_offering_returned.final_choice: '**Who walks with you toward the buried threshold?**'
+  str.tea.an_offering_returned.invite_ren_below: 'Ren—stay close. We face it together. _(affinity: ren+3)_'
+  str.tea.an_offering_returned.invite_mizu_below: 'Mizu—if rain can find every crack, guide me. _(affinity: mizu+3)_'
+  str.tea.an_offering_returned.invite_akira_below: 'Akira—bring every name the ledger knows. _(affinity: akira+3)_'
+  str.tea.an_offering_returned.ren_invite_reply: Together, then. Not because I am bound to protect you—because I want to.
+  str.tea.an_offering_returned.mizu_invite_reply: Rain finds every crack, keeper {name}. I will make a path soft enough to
+    walk.
+  str.tea.an_offering_returned.akira_invite_reply: Then I step out of the counter’s shadow. The pages travel with us—truth
+    first. If love comes, it will be written freely, not filed.
+  str.tea.an_offering_returned.knocking_stops: The knocking stops. Beneath your feet, something scratches once across the
+    wood—as if the house has marked your companion for the stair.
+  str.tea.an_offering_returned.tomorrow: Tomorrow the stair opens. The one you named will be expected—and so will you, {name}.
+    I will not pretend I am unafraid.
+  str.tea.beneath_the_floor.stair_opens: At moonrise the lifted board unfolds into a narrow stair. Foxfire, rain-mist, and
+    faint ink-light braid along the steps—the house still arguing over who may lead.
+  str.tea.beneath_the_floor.ren_confesses: Your grandmother bound my silence here. I could protect her heir, but I could not
+    tell you what waited below until you chose to descend.
+  str.tea.beneath_the_floor.wrist_mark: Ren bares his wrist. A fading cord of light circles it. When your fingers hover near,
+    the mark answers your warmth—and the stair holds its breath.
+  str.tea.beneath_the_floor.stair_choice: '**How do you answer the buried threshold?**'
+  str.tea.beneath_the_floor.take_his_hand: 'No more descending alone. Take my hand, Ren. _(affinity: ren+2)_'
+  str.tea.beneath_the_floor.ask_for_trust: 'Then begin again—with the truth this time. _(affinity: ren+1, akira+1)_'
+  str.tea.beneath_the_floor.listen_for_rain: 'Mizu—if you are near, cool the dark for us. _(affinity: mizu+2)_'
+  str.tea.beneath_the_floor.hand_answer: You make obedience feel dangerously like hope. Stay close—I will not let the stair
+    take you without me.
+  str.tea.beneath_the_floor.trust_answer_two: Ask. If the answer costs me, I will pay it. I am done hiding behind duty.
+  str.tea.beneath_the_floor.rain_answer: I am near, {name}. Walk. I will not let the dark swallow your breath.
+  str.tea.beneath_the_floor.close_descent: You descend. In the narrow dark, a traveling sleeve, a cool rain-presence, or the
+    whisper of turning pages stays near enough to feel intentional.
+  str.tea.beneath_the_floor.sealed_room: 'Below waits a sealed tearoom: two cups, a third place set by habit, and a door painted
+    with a silver moon.'
+  str.tea.tea_for_two.cups_warm: The waiting cups warm when you pour. The moon-door stays shut, granting a rare quiet between
+    dangers.
+  str.tea.tea_for_two.ren_tastes: I had forgotten that waiting beside someone could feel different from waiting alone.
+  str.tea.tea_for_two.close_cup: When the cup returns, fingers brush. No one names the touch. The tearoom listens harder than
+    the door.
+  str.tea.tea_for_two.tea_choice: '**What do you let the quiet become?**'
+  str.tea.tea_for_two.ask_him_to_stay: 'Ren—stay after the door opens. As yourself. _(affinity: ren+2)_'
+  str.tea.tea_for_two.tease_his_patience: 'For an immortal customer, you are very easy to fluster. _(affinity: ren+1, mizu+1)_'
+  str.tea.tea_for_two.offer_a_second_cup: 'Pour a second cup—for rain, ink, or whoever the house loves next. _(affinity: mizu+2,
+    akira+1)_'
+  str.tea.tea_for_two.stay_answer: If you ask me that again when we survive this, I may become impossible to send away.
+  str.tea.tea_for_two.tease_answer: Only by one particular keeper. I am learning to resent your advantage—and enjoy it.
+  str.tea.tea_for_two.second_cup_answer: 'Rain beads on a second cup’s rim. From the ledger’s edge, Akira adds softly: hospitality
+    is also a kind of love, {name}.'
+  str.tea.tea_for_two.shared_smile: Soft laughter—or a shared breath—fills the sealed tearoom. The silver moon on the door
+    opens one luminous eye.
+  str.tea.tea_for_two.door_listens: It listens for honesty. Whoever you love after this, love them without a chain—including
+    me, if that is still true.
+  str.tea.the_broken_vow.mirror_wakes: A black mirror wakes beyond the moon-door and shows Ren kneeling before your grandmother,
+    surrendering his true name to seal the house.
+  str.tea.the_broken_vow.cost_revealed: Every year the seal held, it took a memory from you. That is what she asked?
+  str.tea.the_broken_vow.ren_deflects: “It was a fair price then.” His voice breaks on the last word, and the mirror steals
+    the memory of your first meeting from his reflection.
+  str.tea.the_broken_vow.vow_choice: '**How do you pull the vanishing memory back?**'
+  str.tea.the_broken_vow.hold_him_close: 'Hold on to me, Ren. I will remember for both of us. _(affinity: ren+3)_'
+  str.tea.the_broken_vow.call_the_rain: 'Mizu—cool the mirror before it takes him. _(affinity: mizu+3)_'
+  str.tea.the_broken_vow.open_the_ledger: 'Akira—write his name where the mirror cannot erase it. _(affinity: akira+3)_'
+  str.tea.the_broken_vow.embrace_answer: You pull Ren against you. After one startled breath, his arms close around your back—ally
+    and almost-lover, held by choice rather than seal.
+  str.tea.the_broken_vow.rain_vow_answer: Silver rain sheets the black glass. Memories of water are hard to steal. Ren’s eyes
+    clear.
+  str.tea.the_broken_vow.ledger_vow_answer: 'Ink flares across the air: Ren—guest, guardian, free to be named. The mirror
+    cannot unwrite a true ledger line.'
+  str.tea.the_broken_vow.vow_breaks: I remember you. That is no longer the house commanding me—it is me, choosing to stay
+    present.
+  str.tea.the_broken_vow.mirror_cracks: The black mirror cracks. Behind it, foxfire gathers into the shape of a waiting creditor.
+  str.tea.the_foxfire_debt.creditor_arrives: The creditor steps from blue flame wearing Ren’s shadow like a ceremonial robe.
+    It offers the house his freedom in exchange for his return—as if a person were currency.
+  str.tea.the_foxfire_debt.ren_steps_forward: If one of us must be claimed, it will not be the keeper. I have practiced sacrifice
+    too well.
+  str.tea.the_foxfire_debt.you_refuse: You catch the back of his coat and refuse to let him turn sacrifice into another form
+    of silence.
+  str.tea.the_foxfire_debt.debt_choice: '**What truth do you place against the debt?**'
+  str.tea.the_foxfire_debt.claim_partnership: 'He stands with us by choice. You cannot own that. _(affinity: ren+2)_'
+  str.tea.the_foxfire_debt.confess_your_fear: 'I will not lose him before I can tell him what he means to me. _(affinity:
+    ren+1, mizu+1)_'
+  str.tea.the_foxfire_debt.name_every_guest: 'This roof has many loves. None of them are currency. _(affinity: mizu+1, akira+2)_'
+  str.tea.the_foxfire_debt.partner_answer: By choice—say it again. Those words burn brighter than the creditor’s flame.
+  str.tea.the_foxfire_debt.fear_answer: Then tell me tomorrow. I intend to be free—and present—to hear it.
+  str.tea.the_foxfire_debt.guests_answer: 'Recorded: no soul under this roof is payment. Mizu’s rain hisses against the flame
+    as if agreeing in another language.'
+  str.tea.the_foxfire_debt.ren_truth: What frightens me is not captivity. It is becoming someone who can no longer find the
+    people who chose me freely.
+  str.tea.the_foxfire_debt.debt_burns: The spirit coins ignite one by one. The debt burns away. The moon-door waits—and with
+    it, a free choice of heart.
+  str.tea.the_moonlit_door.door_opens: The moon-door opens onto the tea house garden beneath an impossible full moon. Every
+    white petal hangs motionless in the air.
+  str.tea.the_moonlit_door.grandmother_farewell: A keeper is not the one who never opens the door. She is the one who chooses
+    why—and for whom.
+  str.tea.the_moonlit_door.ren_free: The binding vanishes from Ren’s wrist. Soft rain gathers where Mizu stands. Akira steps
+    free of ledger-shadow into moonlight—ink-stained cuffs, no foxfire. Three distinct hearts wait.
+  str.tea.the_moonlit_door.ren_asks: Keeper {name}—if love stays now, it must be free. The fox, the rain, and the ledger all
+    stand unbound. Whom does your door open for?
+  str.tea.the_moonlit_door.moon_choice: '**What promise do you choose?**'
+  str.tea.the_moonlit_door.choose_ren: 'Ren—stay, and love me without the house’s permission. _(affinity: ren+4)_'
+  str.tea.the_moonlit_door.choose_mizu: 'Mizu—when the sky clears, remain as rain on my roof. _(affinity: mizu+4)_'
+  str.tea.the_moonlit_door.choose_akira: 'Akira—write our names on the last free page. _(affinity: akira+4)_'
+  str.tea.the_moonlit_door.kiss_answer: Ren’s smile is unguarded. He touches your cheek, waits for your nod, and kisses you
+    beneath the suspended petals.
+  str.tea.the_moonlit_door.mizu_answer: Then I will fall gently, {name}, for as long as you leave a cup out. Ren bows once—freed
+    friend, not rival—and steps back into dusk.
+  str.tea.the_moonlit_door.akira_end_answer: Then I am no longer a record. I am a guest who chose the keeper back. Write with
+    me—not above me.
+  str.tea.the_moonlit_door.new_promise: 'No bargain. No binding. Under a moon that finally allows the petals to fall, the
+    chosen heart answers without a seal: I choose you.'
+  str.tea.the_moonlit_door.petals_fall: The petals fall. Hand in hand—or rain-cool fingers, or ink-warm palms—you return upstairs
+    to open the tea house for morning.

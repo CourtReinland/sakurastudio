@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import mimetypes
 import os
 from collections import defaultdict
@@ -11,12 +12,14 @@ from fastapi.responses import HTMLResponse, Response
 from pydantic import BaseModel
 
 from sakura.bind import bind_set, bind_set_status, bind_unbind, resolve_title_id
+from sakura.code_graph import load_title_code_graph
 from sakura.github_projects import project_tabs
 from sakura.import_unity import import_title
 from sakura.loader import discover_catalog_root, load_catalog
 from sakura.validate import run_validate, summarize
+from sakura.yaml_io import load_yaml
 
-app = FastAPI(title="Sakura Studio", version="0.3.0")
+app = FastAPI(title="Sakura Studio", version="0.4.0")
 
 # Swap categories for dashboard filters
 SWAP_CATEGORIES = {
@@ -105,7 +108,7 @@ class ImportBody(BaseModel):
 @app.get("/api/health")
 def health(catalog: str | None = None) -> dict[str, Any]:
     root = _catalog(catalog)
-    return {"ok": True, "catalog": str(root), "version": "0.3.0"}
+    return {"ok": True, "catalog": str(root), "version": "0.4.0"}
 
 
 @app.get("/api/projects")
@@ -481,6 +484,113 @@ def api_import(body: ImportBody, catalog: str | None = None) -> dict[str, Any]:
     }
 
 
+def _title_dir(catalog_root: Path, title_id: str) -> Path | None:
+    titles = catalog_root / "titles"
+    if not titles.is_dir():
+        return None
+    # match by reading title.yaml id
+    for d in titles.rglob("title.yaml"):
+        try:
+            data = load_yaml(d)
+        except Exception:  # noqa: BLE001
+            continue
+        if isinstance(data, dict) and data.get("id") == title_id:
+            return d.parent
+    slug = title_id.replace("title.", "").replace("_", "-")
+    cand = titles / slug
+    return cand if cand.is_dir() else None
+
+
+@app.get("/api/dialogue")
+def api_dialogue(
+    title: str | None = None,
+    catalog: str | None = None,
+    examples: bool = True,
+    scene: str | None = None,
+) -> dict[str, Any]:
+    root = _catalog(catalog)
+    index = load_catalog(root, include_examples=examples)
+    try:
+        title_id = resolve_title_id(index, title)
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
+    tdir = _title_dir(root, title_id)
+    if not tdir:
+        return {"title_id": title_id, "scenes": []}
+    data = None
+    for name in ("dialogue.json", "dialogue.yaml"):
+        path = tdir / name
+        if not path.is_file():
+            continue
+        if name.endswith(".json"):
+            data = json.loads(path.read_text(encoding="utf-8"))
+        else:
+            data = load_yaml(path)
+        break
+    if not data:
+        return {"title_id": title_id, "scenes": [], "source": None}
+    scenes = data.get("scenes") or []
+    if scene:
+        scenes = [s for s in scenes if s.get("id") == scene]
+    # summarize without dumping all text twice
+    summary = []
+    for s in data.get("scenes") or []:
+        nodes = s.get("nodes") or []
+        summary.append(
+            {
+                "id": s.get("id"),
+                "label": s.get("label"),
+                "start_node": s.get("start_node"),
+                "line_count": sum(1 for n in nodes if n.get("kind") == "line"),
+                "choice_count": sum(1 for n in nodes if n.get("kind") == "choice"),
+                "node_count": len(nodes),
+            }
+        )
+    return {
+        "title_id": title_id,
+        "source": data.get("source"),
+        "imported_at": data.get("imported_at"),
+        "summary": summary,
+        "scenes": scenes,
+    }
+
+
+@app.get("/api/code-graph")
+def api_code_graph(
+    title: str | None = None,
+    catalog: str | None = None,
+    examples: bool = True,
+    include_edges: bool = False,
+) -> dict[str, Any]:
+    root = _catalog(catalog)
+    index = load_catalog(root, include_examples=examples)
+    try:
+        title_id = resolve_title_id(index, title)
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
+    graph = load_title_code_graph(root, title_id)
+    if not graph:
+        return {
+            "title_id": title_id,
+            "available": False,
+            "message": "No code_graph.json — run: sakura code-graph --source <repo> --title "
+            + title_id,
+        }
+    out = {
+        "available": True,
+        "title_id": title_id,
+        "source_repo": graph.get("source_repo"),
+        "style": graph.get("style"),
+        "stats": graph.get("stats"),
+        "god_nodes": graph.get("god_nodes") or [],
+        "communities": graph.get("communities") or {},
+    }
+    if include_edges:
+        out["nodes"] = graph.get("nodes") or []
+        out["edges"] = graph.get("edges") or []
+    return out
+
+
 @app.get("/", response_class=HTMLResponse)
 def index() -> str:
     return STUDIO_HTML
@@ -622,7 +732,9 @@ STUDIO_HTML = r"""<!DOCTYPE html>
       <button type="button" data-tab="overview" class="active">Overview</button>
       <button type="button" data-tab="swaps">Swaps ★</button>
       <button type="button" data-tab="story">Story</button>
+      <button type="button" data-tab="dialogue">Dialogue</button>
       <button type="button" data-tab="cast">Cast</button>
+      <button type="button" data-tab="code">Code map</button>
     </div>
 
     <section id="panel-overview" class="panel active"></section>
@@ -640,7 +752,9 @@ STUDIO_HTML = r"""<!DOCTYPE html>
       <div class="cards" id="swapCards"></div>
     </section>
     <section id="panel-story" class="panel"></section>
+    <section id="panel-dialogue" class="panel"></section>
     <section id="panel-cast" class="panel"></section>
+    <section id="panel-code" class="panel"></section>
 
     <div class="log" id="log">Ready.</div>
   </main>
@@ -732,12 +846,16 @@ STUDIO_HTML = r"""<!DOCTYPE html>
         document.getElementById('swapCards').innerHTML = '';
         document.getElementById('library').innerHTML = '';
         document.getElementById('panel-story').innerHTML = '';
+        document.getElementById('panel-dialogue').innerHTML = '';
         document.getElementById('panel-cast').innerHTML = '';
+        document.getElementById('panel-code').innerHTML = '';
         log('Selected unmapped project: ' + opt.textContent);
         return;
       }
       currentTitleId = titleId;
-      await Promise.all([loadOverview(), loadSwaps(), loadStory(), loadCast()]);
+      await Promise.all([
+        loadOverview(), loadSwaps(), loadStory(), loadDialogue(), loadCast(), loadCode(),
+      ]);
     }
 
     projectEl.addEventListener('change', () => onProjectChange().catch(e => log(e.message)));
@@ -971,6 +1089,97 @@ STUDIO_HTML = r"""<!DOCTYPE html>
       document.getElementById('panel-story').innerHTML = html || '<div class="empty">No GGD yet</div>';
     }
 
+    /* ---- dialogue ledger ---- */
+    async function loadDialogue() {
+      if (!currentTitleId) return;
+      const d = await api('/api/dialogue?examples=true&title=' + encodeURIComponent(currentTitleId));
+      if (!(d.summary || []).length) {
+        document.getElementById('panel-dialogue').innerHTML =
+          '<div class="empty">No dialogue ledger. Run: sakura sync-tea-house --source &lt;sakura-match&gt;</div>';
+        return;
+      }
+      let html = `<p class="muted">${d.source || ''} · ${d.summary.length} scenes ·
+        ${d.summary.reduce((a,s)=>a+(s.line_count||0),0)} lines</p>
+        <div class="row" style="margin-bottom:10px">
+          <label class="muted">Scene</label>
+          <select id="dialogueScene"><option value="">All scenes (summary)</option>
+          ${d.summary.map(s => `<option value="${s.id}">${s.label} (${s.line_count} lines)</option>`).join('')}
+          </select>
+        </div>
+        <div id="dialogueBody"></div>`;
+      document.getElementById('panel-dialogue').innerHTML = html;
+      const body = document.getElementById('dialogueBody');
+      function renderSummary() {
+        body.innerHTML = `<table><thead><tr><th>Scene</th><th>Id</th><th>Lines</th><th>Choices</th><th>Nodes</th></tr></thead><tbody>
+          ${d.summary.map(s => `<tr>
+            <td>${s.label}</td><td class="muted">${s.id}</td>
+            <td>${s.line_count}</td><td>${s.choice_count}</td><td>${s.node_count}</td>
+          </tr>`).join('')}
+        </tbody></table>
+        <p class="muted">Open a scene for full ledger. Line text is also bound as <code>slot.line.tea.*</code> under Swaps → Character lines.</p>`;
+      }
+      async function renderScene(sid) {
+        const full = await api('/api/dialogue?examples=true&title=' + encodeURIComponent(currentTitleId) + '&scene=' + encodeURIComponent(sid));
+        const sc = (full.scenes || [])[0];
+        if (!sc) { body.innerHTML = '<div class="empty">Scene not found</div>'; return; }
+        body.innerHTML = `<div class="card"><h3>${sc.label}</h3>
+          <div class="muted">start: ${sc.start_node || '—'} · terminals: ${(sc.terminal_paths||[]).join(', ') || '—'}</div>
+          <table><thead><tr><th>Node</th><th>Kind</th><th>Speaker</th><th>Text</th></tr></thead><tbody>
+          ${(sc.nodes||[]).map(n => `<tr>
+            <td class="muted" style="font-size:0.75rem">${n.id}</td>
+            <td><span class="badge cat">${n.kind}</span></td>
+            <td>${n.speaker || '—'}</td>
+            <td style="font-size:0.85rem">${(n.text||'').replace(/</g,'&lt;')}</td>
+          </tr>`).join('')}
+          </tbody></table></div>`;
+      }
+      renderSummary();
+      document.getElementById('dialogueScene').onchange = (e) => {
+        const v = e.target.value;
+        if (!v) renderSummary();
+        else renderScene(v).catch(err => log(err.message));
+      };
+    }
+
+    /* ---- code map (graphify-inspired) ---- */
+    async function loadCode() {
+      if (!currentTitleId) return;
+      const g = await api('/api/code-graph?examples=true&title=' + encodeURIComponent(currentTitleId));
+      if (!g.available) {
+        document.getElementById('panel-code').innerHTML =
+          `<div class="empty">${g.message || 'No code graph'}</div>`;
+        return;
+      }
+      const gods = (g.god_nodes || []).slice(0, 20);
+      const comms = Object.entries(g.communities || {});
+      document.getElementById('panel-code').innerHTML = `
+        <p class="muted">${g.style || ''} · repo: ${g.source_repo || '—'} ·
+          ${g.stats?.nodes || 0} nodes · ${g.stats?.edges || 0} edges · ${g.stats?.communities || 0} communities</p>
+        <div class="two-col">
+          <div class="card">
+            <h3>God nodes (highest degree)</h3>
+            <table><thead><tr><th>Module</th><th>Community</th><th>Degree</th></tr></thead><tbody>
+              ${gods.map(n => `<tr>
+                <td style="font-size:0.8rem">${n.label}</td>
+                <td class="muted">${n.community}</td>
+                <td><b style="color:var(--accent)">${n.degree}</b></td>
+              </tr>`).join('')}
+            </tbody></table>
+          </div>
+          <div class="card">
+            <h3>Communities</h3>
+            <table><thead><tr><th>Community</th><th>Count</th><th>Sample</th></tr></thead><tbody>
+              ${comms.map(([k,v]) => `<tr>
+                <td>${k}</td><td>${v.count}</td>
+                <td class="muted" style="font-size:0.72rem">${(v.sample||[]).slice(0,4).map(s=>s.replace(/^code\\./,'')).join(', ')}</td>
+              </tr>`).join('')}
+            </tbody></table>
+          </div>
+        </div>
+        <p class="muted" style="margin-top:12px">Graphify-inspired: import edges only, local, no embeddings.
+          Rebuild: <code>sakura code-graph --source /path/to/repo --title ${currentTitleId}</code></p>`;
+    }
+
     /* ---- cast ---- */
     async function loadCast() {
       if (!currentTitleId) return;
@@ -1025,7 +1234,7 @@ STUDIO_HTML = r"""<!DOCTYPE html>
     (async () => {
       try {
         await loadProjects();
-        log('Studio v0.3 loaded — pick a project tab, drag assets onto Swaps.');
+        log('Studio v0.4 — Dialogue ledger, asset library, Code map (graphify-style).');
       } catch (e) {
         log('ERROR: ' + e.message);
       }

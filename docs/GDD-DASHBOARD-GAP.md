@@ -93,9 +93,11 @@ When a GitHub repo is selected:
 
 ## 6. Implementation priority
 
-1. **Done in this pass:** multi-tab UI, GitHub repo list, Overview (engine), Story/Cast lists from GGD, Swaps with HTML5 drag-drop, tea-house catalog seed  
-2. **Next:** dialogue ledger import from GDD §13, live graphify panel, two-way sync with Three.js `public/assets`  
-3. **Later:** full spreadsheet cells for every choice id, agent job emit from drag-drop
+1. **Done:** multi-tab UI, GitHub repo list, Overview (engine), Story/Cast, Swaps drag-drop, tea-house seed  
+2. **Done:** dialogue ledger (§13) → `dialogue.yaml` + `slot.line.tea.*` + `localization/en.yaml`  
+3. **Done:** `public/assets` wired as catalog library (gems, BGs, portraits, cinematics) + bindings  
+4. **Done:** Graphify-inspired **Code map** tab (`code_graph.json`, god nodes + communities)  
+5. **Later:** two-way export back into Three.js `content.ts` / Addressables; agent job emit from drag-drop  
 
 ---
 

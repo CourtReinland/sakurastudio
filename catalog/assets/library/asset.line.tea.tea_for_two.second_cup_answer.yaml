@@ -1,0 +1,24 @@
+id: asset.line.tea.tea_for_two.second_cup_answer
+label: Line · Tea for Two · second-cup-answer
+status: approved
+brand_id: brand.sakura_soft
+kind: other
+tags:
+- dialogue
+- line
+- tea_house
+- mizu
+- tea_for_two
+characters:
+- chr.tea.mizu
+files:
+- role: master
+  path: assets/files/tea_house/dialogue/tea_for_two/second_cup_answer.txt
+  mime: text/plain
+provenance:
+  source: internal
+  tool: gdd_import
+  prompt: Imported from GDD dialogue ledger scene=tea-for-two node=second-cup-answer
+  created_at: '2026-07-14'
+  license: internal_all_rights
+notes: speaker=mizu; string_id=str.tea.tea_for_two.second_cup_answer

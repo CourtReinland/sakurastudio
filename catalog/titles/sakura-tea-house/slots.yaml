@@ -1,114 +1,1643 @@
 title_id: title.sakura_tea_house
 slots:
-  # --- Game pieces (swappable) ---
-  - id: slot.piece.tea_leaf
-    label: Gem · Tea Leaf
-    kind: sprite
-    required: false
-    status: draft
-    tags: [swap, piece]
-    constraints: { tags_any: [piece, gem, tea] }
-    used_by: [node.system.board, node.level.1, node.level.8]
-  - id: slot.piece.flower
-    label: Gem · Flower / Petal
-    kind: sprite
-    required: false
-    status: draft
-    tags: [swap, piece]
-    constraints: { tags_any: [piece, gem, flower] }
-    used_by: [node.system.board, node.level.2, node.level.11]
-  - id: slot.piece.lantern
-    label: Gem · Lantern
-    kind: sprite
-    required: false
-    status: draft
-    tags: [swap, piece]
-    constraints: { tags_any: [piece, gem, lantern] }
-    used_by: [node.system.board, node.level.3, node.level.7]
-  - id: slot.piece.coin
-    label: Gem · Spirit Coin
-    kind: sprite
-    required: false
-    status: draft
-    tags: [swap, piece]
-    constraints: { tags_any: [piece, gem, coin] }
-    used_by: [node.system.board, node.level.4, node.level.10]
-  - id: slot.piece.charm
-    label: Gem · Charm
-    kind: sprite
-    required: false
-    status: draft
-    tags: [swap, piece]
-    constraints: { tags_any: [piece, gem, charm] }
-    used_by: [node.system.board, node.level.5, node.level.9]
-  - id: slot.piece.wagashi
-    label: Gem · Wagashi
-    kind: sprite
-    required: false
-    status: draft
-    tags: [swap, piece]
-    constraints: { tags_any: [piece, gem, wagashi] }
-    used_by: [node.system.board, node.level.6]
-
-  # --- Cinematics / graphics (swappable) ---
-  - id: slot.cg.scene_01_rainy_arrival
-    label: CG · Scene 01 rainy arrival
-    kind: cg
-    required: false
-    status: draft
-    tags: [swap, graphic, cinematic]
-    used_by: [node.scene.visitor_dusk]
-  - id: slot.cg.scene_03_rain_spirit
-    label: CG · Scene 03 rain spirit
-    kind: cg
-    required: false
-    status: draft
-    tags: [swap, graphic, cinematic]
-    used_by: [node.scene.sixth_lantern]
-  - id: slot.cg.scene_11_three_hearts
-    label: CG · Scene 11 three hearts
-    kind: cg
-    required: false
-    status: draft
-    tags: [swap, graphic, cinematic]
-    used_by: [node.scene.moonlit_door]
-  - id: slot.portrait.ren.neutral
-    label: Portrait · Ren neutral
-    kind: portrait
-    required: false
-    status: draft
-    tags: [swap, graphic, character]
-    used_by: [node.scene.visitor_dusk]
-  - id: slot.bg.entry_hall_dirty
-    label: BG · Entry hall (dirty)
-    kind: bg
-    required: false
-    status: draft
-    tags: [swap, graphic, room]
-  - id: slot.ui.board_lacquer
-    label: UI · Board lacquer texture
-    kind: ui
-    required: false
-    status: draft
-    tags: [swap, graphic, ui]
-
-  # --- Character lines (swappable text assets) ---
-  - id: slot.line.ren.welcome
-    label: Line · Ren welcome at dusk
-    kind: other
-    required: false
-    status: draft
-    tags: [swap, dialogue, ren]
-    notes: Binds to dialogue asset / string table key when importer exists
-  - id: slot.line.mizu.guest
-    label: Line · Mizu guest intro
-    kind: other
-    required: false
-    status: draft
-    tags: [swap, dialogue, mizu]
-  - id: slot.line.akira.ledger
-    label: Line · Akira ledger voice
-    kind: other
-    required: false
-    status: draft
-    tags: [swap, dialogue, akira]
+- id: slot.piece.tea_leaf
+  label: Gem · tea_leaf
+  kind: sprite
+  required: true
+  status: approved
+  tags:
+  - swap
+  - piece
+  - gem
+  - tea_leaf
+  used_by:
+  - node.system.board
+- id: slot.piece.flower
+  label: Gem · flower
+  kind: sprite
+  required: true
+  status: approved
+  tags:
+  - swap
+  - piece
+  - gem
+  - flower
+  used_by:
+  - node.system.board
+- id: slot.piece.lantern
+  label: Gem · lantern
+  kind: sprite
+  required: true
+  status: approved
+  tags:
+  - swap
+  - piece
+  - gem
+  - lantern
+  used_by:
+  - node.system.board
+- id: slot.piece.coin
+  label: Gem · coin
+  kind: sprite
+  required: true
+  status: approved
+  tags:
+  - swap
+  - piece
+  - gem
+  - coin
+  used_by:
+  - node.system.board
+- id: slot.piece.charm
+  label: Gem · charm
+  kind: sprite
+  required: true
+  status: approved
+  tags:
+  - swap
+  - piece
+  - gem
+  - charm
+  used_by:
+  - node.system.board
+- id: slot.piece.wagashi
+  label: Gem · wagashi
+  kind: sprite
+  required: true
+  status: approved
+  tags:
+  - swap
+  - piece
+  - gem
+  - wagashi
+  used_by:
+  - node.system.board
+- id: slot.ui.board_lacquer
+  label: ui · board_lacquer
+  kind: ui
+  required: false
+  status: approved
+  tags:
+  - swap
+  - graphic
+  - ui
+- id: slot.bg.entry_hall_dirty
+  label: bg · entry_hall_dirty
+  kind: bg
+  required: false
+  status: approved
+  tags:
+  - swap
+  - graphic
+  - bg
+- id: slot.bg.entry_hall_clean
+  label: bg · entry_hall_clean
+  kind: bg
+  required: false
+  status: approved
+  tags:
+  - swap
+  - graphic
+  - bg
+- id: slot.portrait.ren.neutral
+  label: portrait · ren · neutral
+  kind: portrait
+  required: false
+  status: approved
+  tags:
+  - swap
+  - graphic
+  - portrait
+- id: slot.portrait.ren.warm
+  label: portrait · ren · warm
+  kind: portrait
+  required: false
+  status: approved
+  tags:
+  - swap
+  - graphic
+  - portrait
+- id: slot.portrait.ren.curious
+  label: portrait · ren · curious
+  kind: portrait
+  required: false
+  status: approved
+  tags:
+  - swap
+  - graphic
+  - portrait
+- id: slot.portrait.ren.dusk
+  label: portrait · ren · dusk
+  kind: portrait
+  required: false
+  status: approved
+  tags:
+  - swap
+  - graphic
+  - portrait
+- id: slot.portrait.mizu.neutral
+  label: portrait · mizu · neutral
+  kind: portrait
+  required: false
+  status: approved
+  tags:
+  - swap
+  - graphic
+  - portrait
+- id: slot.portrait.akira.neutral
+  label: portrait · akira · neutral
+  kind: portrait
+  required: false
+  status: approved
+  tags:
+  - swap
+  - graphic
+  - portrait
+- id: slot.cg.tea.scene_01_fox_shadow
+  label: cg · tea · scene_01_fox_shadow
+  kind: cg
+  required: false
+  status: approved
+  tags:
+  - swap
+  - graphic
+  - cg
+- id: slot.cg.tea.scene_01_rainy_arrival
+  label: cg · tea · scene_01_rainy_arrival
+  kind: cg
+  required: false
+  status: approved
+  tags:
+  - swap
+  - graphic
+  - cg
+- id: slot.cg.tea.scene_01_white_petal
+  label: cg · tea · scene_01_white_petal
+  kind: cg
+  required: false
+  status: approved
+  tags:
+  - swap
+  - graphic
+  - cg
+- id: slot.cg.tea.scene_02_lantern_wakes
+  label: cg · tea · scene_02_lantern_wakes
+  kind: cg
+  required: false
+  status: approved
+  tags:
+  - swap
+  - graphic
+  - cg
+- id: slot.cg.tea.scene_02_letter_fragment
+  label: cg · tea · scene_02_letter_fragment
+  kind: cg
+  required: false
+  status: approved
+  tags:
+  - swap
+  - graphic
+  - cg
+- id: slot.cg.tea.scene_02_petal_trail
+  label: cg · tea · scene_02_petal_trail
+  kind: cg
+  required: false
+  status: approved
+  tags:
+  - swap
+  - graphic
+  - cg
+- id: slot.cg.tea.scene_03_first_cup
+  label: cg · tea · scene_03_first_cup
+  kind: cg
+  required: false
+  status: approved
+  tags:
+  - swap
+  - graphic
+  - cg
+- id: slot.cg.tea.scene_03_rain_spirit
+  label: cg · tea · scene_03_rain_spirit
+  kind: cg
+  required: false
+  status: approved
+  tags:
+  - swap
+  - graphic
+  - cg
+- id: slot.cg.tea.scene_03_six_lanterns
+  label: cg · tea · scene_03_six_lanterns
+  kind: cg
+  required: false
+  status: approved
+  tags:
+  - swap
+  - graphic
+  - cg
+- id: slot.cg.tea.scene_03_spirit_coin
+  label: cg · tea · scene_03_spirit_coin
+  kind: cg
+  required: false
+  status: approved
+  tags:
+  - swap
+  - graphic
+  - cg
+- id: slot.cg.tea.scene_04_fox_seal
+  label: cg · tea · scene_04_fox_seal
+  kind: cg
+  required: false
+  status: approved
+  tags:
+  - swap
+  - graphic
+  - cg
+- id: slot.cg.tea.scene_04_ledger_found
+  label: cg · tea · scene_04_ledger_found
+  kind: cg
+  required: false
+  status: approved
+  tags:
+  - swap
+  - graphic
+  - cg
+- id: slot.cg.tea.scene_05_keepers_rule
+  label: cg · tea · scene_05_keepers_rule
+  kind: cg
+  required: false
+  status: approved
+  tags:
+  - swap
+  - graphic
+  - cg
+- id: slot.cg.tea.scene_05_threshold_shadow
+  label: cg · tea · scene_05_threshold_shadow
+  kind: cg
+  required: false
+  status: approved
+  tags:
+  - swap
+  - graphic
+  - cg
+- id: slot.cg.tea.scene_05_ward_breaks
+  label: cg · tea · scene_05_ward_breaks
+  kind: cg
+  required: false
+  status: approved
+  tags:
+  - swap
+  - graphic
+  - cg
+- id: slot.cg.tea.scene_06_knock_below
+  label: cg · tea · scene_06_knock_below
+  kind: cg
+  required: false
+  status: approved
+  tags:
+  - swap
+  - graphic
+  - cg
+- id: slot.cg.tea.scene_06_offering
+  label: cg · tea · scene_06_offering
+  kind: cg
+  required: false
+  status: approved
+  tags:
+  - swap
+  - graphic
+  - cg
+- id: slot.cg.tea.scene_06_returned_letter
+  label: cg · tea · scene_06_returned_letter
+  kind: cg
+  required: false
+  status: approved
+  tags:
+  - swap
+  - graphic
+  - cg
+- id: slot.cg.tea.scene_07_hidden_stair
+  label: cg · tea · scene_07_hidden_stair
+  kind: cg
+  required: false
+  status: approved
+  tags:
+  - swap
+  - graphic
+  - cg
+- id: slot.cg.tea.scene_08_tea_for_two
+  label: cg · tea · scene_08_tea_for_two
+  kind: cg
+  required: false
+  status: approved
+  tags:
+  - swap
+  - graphic
+  - cg
+- id: slot.cg.tea.scene_09_broken_vow
+  label: cg · tea · scene_09_broken_vow
+  kind: cg
+  required: false
+  status: approved
+  tags:
+  - swap
+  - graphic
+  - cg
+- id: slot.cg.tea.scene_10_foxfire_debt
+  label: cg · tea · scene_10_foxfire_debt
+  kind: cg
+  required: false
+  status: approved
+  tags:
+  - swap
+  - graphic
+  - cg
+- id: slot.cg.tea.scene_11_moonlit_promise
+  label: cg · tea · scene_11_moonlit_promise
+  kind: cg
+  required: false
+  status: approved
+  tags:
+  - swap
+  - graphic
+  - cg
+- id: slot.cg.tea.scene_11_three_hearts
+  label: cg · tea · scene_11_three_hearts
+  kind: cg
+  required: false
+  status: approved
+  tags:
+  - swap
+  - graphic
+  - cg
+- id: slot.line.tea.a_visitor_at_dusk.arrival_1
+  label: A Visitor at Dusk · arrival-1
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - narrator
+  - a_visitor_at_dusk
+  notes: string_id=str.tea.a_visitor_at_dusk.arrival_1
+- id: slot.line.tea.a_visitor_at_dusk.arrival_2
+  label: A Visitor at Dusk · arrival-2
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - narrator
+  - a_visitor_at_dusk
+  notes: string_id=str.tea.a_visitor_at_dusk.arrival_2
+- id: slot.line.tea.a_visitor_at_dusk.arrival_3
+  label: A Visitor at Dusk · arrival-3
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - ren
+  - a_visitor_at_dusk
+  notes: string_id=str.tea.a_visitor_at_dusk.arrival_3
+- id: slot.line.tea.a_visitor_at_dusk.arrival_4
+  label: A Visitor at Dusk · arrival-4
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - you
+  - a_visitor_at_dusk
+  notes: string_id=str.tea.a_visitor_at_dusk.arrival_4
+- id: slot.line.tea.a_visitor_at_dusk.arrival_5
+  label: A Visitor at Dusk · arrival-5
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - ren
+  - a_visitor_at_dusk
+  notes: string_id=str.tea.a_visitor_at_dusk.arrival_5
+- id: slot.line.tea.a_visitor_at_dusk.arrival_6
+  label: A Visitor at Dusk · arrival-6
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - narrator
+  - a_visitor_at_dusk
+  notes: string_id=str.tea.a_visitor_at_dusk.arrival_6
+- id: slot.line.tea.a_visitor_at_dusk.arrival_7
+  label: A Visitor at Dusk · arrival-7
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - ren
+  - a_visitor_at_dusk
+  notes: string_id=str.tea.a_visitor_at_dusk.arrival_7
+- id: slot.line.tea.a_visitor_at_dusk.warm_look
+  label: A Visitor at Dusk · warm-look
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - narrator
+  - a_visitor_at_dusk
+  notes: string_id=str.tea.a_visitor_at_dusk.warm_look
+- id: slot.line.tea.a_visitor_at_dusk.warm_reply
+  label: A Visitor at Dusk · warm-reply
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - ren
+  - a_visitor_at_dusk
+  notes: string_id=str.tea.a_visitor_at_dusk.warm_reply
+- id: slot.line.tea.a_visitor_at_dusk.curious_look
+  label: A Visitor at Dusk · curious-look
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - narrator
+  - a_visitor_at_dusk
+  notes: string_id=str.tea.a_visitor_at_dusk.curious_look
+- id: slot.line.tea.a_visitor_at_dusk.curious_reply
+  label: A Visitor at Dusk · curious-reply
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - ren
+  - a_visitor_at_dusk
+  notes: string_id=str.tea.a_visitor_at_dusk.curious_reply
+- id: slot.line.tea.a_visitor_at_dusk.shadow
+  label: A Visitor at Dusk · shadow
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - narrator
+  - a_visitor_at_dusk
+  notes: string_id=str.tea.a_visitor_at_dusk.shadow
+- id: slot.line.tea.a_visitor_at_dusk.wake
+  label: A Visitor at Dusk · wake
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - ren
+  - a_visitor_at_dusk
+  notes: string_id=str.tea.a_visitor_at_dusk.wake
+- id: slot.line.tea.a_visitor_at_dusk.departure
+  label: A Visitor at Dusk · departure
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - narrator
+  - a_visitor_at_dusk
+  notes: string_id=str.tea.a_visitor_at_dusk.departure
+- id: slot.line.tea.the_petals_trail.petal_stirs
+  label: The Petal's Trail · petal-stirs
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - narrator
+  - the_petals_trail
+  notes: string_id=str.tea.the_petals_trail.petal_stirs
+- id: slot.line.tea.the_petals_trail.ren_returns
+  label: The Petal's Trail · ren-returns
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - you
+  - the_petals_trail
+  notes: string_id=str.tea.the_petals_trail.ren_returns
+- id: slot.line.tea.the_petals_trail.not_far
+  label: The Petal's Trail · not-far
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - ren
+  - the_petals_trail
+  notes: string_id=str.tea.the_petals_trail.not_far
+- id: slot.line.tea.the_petals_trail.loose_board
+  label: The Petal's Trail · loose-board
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - narrator
+  - the_petals_trail
+  notes: string_id=str.tea.the_petals_trail.loose_board
+- id: slot.line.tea.the_petals_trail.first_message
+  label: The Petal's Trail · first-message
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - you
+  - the_petals_trail
+  notes: string_id=str.tea.the_petals_trail.first_message
+- id: slot.line.tea.the_petals_trail.shared_answer
+  label: The Petal's Trail · shared-answer
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - ren
+  - the_petals_trail
+  notes: string_id=str.tea.the_petals_trail.shared_answer
+- id: slot.line.tea.the_petals_trail.careful_answer
+  label: The Petal's Trail · careful-answer
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - ren
+  - the_petals_trail
+  notes: string_id=str.tea.the_petals_trail.careful_answer
+- id: slot.line.tea.the_petals_trail.house_answers
+  label: The Petal's Trail · house-answers
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - narrator
+  - the_petals_trail
+  notes: string_id=str.tea.the_petals_trail.house_answers
+- id: slot.line.tea.the_petals_trail.next_warning
+  label: The Petal's Trail · next-warning
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - ren
+  - the_petals_trail
+  notes: string_id=str.tea.the_petals_trail.next_warning
+- id: slot.line.tea.the_sixth_lantern.five_lanterns
+  label: The Sixth Lantern · five-lanterns
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - narrator
+  - the_sixth_lantern
+  notes: string_id=str.tea.the_sixth_lantern.five_lanterns
+- id: slot.line.tea.the_sixth_lantern.not_the_oil
+  label: The Sixth Lantern · not-the-oil
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - you
+  - the_sixth_lantern
+  notes: string_id=str.tea.the_sixth_lantern.not_the_oil
+- id: slot.line.tea.the_sixth_lantern.ren_knows
+  label: The Sixth Lantern · ren-knows
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - ren
+  - the_sixth_lantern
+  notes: string_id=str.tea.the_sixth_lantern.ren_knows
+- id: slot.line.tea.the_sixth_lantern.blue_light
+  label: The Sixth Lantern · blue-light
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - narrator
+  - the_sixth_lantern
+  notes: string_id=str.tea.the_sixth_lantern.blue_light
+- id: slot.line.tea.the_sixth_lantern.guest_request
+  label: The Sixth Lantern · guest-request
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - mizu
+  - the_sixth_lantern
+  notes: string_id=str.tea.the_sixth_lantern.guest_request
+- id: slot.line.tea.the_sixth_lantern.welcome_reply
+  label: The Sixth Lantern · welcome-reply
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - mizu
+  - the_sixth_lantern
+  notes: string_id=str.tea.the_sixth_lantern.welcome_reply
+- id: slot.line.tea.the_sixth_lantern.question_reply
+  label: The Sixth Lantern · question-reply
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - mizu
+  - the_sixth_lantern
+  notes: string_id=str.tea.the_sixth_lantern.question_reply
+- id: slot.line.tea.the_sixth_lantern.defer_reply
+  label: The Sixth Lantern · defer-reply
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - ren
+  - the_sixth_lantern
+  notes: string_id=str.tea.the_sixth_lantern.defer_reply
+- id: slot.line.tea.the_sixth_lantern.first_cup
+  label: The Sixth Lantern · first-cup
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - narrator
+  - the_sixth_lantern
+  notes: string_id=str.tea.the_sixth_lantern.first_cup
+- id: slot.line.tea.the_sixth_lantern.proof
+  label: The Sixth Lantern · proof
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - ren
+  - the_sixth_lantern
+  notes: string_id=str.tea.the_sixth_lantern.proof
+- id: slot.line.tea.a_coin_that_remembers.coin_rolls
+  label: A Coin That Remembers · coin-rolls
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - narrator
+  - a_coin_that_remembers
+  notes: string_id=str.tea.a_coin_that_remembers.coin_rolls
+- id: slot.line.tea.a_coin_that_remembers.ledger_found
+  label: A Coin That Remembers · ledger-found
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - narrator
+  - a_coin_that_remembers
+  notes: string_id=str.tea.a_coin_that_remembers.ledger_found
+- id: slot.line.tea.a_coin_that_remembers.familiar_writing
+  label: A Coin That Remembers · familiar-writing
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - you
+  - a_coin_that_remembers
+  notes: string_id=str.tea.a_coin_that_remembers.familiar_writing
+- id: slot.line.tea.a_coin_that_remembers.fox_seal
+  label: A Coin That Remembers · fox-seal
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - narrator
+  - a_coin_that_remembers
+  notes: string_id=str.tea.a_coin_that_remembers.fox_seal
+- id: slot.line.tea.a_coin_that_remembers.akira_stirs
+  label: A Coin That Remembers · akira-stirs
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - akira
+  - a_coin_that_remembers
+  notes: string_id=str.tea.a_coin_that_remembers.akira_stirs
+- id: slot.line.tea.a_coin_that_remembers.ren_admits
+  label: A Coin That Remembers · ren-admits
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - ren
+  - a_coin_that_remembers
+  notes: string_id=str.tea.a_coin_that_remembers.ren_admits
+- id: slot.line.tea.a_coin_that_remembers.trust_answer
+  label: A Coin That Remembers · trust-answer
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - ren
+  - a_coin_that_remembers
+  notes: string_id=str.tea.a_coin_that_remembers.trust_answer
+- id: slot.line.tea.a_coin_that_remembers.age_answer
+  label: A Coin That Remembers · age-answer
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - ren
+  - a_coin_that_remembers
+  notes: string_id=str.tea.a_coin_that_remembers.age_answer
+- id: slot.line.tea.a_coin_that_remembers.akira_answer
+  label: A Coin That Remembers · akira-answer
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - akira
+  - a_coin_that_remembers
+  notes: string_id=str.tea.a_coin_that_remembers.akira_answer
+- id: slot.line.tea.a_coin_that_remembers.ledger_closes
+  label: A Coin That Remembers · ledger-closes
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - narrator
+  - a_coin_that_remembers
+  notes: string_id=str.tea.a_coin_that_remembers.ledger_closes
+- id: slot.line.tea.a_coin_that_remembers.earned_answers
+  label: A Coin That Remembers · earned-answers
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - ren
+  - a_coin_that_remembers
+  notes: string_id=str.tea.a_coin_that_remembers.earned_answers
+- id: slot.line.tea.the_keepers_rule.charm_warms
+  label: The Keeper's Rule · charm-warms
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - narrator
+  - the_keepers_rule
+  notes: string_id=str.tea.the_keepers_rule.charm_warms
+- id: slot.line.tea.the_keepers_rule.rule_read
+  label: The Keeper's Rule · rule-read
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - you
+  - the_keepers_rule
+  notes: string_id=str.tea.the_keepers_rule.rule_read
+- id: slot.line.tea.the_keepers_rule.shadow_calls
+  label: The Keeper's Rule · shadow-calls
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - narrator
+  - the_keepers_rule
+  notes: string_id=str.tea.the_keepers_rule.shadow_calls
+- id: slot.line.tea.the_keepers_rule.ren_warns
+  label: The Keeper's Rule · ren-warns
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - ren
+  - the_keepers_rule
+  notes: string_id=str.tea.the_keepers_rule.ren_warns
+- id: slot.line.tea.the_keepers_rule.threshold_bends
+  label: The Keeper's Rule · threshold-bends
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - narrator
+  - the_keepers_rule
+  notes: string_id=str.tea.the_keepers_rule.threshold_bends
+- id: slot.line.tea.the_keepers_rule.trust_reply
+  label: The Keeper's Rule · trust-reply
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - ren
+  - the_keepers_rule
+  notes: string_id=str.tea.the_keepers_rule.trust_reply
+- id: slot.line.tea.the_keepers_rule.resolve_reply
+  label: The Keeper's Rule · resolve-reply
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - ren
+  - the_keepers_rule
+  notes: string_id=str.tea.the_keepers_rule.resolve_reply
+- id: slot.line.tea.the_keepers_rule.house_reply
+  label: The Keeper's Rule · house-reply
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - akira
+  - the_keepers_rule
+  notes: string_id=str.tea.the_keepers_rule.house_reply
+- id: slot.line.tea.the_keepers_rule.keeper_refuses
+  label: The Keeper's Rule · keeper-refuses
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - you
+  - the_keepers_rule
+  notes: string_id=str.tea.the_keepers_rule.keeper_refuses
+- id: slot.line.tea.the_keepers_rule.shadow_breaks
+  label: The Keeper's Rule · shadow-breaks
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - narrator
+  - the_keepers_rule
+  notes: string_id=str.tea.the_keepers_rule.shadow_breaks
+- id: slot.line.tea.the_keepers_rule.choice_heard
+  label: The Keeper's Rule · choice-heard
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - ren
+  - the_keepers_rule
+  notes: string_id=str.tea.the_keepers_rule.choice_heard
+- id: slot.line.tea.an_offering_returned.offering_set
+  label: An Offering Returned · offering-set
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - narrator
+  - an_offering_returned
+  notes: string_id=str.tea.an_offering_returned.offering_set
+- id: slot.line.tea.an_offering_returned.ren_explains
+  label: An Offering Returned · ren-explains
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - ren
+  - an_offering_returned
+  notes: string_id=str.tea.an_offering_returned.ren_explains
+- id: slot.line.tea.an_offering_returned.tray_returns
+  label: An Offering Returned · tray-returns
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - narrator
+  - an_offering_returned
+  notes: string_id=str.tea.an_offering_returned.tray_returns
+- id: slot.line.tea.an_offering_returned.second_message
+  label: An Offering Returned · second-message
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - you
+  - an_offering_returned
+  notes: string_id=str.tea.an_offering_returned.second_message
+- id: slot.line.tea.an_offering_returned.knock_below
+  label: An Offering Returned · knock-below
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - narrator
+  - an_offering_returned
+  notes: string_id=str.tea.an_offering_returned.knock_below
+- id: slot.line.tea.an_offering_returned.ren_invite_reply
+  label: An Offering Returned · ren-invite-reply
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - ren
+  - an_offering_returned
+  notes: string_id=str.tea.an_offering_returned.ren_invite_reply
+- id: slot.line.tea.an_offering_returned.mizu_invite_reply
+  label: An Offering Returned · mizu-invite-reply
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - mizu
+  - an_offering_returned
+  notes: string_id=str.tea.an_offering_returned.mizu_invite_reply
+- id: slot.line.tea.an_offering_returned.akira_invite_reply
+  label: An Offering Returned · akira-invite-reply
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - akira
+  - an_offering_returned
+  notes: string_id=str.tea.an_offering_returned.akira_invite_reply
+- id: slot.line.tea.an_offering_returned.knocking_stops
+  label: An Offering Returned · knocking-stops
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - narrator
+  - an_offering_returned
+  notes: string_id=str.tea.an_offering_returned.knocking_stops
+- id: slot.line.tea.an_offering_returned.tomorrow
+  label: An Offering Returned · tomorrow
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - ren
+  - an_offering_returned
+  notes: string_id=str.tea.an_offering_returned.tomorrow
+- id: slot.line.tea.beneath_the_floor.stair_opens
+  label: Beneath the Floor · stair-opens
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - narrator
+  - beneath_the_floor
+  notes: string_id=str.tea.beneath_the_floor.stair_opens
+- id: slot.line.tea.beneath_the_floor.ren_confesses
+  label: Beneath the Floor · ren-confesses
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - ren
+  - beneath_the_floor
+  notes: string_id=str.tea.beneath_the_floor.ren_confesses
+- id: slot.line.tea.beneath_the_floor.wrist_mark
+  label: Beneath the Floor · wrist-mark
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - narrator
+  - beneath_the_floor
+  notes: string_id=str.tea.beneath_the_floor.wrist_mark
+- id: slot.line.tea.beneath_the_floor.hand_answer
+  label: Beneath the Floor · hand-answer
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - ren
+  - beneath_the_floor
+  notes: string_id=str.tea.beneath_the_floor.hand_answer
+- id: slot.line.tea.beneath_the_floor.trust_answer_two
+  label: Beneath the Floor · trust-answer-two
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - ren
+  - beneath_the_floor
+  notes: string_id=str.tea.beneath_the_floor.trust_answer_two
+- id: slot.line.tea.beneath_the_floor.rain_answer
+  label: Beneath the Floor · rain-answer
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - mizu
+  - beneath_the_floor
+  notes: string_id=str.tea.beneath_the_floor.rain_answer
+- id: slot.line.tea.beneath_the_floor.close_descent
+  label: Beneath the Floor · close-descent
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - narrator
+  - beneath_the_floor
+  notes: string_id=str.tea.beneath_the_floor.close_descent
+- id: slot.line.tea.beneath_the_floor.sealed_room
+  label: Beneath the Floor · sealed-room
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - narrator
+  - beneath_the_floor
+  notes: string_id=str.tea.beneath_the_floor.sealed_room
+- id: slot.line.tea.tea_for_two.cups_warm
+  label: Tea for Two · cups-warm
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - narrator
+  - tea_for_two
+  notes: string_id=str.tea.tea_for_two.cups_warm
+- id: slot.line.tea.tea_for_two.ren_tastes
+  label: Tea for Two · ren-tastes
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - ren
+  - tea_for_two
+  notes: string_id=str.tea.tea_for_two.ren_tastes
+- id: slot.line.tea.tea_for_two.close_cup
+  label: Tea for Two · close-cup
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - narrator
+  - tea_for_two
+  notes: string_id=str.tea.tea_for_two.close_cup
+- id: slot.line.tea.tea_for_two.stay_answer
+  label: Tea for Two · stay-answer
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - ren
+  - tea_for_two
+  notes: string_id=str.tea.tea_for_two.stay_answer
+- id: slot.line.tea.tea_for_two.tease_answer
+  label: Tea for Two · tease-answer
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - ren
+  - tea_for_two
+  notes: string_id=str.tea.tea_for_two.tease_answer
+- id: slot.line.tea.tea_for_two.second_cup_answer
+  label: Tea for Two · second-cup-answer
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - mizu
+  - tea_for_two
+  notes: string_id=str.tea.tea_for_two.second_cup_answer
+- id: slot.line.tea.tea_for_two.shared_smile
+  label: Tea for Two · shared-smile
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - narrator
+  - tea_for_two
+  notes: string_id=str.tea.tea_for_two.shared_smile
+- id: slot.line.tea.tea_for_two.door_listens
+  label: Tea for Two · door-listens
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - ren
+  - tea_for_two
+  notes: string_id=str.tea.tea_for_two.door_listens
+- id: slot.line.tea.the_broken_vow.mirror_wakes
+  label: The Broken Vow · mirror-wakes
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - narrator
+  - the_broken_vow
+  notes: string_id=str.tea.the_broken_vow.mirror_wakes
+- id: slot.line.tea.the_broken_vow.cost_revealed
+  label: The Broken Vow · cost-revealed
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - you
+  - the_broken_vow
+  notes: string_id=str.tea.the_broken_vow.cost_revealed
+- id: slot.line.tea.the_broken_vow.ren_deflects
+  label: The Broken Vow · ren-deflects
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - ren
+  - the_broken_vow
+  notes: string_id=str.tea.the_broken_vow.ren_deflects
+- id: slot.line.tea.the_broken_vow.embrace_answer
+  label: The Broken Vow · embrace-answer
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - narrator
+  - the_broken_vow
+  notes: string_id=str.tea.the_broken_vow.embrace_answer
+- id: slot.line.tea.the_broken_vow.rain_vow_answer
+  label: The Broken Vow · rain-vow-answer
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - mizu
+  - the_broken_vow
+  notes: string_id=str.tea.the_broken_vow.rain_vow_answer
+- id: slot.line.tea.the_broken_vow.ledger_vow_answer
+  label: The Broken Vow · ledger-vow-answer
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - akira
+  - the_broken_vow
+  notes: string_id=str.tea.the_broken_vow.ledger_vow_answer
+- id: slot.line.tea.the_broken_vow.vow_breaks
+  label: The Broken Vow · vow-breaks
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - ren
+  - the_broken_vow
+  notes: string_id=str.tea.the_broken_vow.vow_breaks
+- id: slot.line.tea.the_broken_vow.mirror_cracks
+  label: The Broken Vow · mirror-cracks
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - narrator
+  - the_broken_vow
+  notes: string_id=str.tea.the_broken_vow.mirror_cracks
+- id: slot.line.tea.the_foxfire_debt.creditor_arrives
+  label: The Foxfire Debt · creditor-arrives
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - narrator
+  - the_foxfire_debt
+  notes: string_id=str.tea.the_foxfire_debt.creditor_arrives
+- id: slot.line.tea.the_foxfire_debt.ren_steps_forward
+  label: The Foxfire Debt · ren-steps-forward
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - ren
+  - the_foxfire_debt
+  notes: string_id=str.tea.the_foxfire_debt.ren_steps_forward
+- id: slot.line.tea.the_foxfire_debt.you_refuse
+  label: The Foxfire Debt · you-refuse
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - you
+  - the_foxfire_debt
+  notes: string_id=str.tea.the_foxfire_debt.you_refuse
+- id: slot.line.tea.the_foxfire_debt.partner_answer
+  label: The Foxfire Debt · partner-answer
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - ren
+  - the_foxfire_debt
+  notes: string_id=str.tea.the_foxfire_debt.partner_answer
+- id: slot.line.tea.the_foxfire_debt.fear_answer
+  label: The Foxfire Debt · fear-answer
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - ren
+  - the_foxfire_debt
+  notes: string_id=str.tea.the_foxfire_debt.fear_answer
+- id: slot.line.tea.the_foxfire_debt.guests_answer
+  label: The Foxfire Debt · guests-answer
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - akira
+  - the_foxfire_debt
+  notes: string_id=str.tea.the_foxfire_debt.guests_answer
+- id: slot.line.tea.the_foxfire_debt.ren_truth
+  label: The Foxfire Debt · ren-truth
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - ren
+  - the_foxfire_debt
+  notes: string_id=str.tea.the_foxfire_debt.ren_truth
+- id: slot.line.tea.the_foxfire_debt.debt_burns
+  label: The Foxfire Debt · debt-burns
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - narrator
+  - the_foxfire_debt
+  notes: string_id=str.tea.the_foxfire_debt.debt_burns
+- id: slot.line.tea.the_moonlit_door.door_opens
+  label: The Moonlit Door · door-opens
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - narrator
+  - the_moonlit_door
+  notes: string_id=str.tea.the_moonlit_door.door_opens
+- id: slot.line.tea.the_moonlit_door.grandmother_farewell
+  label: The Moonlit Door · grandmother-farewell
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - spirit
+  - the_moonlit_door
+  notes: string_id=str.tea.the_moonlit_door.grandmother_farewell
+- id: slot.line.tea.the_moonlit_door.ren_free
+  label: The Moonlit Door · ren-free
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - narrator
+  - the_moonlit_door
+  notes: string_id=str.tea.the_moonlit_door.ren_free
+- id: slot.line.tea.the_moonlit_door.ren_asks
+  label: The Moonlit Door · ren-asks
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - ren
+  - the_moonlit_door
+  notes: string_id=str.tea.the_moonlit_door.ren_asks
+- id: slot.line.tea.the_moonlit_door.kiss_answer
+  label: The Moonlit Door · kiss-answer
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - narrator
+  - the_moonlit_door
+  notes: string_id=str.tea.the_moonlit_door.kiss_answer
+- id: slot.line.tea.the_moonlit_door.mizu_answer
+  label: The Moonlit Door · mizu-answer
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - mizu
+  - the_moonlit_door
+  notes: string_id=str.tea.the_moonlit_door.mizu_answer
+- id: slot.line.tea.the_moonlit_door.akira_end_answer
+  label: The Moonlit Door · akira-end-answer
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - akira
+  - the_moonlit_door
+  notes: string_id=str.tea.the_moonlit_door.akira_end_answer
+- id: slot.line.tea.the_moonlit_door.new_promise
+  label: The Moonlit Door · new-promise
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - narrator
+  - the_moonlit_door
+  notes: string_id=str.tea.the_moonlit_door.new_promise
+- id: slot.line.tea.the_moonlit_door.petals_fall
+  label: The Moonlit Door · petals-fall
+  kind: other
+  required: false
+  status: approved
+  tags:
+  - swap
+  - dialogue
+  - line
+  - narrator
+  - the_moonlit_door
+  notes: string_id=str.tea.the_moonlit_door.petals_fall

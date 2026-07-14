@@ -26,6 +26,8 @@ def build_parser() -> argparse.ArgumentParser:
     _add_bind(sub)
     _add_import(sub)
     _add_studio(sub)
+    _add_sync(sub)
+    _add_code_graph(sub)
     return parser
 
 
@@ -241,6 +243,37 @@ def _add_studio(sub: argparse._SubParsersAction) -> None:
     )
 
 
+def _add_sync(sub: argparse._SubParsersAction) -> None:
+    s = sub.add_parser(
+        "sync-tea-house",
+        help="Import dialogue + public/assets + code graph from sakura-match checkout",
+    )
+    s.add_argument("--catalog", type=Path, default=None)
+    s.add_argument(
+        "--source",
+        type=Path,
+        required=True,
+        help="Path to CourtReinland/sakura-match clone",
+    )
+    s.add_argument("--dry-run", action="store_true")
+
+
+def _add_code_graph(sub: argparse._SubParsersAction) -> None:
+    g = sub.add_parser(
+        "code-graph",
+        help="Build graphify-style import graph for a source tree into a title",
+    )
+    g.add_argument("--catalog", type=Path, default=None)
+    g.add_argument("--source", type=Path, required=True, help="Repo root to scan")
+    g.add_argument(
+        "--title",
+        type=str,
+        required=True,
+        help="title_id to attach (writes titles/<slug>/code_graph.json)",
+    )
+    g.add_argument("--repo", type=str, default=None, help="GitHub owner/name label")
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
@@ -253,6 +286,10 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_import(args)
     if args.command == "studio":
         return cmd_studio(args)
+    if args.command == "sync-tea-house":
+        return cmd_sync_tea_house(args)
+    if args.command == "code-graph":
+        return cmd_code_graph(args)
 
     parser.error(f"Unknown command: {args.command}")
     return 2
@@ -419,6 +456,49 @@ def cmd_studio(args: argparse.Namespace) -> int:
     except Exception as e:  # noqa: BLE001
         print(f"ERROR: studio failed: {e}", file=sys.stderr)
         return 2
+    return 0
+
+
+def cmd_sync_tea_house(args: argparse.Namespace) -> int:
+    from sakura.loader import discover_catalog_root
+    from sakura.sync_tea_house import sync_tea_house
+
+    try:
+        root = discover_catalog_root(args.catalog)
+        result = sync_tea_house(
+            root, args.source, dry_run=args.dry_run
+        )
+    except Exception as e:  # noqa: BLE001
+        print(f"ERROR: sync-tea-house failed: {e}", file=sys.stderr)
+        return 2
+    print(result.get("message") or result)
+    if result.get("stats"):
+        print("stats:", result["stats"])
+    return 0 if result.get("ok") else 1
+
+
+def cmd_code_graph(args: argparse.Namespace) -> int:
+    from sakura.code_graph import build_code_graph, write_code_graph
+    from sakura.loader import discover_catalog_root
+
+    try:
+        root = discover_catalog_root(args.catalog)
+        graph = build_code_graph(
+            args.source,
+            title_id=args.title,
+            source_repo=args.repo,
+        )
+        slug = args.title.replace("title.", "").replace("_", "-")
+        out = root / "titles" / slug / "code_graph.json"
+        write_code_graph(out, graph)
+    except Exception as e:  # noqa: BLE001
+        print(f"ERROR: code-graph failed: {e}", file=sys.stderr)
+        return 2
+    print(
+        f"Wrote {out} — {graph['stats']['nodes']} nodes, "
+        f"{graph['stats']['edges']} edges, "
+        f"{len(graph.get('god_nodes') or [])} god nodes"
+    )
     return 0
 
 

@@ -1,0 +1,24 @@
+id: asset.portrait.tea.ren_neutral
+label: Portrait · Ren neutral
+status: approved
+brand_id: brand.sakura_soft
+kind: portrait
+tags:
+- tea_house
+- swap
+- graphic
+- portrait
+characters:
+- chr.tea.ren
+files:
+- role: master
+  path: assets/files/tea_house/backgrounds/ren-entry-hall-neutral.webp
+  mime: image/webp
+  width: 1080
+  height: 1920
+provenance:
+  source: internal
+  tool: tea_house_sync
+  created_at: '2026-07-14'
+  license: internal_all_rights
+  author: CourtReinland/sakura-match

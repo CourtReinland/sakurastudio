@@ -4,14 +4,14 @@ status: draft
 brand_id: brand.sakura_soft
 engine_id: engine.threejs_tea_house
 genre_tags:
-  - match3
-  - otome
-  - vn
-  - mystery-romance
+- match3
+- otome
+- vn
+- mystery-romance
 platforms:
-  - ios
-  - android
-  - web
+- ios
+- android
+- web
 default_locale: en
 content_files:
   cast: cast.yaml
@@ -19,9 +19,8 @@ content_files:
   slots: slots.yaml
   bindings: bindings.yaml
   levels: levels.yaml
+  dialogue: dialogue.yaml
 gates:
   require_approved_bindings_for_release: true
   require_approved_player_facing_nodes: false
-notes: >
-  Maps to GitHub CourtReinland/sakura-match (Three.js prototype).
-  GDD: docs/GDD-current.md in that repo. Catalog holds swappable surface.
+notes: Maps to GitHub CourtReinland/sakura-match. Dialogue ledger imported from GDD §13; public/assets wired as catalog library.

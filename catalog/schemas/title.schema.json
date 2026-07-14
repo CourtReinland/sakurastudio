@@ -50,7 +50,8 @@
         "ggd": { "type": "string" },
         "slots": { "type": "string" },
         "bindings": { "type": "string" },
-        "levels": { "type": "string" }
+        "levels": { "type": "string" },
+        "dialogue": { "type": "string" }
       }
     },
     "gates": {

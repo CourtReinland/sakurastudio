@@ -1,0 +1,23 @@
+id: asset.line.tea.the_sixth_lantern.first_cup
+label: Line · The Sixth Lantern · first-cup
+status: approved
+brand_id: brand.sakura_soft
+kind: other
+tags:
+- dialogue
+- line
+- tea_house
+- narrator
+- the_sixth_lantern
+characters: []
+files:
+- role: master
+  path: assets/files/tea_house/dialogue/the_sixth_lantern/first_cup.txt
+  mime: text/plain
+provenance:
+  source: internal
+  tool: gdd_import
+  prompt: Imported from GDD dialogue ledger scene=the-sixth-lantern node=first-cup
+  created_at: '2026-07-14'
+  license: internal_all_rights
+notes: speaker=narrator; string_id=str.tea.the_sixth_lantern.first_cup
