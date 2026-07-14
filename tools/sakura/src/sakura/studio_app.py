@@ -592,8 +592,15 @@ def api_code_graph(
 
 
 @app.get("/", response_class=HTMLResponse)
-def index() -> str:
-    return STUDIO_HTML
+def index() -> HTMLResponse:
+    # Avoid sticky browser cache of the old cards-only shell
+    return HTMLResponse(
+        content=STUDIO_HTML,
+        headers={
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            "Pragma": "no-cache",
+        },
+    )
 
 
 STUDIO_HTML = r"""<!DOCTYPE html>
@@ -630,6 +637,12 @@ STUDIO_HTML = r"""<!DOCTYPE html>
     }
     h1 { font-size: 1.1rem; margin: 0 0 4px; }
     h1 span { color: var(--accent); }
+    .ver { font-size: 0.7rem; color: var(--muted); margin-left: 8px; }
+    #contextBar {
+      margin: 0 18px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 12px;
+      background: linear-gradient(135deg, #c8b6ff18, #ff8fab14); display: none;
+    }
+    #contextBar.visible { display: block; margin-top: 12px; }
     .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
     select, button, input {
       background: var(--panel2); color: var(--text); border: 1px solid var(--border);
@@ -714,8 +727,8 @@ STUDIO_HTML = r"""<!DOCTYPE html>
 <body>
   <header>
     <div>
-      <h1>🌸 <span>Sakura</span> Studio</h1>
-      <div class="muted">Catalog control surface · swaps · story map · multi-repo tabs</div>
+      <h1>🌸 <span>Sakura</span> Studio <span class="ver" id="buildVer">v0.4</span></h1>
+      <div class="muted">Use the tabs below — Overview = engine/story stats · Swaps = cards</div>
     </div>
     <div class="row">
       <div class="field">
@@ -727,6 +740,7 @@ STUDIO_HTML = r"""<!DOCTYPE html>
       <button id="btnImport" type="button">Import → Unity</button>
     </div>
   </header>
+  <div id="contextBar"></div>
   <main>
     <div class="tabs" id="mainTabs">
       <button type="button" data-tab="overview" class="active">Overview</button>
@@ -839,9 +853,11 @@ STUDIO_HTML = r"""<!DOCTYPE html>
       const inCatalog = opt.dataset.inCatalog === '1';
       if (!inCatalog || !titleId) {
         currentTitleId = null;
+        document.getElementById('contextBar').classList.remove('visible');
         document.getElementById('panel-overview').innerHTML =
           `<div class="empty">This GitHub repo is not mapped to a catalog title yet.<br/>
-           Add it in <code>catalog/_meta/github_projects.yaml</code> or create <code>titles/…</code>.
+           Pick <strong>Sakura Tea House</strong> (●) in the project dropdown for engine + story.<br/>
+           Or add a mapping in <code>catalog/_meta/github_projects.yaml</code>.
            <p class="muted">${opt.textContent}</p></div>`;
         document.getElementById('swapCards').innerHTML = '';
         document.getElementById('library').innerHTML = '';
@@ -861,9 +877,45 @@ STUDIO_HTML = r"""<!DOCTYPE html>
     projectEl.addEventListener('change', () => onProjectChange().catch(e => log(e.message)));
 
     /* ---- overview ---- */
+    function fillContextBar(o) {
+      const bar = document.getElementById('contextBar');
+      if (!o || !o.title_id) {
+        bar.classList.remove('visible');
+        bar.innerHTML = '';
+        return;
+      }
+      const eng = o.engine;
+      const kinds = o.stats?.nodes_by_kind || {};
+      bar.classList.add('visible');
+      bar.innerHTML = `
+        <div class="row" style="justify-content:space-between;gap:12px">
+          <div>
+            <div class="row" style="gap:10px;margin-bottom:6px">
+              <strong style="font-size:1.05rem">${o.label || o.title_id}</strong>
+              <span class="badge ${badgeStatus(o.status)}">${o.status || '?'}</span>
+              ${(o.genre_tags||[]).map(t => `<span class="badge cat">${t}</span>`).join('')}
+            </div>
+            <div class="engine-pill">
+              <strong>Engine</strong>
+              ${eng ? `${eng.label} <span class="muted">(${eng.runtime} · ${eng.id})</span>` : '<span class="muted">none linked</span>'}
+            </div>
+          </div>
+          <div class="row" style="gap:14px">
+            <div class="stat" style="min-width:70px"><b>${kinds.scene || 0}</b><span class="muted">Scenes</span></div>
+            <div class="stat" style="min-width:70px"><b>${kinds.route || 0}</b><span class="muted">Routes</span></div>
+            <div class="stat" style="min-width:70px"><b>${kinds.level || 0}</b><span class="muted">Levels</span></div>
+            <div class="stat" style="min-width:70px"><b>${o.stats?.cast || 0}</b><span class="muted">Cast</span></div>
+            <div class="stat" style="min-width:70px"><b>${o.stats?.bindings || 0}</b><span class="muted">Bound</span></div>
+          </div>
+        </div>
+        <div class="muted" style="margin-top:8px">Tabs: Overview (detail) · Story (arcs/scenes) · Dialogue · Cast · Code map · Swaps (drag-drop cards)</div>
+      `;
+    }
+
     async function loadOverview() {
       if (!currentTitleId) return;
       const o = await api('/api/overview?examples=true&title=' + encodeURIComponent(currentTitleId));
+      fillContextBar(o);
       const eng = o.engine;
       const kinds = o.stats.nodes_by_kind || {};
       const kindRows = Object.entries(kinds).map(([k,v]) =>
@@ -878,8 +930,12 @@ STUDIO_HTML = r"""<!DOCTYPE html>
           <strong>Engine</strong>
           ${eng ? `${eng.label} <span class="muted">(${eng.runtime} · ${eng.id})</span>` : '<span class="muted">none</span>'}
         </div>
+        ${eng && eng.capabilities ? `<p class="muted">Capabilities: ${eng.capabilities.join(' · ')}</p>` : ''}
         <div class="statgrid">
           <div class="stat"><b>${o.stats.nodes}</b><span class="muted">GGD nodes</span></div>
+          <div class="stat"><b>${kinds.scene || 0}</b><span class="muted">Scenes</span></div>
+          <div class="stat"><b>${kinds.route || 0}</b><span class="muted">Routes</span></div>
+          <div class="stat"><b>${kinds.level || 0}</b><span class="muted">Levels</span></div>
           <div class="stat"><b>${o.stats.slots}</b><span class="muted">Slots</span></div>
           <div class="stat"><b>${o.stats.bindings}</b><span class="muted">Bindings</span></div>
           <div class="stat"><b>${o.stats.cast}</b><span class="muted">Cast</span></div>
@@ -888,7 +944,7 @@ STUDIO_HTML = r"""<!DOCTYPE html>
         </div>
         <div class="two-col">
           <div class="card">
-            <h3>GGD node kinds</h3>
+            <h3>GGD node kinds (story graph)</h3>
             <table><thead><tr><th>Kind</th><th>Count</th></tr></thead><tbody>${kindRows || '<tr><td colspan=2 class="muted">none</td></tr>'}</tbody></table>
           </div>
           <div class="card">
@@ -896,6 +952,7 @@ STUDIO_HTML = r"""<!DOCTYPE html>
             <p class="muted" style="white-space:pre-wrap;margin:0">${o.notes || '—'}</p>
             <p class="muted" style="margin-top:10px">Platforms: ${(o.platforms||[]).join(', ') || '—'}</p>
             <p class="muted">Brand: ${o.brand ? o.brand.label : '—'}</p>
+            <p class="muted">Title id: ${o.title_id}</p>
           </div>
         </div>
       `;
