@@ -1,0 +1,5 @@
+title_id: title.sakura_tea_house
+style:
+  enabled: false
+  asset_id: asset.piece.tea.flower
+  notes: Project-wide style lock for Grok Imagine. Toggle enabled on/off in Studio Swaps.

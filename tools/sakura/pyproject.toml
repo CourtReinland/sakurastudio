@@ -1,6 +1,6 @@
 [project]
 name = "sakura-catalog"
-version = "0.5.0"
+version = "0.5.3"
 description = "Sakura Soft catalog CLI (validate, bind, import, studio, TTS)"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -12,6 +12,7 @@ dependencies = [
   "fastapi>=0.115.0",
   "uvicorn[standard]>=0.30.0",
   "httpx>=0.27.0",
+  "python-multipart>=0.0.9",
 ]
 
 [project.scripts]

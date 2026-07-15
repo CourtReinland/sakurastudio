@@ -85,7 +85,9 @@ sakura studio --catalog /path/to/catalog
 # open http://127.0.0.1:8787/
 ```
 
-Tabs: Overview · Swaps (drag-drop) · Story · **Dialogue** · Cast · **Code map**.
+Tabs: Overview · Swaps (drag-drop, Imagine, **style board**) · Story · **Dialogue** · Cast · **Code map**.
+
+See repo [`docs/STUDIO-IMAGINE.md`](../../docs/STUDIO-IMAGINE.md) for Grok Imagine + project style lock.
 
 ## Sync Tea House (from sakura-match checkout)
 

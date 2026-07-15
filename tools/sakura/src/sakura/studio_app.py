@@ -7,17 +7,27 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile
 from fastapi.responses import HTMLResponse, Response
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
+from sakura.asset_write import create_image_asset
 from sakura.bind import bind_set, bind_set_status, bind_unbind, resolve_title_id
 from sakura.code_graph import load_title_code_graph
 from sakura.dialogue_edit import update_line
 from sakura.elevenlabs_client import ElevenLabsError, list_voices, resolve_api_key
 from sakura.github_projects import project_tabs
+from sakura.imagine_client import (
+    DEFAULT_MODEL,
+    QUALITY_MODEL,
+    ImagineError,
+    edit_image,
+    generate_image,
+    resolve_xai_api_key,
+)
 from sakura.import_unity import import_title
 from sakura.loader import discover_catalog_root, load_catalog
+from sakura.studio_style import load_studio_style, save_studio_style
 from sakura.tts import generate_line_audio
 from sakura.validate import run_validate, summarize
 from sakura.voice_map import (
@@ -29,7 +39,7 @@ from sakura.voice_map import (
 )
 from sakura.yaml_io import load_yaml
 
-app = FastAPI(title="Sakura Studio", version="0.5.0")
+app = FastAPI(title="Sakura Studio", version="0.5.3")
 
 # Swap categories for dashboard filters
 SWAP_CATEGORIES = {
@@ -138,14 +148,102 @@ class TtsGenerateBody(BaseModel):
     export_to_game: bool = True
 
 
+class ImagineRefImage(BaseModel):
+    """Ad-hoc reference image (local upload) as base64, not yet in catalog."""
+    data_base64: str
+    mime: str = "image/png"
+    name: str | None = None
+
+
+class ImagineReference(BaseModel):
+    """Ordered edit reference — catalog asset or inline base64 image."""
+    kind: str = "asset"  # asset | file
+    asset_id: str | None = None
+    data_base64: str | None = None
+    mime: str = "image/png"
+    name: str | None = None
+
+
+class ImagineBody(BaseModel):
+    prompt: str
+    mode: str = Field(default="generate", description="generate | edit")
+    title_id: str | None = None
+    slot_id: str | None = None
+    source_asset_id: str | None = None  # legacy single
+    source_asset_ids: list[str] = Field(default_factory=list)
+    source_images: list[ImagineRefImage] = Field(default_factory=list)
+    references: list[ImagineReference] = Field(default_factory=list)
+    kind: str | None = None
+    label: str | None = None
+    aspect_ratio: str = "1:1"
+    resolution: str = "1k"
+    model: str = "fast"  # fast | quality
+    bind: bool = True
+    force: bool = True
+    status: str = "review"
+    # When true (default), inject title style board asset if enabled
+    use_style_board: bool = True
+
+
+class StyleBoardBody(BaseModel):
+    title_id: str
+    enabled: bool | None = None
+    asset_id: str | None = None
+    clear_asset: bool = False
+    notes: str | None = None
+
+
 @app.get("/api/health")
 def health(catalog: str | None = None) -> dict[str, Any]:
     root = _catalog(catalog)
     return {
         "ok": True,
         "catalog": str(root),
-        "version": "0.5.0",
+        "version": "0.5.3",
         "elevenlabs_configured": bool(resolve_api_key()),
+        "xai_configured": bool(resolve_xai_api_key()),
+    }
+
+
+@app.get("/api/studio-style")
+def api_get_studio_style(
+    title: str = Query(...),
+    catalog: str | None = None,
+) -> dict[str, Any]:
+    root = _catalog(catalog)
+    try:
+        style = load_studio_style(root, title)
+    except Exception as e:
+        raise HTTPException(400, str(e)) from e
+    return {"ok": True, "style": style}
+
+
+@app.post("/api/studio-style")
+def api_set_studio_style(body: StyleBoardBody, catalog: str | None = None) -> dict[str, Any]:
+    root = _catalog(catalog)
+    try:
+        asset_arg: Any = ...
+        if body.clear_asset:
+            asset_arg = None
+        elif body.asset_id is not None:
+            asset_arg = body.asset_id
+        style = save_studio_style(
+            root,
+            body.title_id,
+            enabled=body.enabled,
+            asset_id=asset_arg,
+            notes=body.notes,
+        )
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
+    return {
+        "ok": True,
+        "style": style,
+        "message": (
+            f"Style board: enabled={style['enabled']} "
+            f"asset={style['asset_id'] or '—'} "
+            f"({'ACTIVE' if style['active'] else 'inactive'})"
+        ),
     }
 
 
@@ -466,6 +564,361 @@ def api_unbind(
         include_examples=True,
     )
     return {"ok": result.ok, "message": result.message}
+
+
+def _slot_kind_for_asset(root: Path, title_id: str | None, slot_id: str | None) -> str:
+    if not title_id or not slot_id:
+        return "sprite"
+    try:
+        index = load_catalog(root, include_examples=True)
+        files = index.title_files.get(title_id, {})
+        slots_ent = files.get("slots")
+        if not slots_ent:
+            return "sprite"
+        for s in slots_ent.data.get("slots") or []:
+            if isinstance(s, dict) and s.get("id") == slot_id:
+                kind = s.get("kind")
+                if isinstance(kind, str) and kind:
+                    return kind
+    except Exception:
+        pass
+    return "sprite"
+
+
+def _bind_new_asset(
+    root: Path,
+    *,
+    title_id: str | None,
+    slot_id: str | None,
+    asset_id: str,
+    force: bool = True,
+    notes: str | None = None,
+) -> dict[str, Any] | None:
+    if not title_id or not slot_id:
+        return None
+    # Skip full-catalog validate on creative paths (upload / Imagine) so unrelated
+    # findings don't mark a successful slot write as failure. Use Validate button.
+    result = bind_set(
+        catalog=root,
+        title=title_id,
+        slot_id=slot_id,
+        asset_id=asset_id,
+        status="review",
+        bound_by="studio",
+        notes=notes,
+        force=force,
+        no_validate=True,
+        include_examples=True,
+    )
+    return {
+        "ok": result.ok,
+        "message": result.message,
+        "previous_asset_id": result.previous_asset_id,
+    }
+
+
+@app.post("/api/assets/upload")
+async def api_asset_upload(
+    file: UploadFile = File(...),
+    title_id: str | None = Form(None),
+    slot_id: str | None = Form(None),
+    kind: str | None = Form(None),
+    label: str | None = Form(None),
+    asset_id: str | None = Form(None),
+    force: bool = Form(True),
+    bind: bool = Form(True),
+    catalog: str | None = None,
+) -> dict[str, Any]:
+    """Import a local image into the catalog library; optionally bind to a slot."""
+    root = _catalog(catalog)
+    raw = await file.read()
+    if not raw:
+        raise HTTPException(400, "Empty file")
+    if len(raw) > 40 * 1024 * 1024:
+        raise HTTPException(400, "File too large (max 40MB)")
+
+    mime = file.content_type or None
+    if mime and not mime.startswith("image/"):
+        raise HTTPException(400, f"Only image uploads supported (got {mime})")
+
+    asset_kind = kind or _slot_kind_for_asset(root, title_id, slot_id)
+    base = Path(file.filename or "upload").stem
+    try:
+        created = create_image_asset(
+            root,
+            image_bytes=raw,
+            kind=asset_kind,
+            label=label,
+            asset_id=asset_id,
+            base_name=base,
+            mime=mime,
+            filename=file.filename,
+            provenance={
+                "source": "internal",
+                "tool": "studio_upload",
+                "author": "studio",
+            },
+            status="review",
+        )
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
+
+    bind_result = None
+    if bind and title_id and slot_id:
+        bind_result = _bind_new_asset(
+            root,
+            title_id=title_id,
+            slot_id=slot_id,
+            asset_id=created["asset_id"],
+            force=force,
+            notes=f"uploaded {file.filename}",
+        )
+        if bind_result and not bind_result.get("ok"):
+            # asset is still created; surface bind failure
+            return {
+                "ok": False,
+                "asset": created,
+                "bind": bind_result,
+                "message": bind_result.get("message") or "Asset created but bind failed",
+            }
+
+    return {
+        "ok": True,
+        "asset": created,
+        "bind": bind_result,
+        "message": f"Imported {created['asset_id']}"
+        + (f" → {slot_id}" if slot_id and bind else ""),
+    }
+
+
+@app.post("/api/imagine")
+def api_imagine(body: ImagineBody, catalog: str | None = None) -> dict[str, Any]:
+    """Generate or edit an image via Grok Imagine and save it into the catalog."""
+    root = _catalog(catalog)
+    mode = (body.mode or "generate").lower().strip()
+    if mode not in {"generate", "edit"}:
+        raise HTTPException(400, "mode must be 'generate' or 'edit'")
+
+    model = QUALITY_MODEL if body.model in {"quality", QUALITY_MODEL} else DEFAULT_MODEL
+    asset_kind = body.kind or _slot_kind_for_asset(root, body.title_id, body.slot_id)
+
+    style_board: dict[str, Any] | None = None
+    style_injected = False
+    if body.use_style_board and body.title_id:
+        try:
+            style_board = load_studio_style(root, body.title_id)
+        except Exception:
+            style_board = None
+
+    import base64 as _b64
+
+    def _load_asset_bytes(source_id: str, index: Any) -> tuple[bytes, str]:
+        ent = index.assets.get(source_id)
+        if not ent:
+            raise HTTPException(404, f"Unknown source asset {source_id}")
+        files_list = ent.data.get("files") or []
+        master = next(
+            (
+                f
+                for f in files_list
+                if isinstance(f, dict) and f.get("role") == "master"
+            ),
+            files_list[0] if files_list else None,
+        )
+        if not isinstance(master, dict) or not master.get("path"):
+            raise HTTPException(404, f"No master file on {source_id}")
+        path = (root / str(master["path"])).resolve()
+        if not path.is_file():
+            raise HTTPException(404, f"Missing file for {source_id}")
+        src_mime = (
+            master.get("mime")
+            or mimetypes.guess_type(str(path))[0]
+            or "image/png"
+        )
+        return path.read_bytes(), str(src_mime)
+
+    def _decode_b64(raw: str, mime: str) -> tuple[bytes, str]:
+        data = raw or ""
+        if "," in data and data.strip().startswith("data:"):
+            data = data.split(",", 1)[1]
+        try:
+            return _b64.b64decode(data), mime or "image/png"
+        except Exception as e:
+            raise HTTPException(400, f"Invalid reference image base64: {e}") from e
+
+    def _collect_edit_refs(index: Any) -> list[tuple[bytes, str]]:
+        nonlocal style_injected
+        refs: list[tuple[bytes, str]] = []
+        seen_asset_ids: set[str] = set()
+
+        if body.references:
+            for ref in body.references:
+                kind = (ref.kind or "asset").lower()
+                if kind == "asset":
+                    if not ref.asset_id:
+                        raise HTTPException(400, "reference.asset kind needs asset_id")
+                    refs.append(_load_asset_bytes(ref.asset_id, index))
+                    seen_asset_ids.add(ref.asset_id)
+                elif kind in {"file", "image", "upload"}:
+                    if not ref.data_base64:
+                        raise HTTPException(400, "reference.file kind needs data_base64")
+                    refs.append(_decode_b64(ref.data_base64, ref.mime or "image/png"))
+                else:
+                    raise HTTPException(400, f"Unknown reference kind: {ref.kind}")
+        else:
+            asset_ids: list[str] = []
+            for aid in body.source_asset_ids or []:
+                if aid and aid not in asset_ids:
+                    asset_ids.append(aid)
+            if body.source_asset_id and body.source_asset_id not in asset_ids:
+                asset_ids.insert(0, body.source_asset_id)
+            if not asset_ids and not body.source_images and body.title_id and body.slot_id:
+                files = index.title_files.get(body.title_id, {})
+                bindings_ent = files.get("bindings")
+                if bindings_ent:
+                    for b in bindings_ent.data.get("bindings") or []:
+                        if isinstance(b, dict) and b.get("slot_id") == body.slot_id:
+                            aid = b.get("asset_id")
+                            if isinstance(aid, str):
+                                asset_ids.append(aid)
+                            break
+            for source_id in asset_ids:
+                refs.append(_load_asset_bytes(source_id, index))
+                seen_asset_ids.add(source_id)
+            for img in body.source_images or []:
+                refs.append(_decode_b64(img.data_base64 or "", img.mime or "image/png"))
+
+        # Project style board: append as last ref when active (max 3)
+        if (
+            body.use_style_board
+            and style_board
+            and style_board.get("enabled")
+            and style_board.get("asset_id")
+        ):
+            sid = str(style_board["asset_id"])
+            if sid not in seen_asset_ids:
+                if len(refs) >= 3:
+                    refs = refs[:2]
+                refs.append(_load_asset_bytes(sid, index))
+                style_injected = True
+
+        return refs
+
+    try:
+        style_active = bool(
+            body.use_style_board
+            and style_board
+            and style_board.get("enabled")
+            and style_board.get("asset_id")
+        )
+        # Generate with style lock → edit using style image as sole/base ref
+        if mode == "generate" and style_active:
+            mode = "edit"
+            # leave references empty so style inject provides the only ref
+            # unless client already sent refs
+            if not body.references and not body.source_asset_ids and not body.source_images:
+                pass  # style will be the only ref
+
+        if mode == "generate":
+            image_bytes = generate_image(
+                body.prompt,
+                model=model,
+                aspect_ratio=body.aspect_ratio or "1:1",
+                resolution=body.resolution or "1k",
+            )
+            mime = "image/png"
+            tool = "grok_imagine"
+        else:
+            index = load_catalog(root, include_examples=True)
+            refs = _collect_edit_refs(index)
+
+            if not refs:
+                raise HTTPException(
+                    400,
+                    "Edit needs at least one reference image "
+                    "(bound slot, references, style board, or source_asset_ids)",
+                )
+            if len(refs) > 3:
+                raise HTTPException(400, "At most 3 reference images allowed")
+
+            prompt = body.prompt.strip()
+            if style_injected:
+                prompt = (
+                    f"{prompt}\n\n"
+                    "[Style lock] The last reference image is the project style board. "
+                    "Match its line weight, palette, shading, and finish. "
+                    "Do not copy the style board's subject matter."
+                )
+
+            image_bytes = edit_image(
+                prompt,
+                images=refs,
+                model=model,
+                aspect_ratio=body.aspect_ratio,
+                resolution=body.resolution or "1k",
+            )
+            tool = "grok_imagine_edit" if not style_injected else "grok_imagine_style"
+            mime = "image/png"
+    except ImagineError as e:
+        raise HTTPException(502, str(e)) from e
+
+    base_name = body.slot_id.replace("slot.", "") if body.slot_id else "imagine"
+    try:
+        created = create_image_asset(
+            root,
+            image_bytes=image_bytes,
+            kind=asset_kind,
+            label=body.label,
+            base_name=base_name,
+            mime=mime,
+            provenance={
+                "source": "generated",
+                "tool": tool,
+                "prompt": body.prompt.strip(),
+                "author": "studio",
+                **(
+                    {"style_asset_id": style_board.get("asset_id")}
+                    if style_injected and style_board
+                    else {}
+                ),
+            },
+            status=body.status or "review",
+        )
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
+
+    bind_result = None
+    if body.bind and body.title_id and body.slot_id:
+        bind_result = _bind_new_asset(
+            root,
+            title_id=body.title_id,
+            slot_id=body.slot_id,
+            asset_id=created["asset_id"],
+            force=body.force,
+            notes=f"imagine:{mode}" + (";style_lock" if style_injected else ""),
+        )
+
+    ok = True
+    message = f"Imagine {mode}: {created['asset_id']}"
+    if style_injected and style_board:
+        message += f" · style lock {style_board.get('asset_id')}"
+    if bind_result:
+        ok = bool(bind_result.get("ok"))
+        message = (bind_result.get("message") or message) + (
+            f" · style {style_board.get('asset_id')}" if style_injected and style_board else ""
+        )
+
+    return {
+        "ok": ok,
+        "mode": mode,
+        "model": model,
+        "asset": created,
+        "bind": bind_result,
+        "message": message,
+        "preview_url": created.get("preview_url"),
+        "style_injected": style_injected,
+        "style_board": style_board,
+    }
 
 
 @app.get("/api/validate")
@@ -880,13 +1333,94 @@ STUDIO_HTML = r"""<!DOCTYPE html>
     .card.drop-target { border-color: var(--accent); box-shadow: 0 0 0 2px #ff8fab55; }
     .card h3 { margin: 0; font-size: 0.92rem; }
     .muted { color: var(--muted); font-size: 0.8rem; }
+    .thumb-wrap {
+      position: relative; width: 100%; border-radius: 8px;
+      border: 1px dashed var(--border); background: #100c16; overflow: hidden;
+    }
+    .thumb-wrap.drop-target { border-color: var(--accent); border-style: solid; box-shadow: inset 0 0 0 2px #ff8fab55; }
     .thumb {
-      width: 100%; aspect-ratio: 1; object-fit: contain; background: #100c16;
-      border-radius: 8px; border: 1px dashed var(--border);
+      width: 100%; aspect-ratio: 1; object-fit: contain; display: block; background: #100c16;
     }
     .thumb.placeholder {
-      display: grid; place-items: center; color: var(--muted); font-size: 0.82rem; min-height: 120px;
+      display: grid; place-items: center; color: var(--muted); font-size: 0.82rem;
+      min-height: 140px; aspect-ratio: 1; padding: 12px; text-align: center; line-height: 1.35;
     }
+    .imagine-box {
+      background: var(--panel2); border: 1px solid var(--border); border-radius: 8px;
+      padding: 8px; display: flex; flex-direction: column; gap: 6px;
+    }
+    .imagine-box textarea {
+      width: 100%; min-height: 56px; resize: vertical; background: #100c16; color: var(--text);
+      border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; font-size: 0.8rem;
+      font-family: inherit;
+    }
+    .imagine-box .row select { flex: 1; min-width: 0; font-size: 0.75rem; padding: 5px 6px; }
+    .edit-panel {
+      display: none; flex-direction: column; gap: 8px; margin-top: 4px;
+      padding-top: 8px; border-top: 1px solid var(--border);
+    }
+    .edit-panel.open { display: flex; }
+    .edit-panel .edit-title {
+      font-size: 0.78rem; color: var(--accent2); font-weight: 600;
+    }
+    .ref-strip {
+      display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+      min-height: 72px; padding: 6px; background: #100c16; border-radius: 8px;
+      border: 1px dashed var(--border);
+    }
+    .ref-strip.drop-target { border-color: var(--accent); border-style: solid; }
+    .ref-chip {
+      position: relative; width: 64px; height: 64px; border-radius: 8px;
+      border: 1px solid var(--border); background: var(--panel); overflow: hidden;
+      flex: 0 0 auto;
+    }
+    .ref-chip img {
+      width: 100%; height: 100%; object-fit: cover; display: block;
+    }
+    .ref-chip .ref-x {
+      position: absolute; top: 2px; right: 2px; width: 20px; height: 20px;
+      border-radius: 999px; border: none; padding: 0; font-size: 12px; line-height: 1;
+      background: #000000cc; color: #fff; cursor: pointer; display: grid; place-items: center;
+    }
+    .ref-chip .ref-x:hover { background: var(--err); }
+    .ref-chip .ref-label {
+      position: absolute; left: 0; right: 0; bottom: 0; font-size: 0.55rem;
+      background: #000000aa; color: #fff; padding: 1px 3px; text-align: center;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .ref-add {
+      width: 64px; height: 64px; border-radius: 8px; border: 1px dashed var(--border);
+      background: transparent; color: var(--muted); font-size: 1.6rem; cursor: pointer;
+      display: grid; place-items: center; flex: 0 0 auto;
+    }
+    .ref-add:hover { border-color: var(--accent); color: var(--accent); }
+    .ref-add:disabled { opacity: 0.35; cursor: not-allowed; }
+    .style-board {
+      display: flex; flex-wrap: wrap; gap: 12px; align-items: center;
+      margin-bottom: 12px; padding: 10px 12px;
+      background: linear-gradient(135deg, #c8b6ff14, #ff8fab12);
+      border: 1px solid var(--border); border-radius: 12px;
+    }
+    .style-board .style-thumb {
+      width: 56px; height: 56px; border-radius: 8px; object-fit: cover;
+      background: #100c16; border: 1px solid var(--border);
+    }
+    .style-board .style-thumb.placeholder {
+      display: grid; place-items: center; color: var(--muted); font-size: 0.65rem;
+      text-align: center; padding: 4px;
+    }
+    .style-board .style-meta { flex: 1; min-width: 160px; }
+    .style-board .style-meta strong { display: block; font-size: 0.9rem; }
+    .style-board select { min-width: 180px; max-width: 280px; }
+    .toggle {
+      display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
+      user-select: none; font-size: 0.82rem;
+    }
+    .toggle input { accent-color: var(--accent); width: 16px; height: 16px; }
+    .toggle.on { color: var(--ok); }
+    .toggle.off { color: var(--muted); }
+    button:disabled { opacity: 0.45; cursor: not-allowed; }
+    button.busy { opacity: 0.7; pointer-events: none; }
     .badge {
       display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 0.7rem;
       border: 1px solid var(--border); color: var(--muted);
@@ -936,8 +1470,8 @@ STUDIO_HTML = r"""<!DOCTYPE html>
 <body>
   <header>
     <div>
-      <h1>🌸 <span>Sakura</span> Studio <span class="ver" id="buildVer">v0.5</span></h1>
-      <div class="muted">Overview · Story · Dialogue (edit + ElevenLabs) · Swaps</div>
+      <h1>🌸 <span>Sakura</span> Studio <span class="ver" id="buildVer">v0.5.3</span></h1>
+      <div class="muted">Overview · Story · Dialogue · Swaps (style board · Imagine)</div>
     </div>
     <div class="row">
       <div class="field">
@@ -962,6 +1496,22 @@ STUDIO_HTML = r"""<!DOCTYPE html>
 
     <section id="panel-overview" class="panel active"></section>
     <section id="panel-swaps" class="panel">
+      <div class="style-board" id="styleBoard">
+        <div id="styleThumb" class="style-thumb placeholder">style</div>
+        <div class="style-meta">
+          <strong>Project style board</strong>
+          <div class="muted" id="styleStatus">Pick a style asset · toggle lock for all Imagine/Edit</div>
+        </div>
+        <div class="field" style="min-width:200px">
+          <label for="styleAssetSelect">Style asset</label>
+          <select id="styleAssetSelect"><option value="">— none —</option></select>
+        </div>
+        <label class="toggle off" id="styleToggleLabel">
+          <input type="checkbox" id="styleEnabled" />
+          <span id="styleToggleText">Style lock OFF</span>
+        </label>
+        <button type="button" class="secondary" id="btnStyleSave">Save style</button>
+      </div>
       <div class="filter-row row">
         <span class="muted">Filter:</span>
         <button type="button" class="secondary cat-filter active" data-cat="all">All</button>
@@ -970,7 +1520,9 @@ STUDIO_HTML = r"""<!DOCTYPE html>
         <button type="button" class="secondary cat-filter" data-cat="dialogue">Character lines</button>
         <button type="button" class="secondary cat-filter" data-cat="story">Story elements</button>
       </div>
-      <div class="muted" style="margin-bottom:6px">Asset library — drag onto a slot card to rebind</div>
+      <div class="muted" style="margin-bottom:6px">
+        Asset library — drag onto a slot · drop a local image file · or prompt with Grok Imagine
+      </div>
       <div class="library" id="library"></div>
       <div class="cards" id="swapCards"></div>
     </section>
@@ -1167,35 +1719,185 @@ STUDIO_HTML = r"""<!DOCTYPE html>
       `;
     }
 
-    /* ---- swaps + dnd ---- */
+    /* ---- swaps + dnd + imagine ---- */
+    let swapAssetsById = {};
+    let xaiConfigured = null;
+    let styleBoard = { enabled: false, asset_id: null, active: false, asset: null };
+
+    async function refreshHealthFlags() {
+      try {
+        const h = await api('/api/health');
+        xaiConfigured = !!h.xai_configured;
+        const ver = document.getElementById('buildVer');
+        if (ver && h.version) ver.textContent = 'v' + h.version;
+      } catch (_) { /* ignore */ }
+    }
+
+    async function loadStyleBoard() {
+      if (!currentTitleId) return;
+      try {
+        const data = await api('/api/studio-style?title=' + encodeURIComponent(currentTitleId));
+        styleBoard = data.style || styleBoard;
+        renderStyleBoard();
+      } catch (e) {
+        log('Style board: ' + e.message);
+      }
+    }
+
+    function renderStyleBoard() {
+      const sel = document.getElementById('styleAssetSelect');
+      const en = document.getElementById('styleEnabled');
+      const thumb = document.getElementById('styleThumb');
+      const status = document.getElementById('styleStatus');
+      const toggleLabel = document.getElementById('styleToggleLabel');
+      const toggleText = document.getElementById('styleToggleText');
+      if (!sel) return;
+
+      const prev = styleBoard.asset_id || '';
+      const assets = Object.values(swapAssetsById);
+      const visual = assets.filter(a => {
+        const k = a.kind || '';
+        return !String(k).startsWith('audio') && k !== 'font';
+      });
+      const list = visual.length ? visual : assets;
+      sel.innerHTML = '<option value="">— none —</option>' + list.map(a =>
+        `<option value="${a.id}" ${a.id === prev ? 'selected' : ''}>${a.id}</option>`
+      ).join('');
+      if (prev && ![...sel.options].some(o => o.value === prev)) {
+        const opt = document.createElement('option');
+        opt.value = prev;
+        opt.textContent = prev + ' (missing?)';
+        opt.selected = true;
+        sel.appendChild(opt);
+      }
+
+      en.checked = !!styleBoard.enabled;
+      toggleLabel.classList.toggle('on', !!styleBoard.enabled && !!styleBoard.asset_id);
+      toggleLabel.classList.toggle('off', !(styleBoard.enabled && styleBoard.asset_id));
+      toggleText.textContent = styleBoard.enabled
+        ? (styleBoard.asset_id ? 'Style lock ON' : 'Style lock ON (pick asset)')
+        : 'Style lock OFF';
+
+      const preview = styleBoard.asset?.preview_url
+        || (styleBoard.asset_id ? '/api/asset-file?asset_id=' + encodeURIComponent(styleBoard.asset_id) : null);
+      const host = document.getElementById('styleThumb')?.parentElement || document.getElementById('styleBoard');
+      const old = document.getElementById('styleThumb');
+      if (old) {
+        if (preview) {
+          const img = document.createElement('img');
+          img.id = 'styleThumb';
+          img.className = 'style-thumb';
+          img.src = preview;
+          img.alt = 'style';
+          old.replaceWith(img);
+        } else if (old.tagName === 'IMG') {
+          const div = document.createElement('div');
+          div.id = 'styleThumb';
+          div.className = 'style-thumb placeholder';
+          div.textContent = 'style';
+          old.replaceWith(div);
+        } else {
+          old.className = 'style-thumb placeholder';
+          old.textContent = 'style';
+        }
+      }
+      status.textContent = styleBoard.active
+        ? `ACTIVE · ${styleBoard.asset_id} · injected on Imagine + Edit`
+        : (styleBoard.enabled
+          ? 'Enabled but no asset — pick a style asset and Save'
+          : 'OFF · Imagine runs without project style ref');
+    }
+
+    async function saveStyleBoard() {
+      if (!currentTitleId) { log('No title selected'); return; }
+      const sel = document.getElementById('styleAssetSelect');
+      const en = document.getElementById('styleEnabled');
+      try {
+        const r = await api('/api/studio-style', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            title_id: currentTitleId,
+            enabled: !!en.checked,
+            asset_id: sel.value || null,
+            clear_asset: !sel.value,
+          }),
+        });
+        styleBoard = r.style || styleBoard;
+        renderStyleBoard();
+        log(r.message || 'Style board saved');
+      } catch (e) {
+        log('Style save failed: ' + e.message);
+      }
+    }
+
+    document.getElementById('btnStyleSave').onclick = () => saveStyleBoard();
+    document.getElementById('styleEnabled').addEventListener('change', () => {
+      // optimistic label; persist on Save (or auto-save toggle)
+      saveStyleBoard();
+    });
+    document.getElementById('styleAssetSelect').addEventListener('change', () => {
+      // preview immediately from library
+      const id = document.getElementById('styleAssetSelect').value;
+      if (id && swapAssetsById[id]) {
+        styleBoard = { ...styleBoard, asset_id: id, asset: swapAssetsById[id] };
+      } else if (!id) {
+        styleBoard = { ...styleBoard, asset_id: null, asset: null, active: false };
+      }
+      renderStyleBoard();
+    });
+
     async function loadSwaps() {
       if (!currentTitleId) return;
       const q = new URLSearchParams({ examples: 'true', title: currentTitleId });
       if (swapCategory !== 'all') q.set('category', swapCategory);
       const data = await api('/api/bindings?' + q.toString());
+      swapAssetsById = {};
+      for (const a of (data.assets || [])) swapAssetsById[a.id] = a;
       renderLibrary(data.assets || []);
       renderSwapCards(data);
+      await loadStyleBoard();
+      if (xaiConfigured === null) refreshHealthFlags().catch(() => {});
     }
 
     function renderLibrary(assets) {
       const lib = document.getElementById('library');
       if (!assets.length) {
-        lib.innerHTML = '<div class="muted">No library assets yet — import or generate art into catalog/assets/</div>';
+        lib.innerHTML = '<div class="muted">No library assets yet — drop a file on a slot or use Imagine</div>';
         return;
       }
-      lib.innerHTML = assets.map(a => `
+      // Prefer visual assets in the strip
+      const visual = assets.filter(a => {
+        const k = a.kind || '';
+        return !String(k).startsWith('audio') && k !== 'font' && k !== 'other';
+      });
+      const list = visual.length ? visual : assets;
+      lib.innerHTML = list.map(a => `
         <div class="lib-item" draggable="true" data-asset-id="${a.id}" title="${a.id}">
-          <img src="${a.preview_url}" alt="" onerror="this.style.opacity=0.2" />
+          <img src="${a.preview_url}" alt="" draggable="false" onerror="this.style.opacity=0.2" />
           <div class="id">${a.id.replace(/^asset\\./,'')}</div>
         </div>
       `).join('');
       lib.querySelectorAll('.lib-item').forEach(el => {
         el.addEventListener('dragstart', (ev) => {
           dragAssetId = el.dataset.assetId;
-          ev.dataTransfer.setData('text/plain', dragAssetId);
+          try {
+            ev.dataTransfer.setData('text/plain', dragAssetId);
+            ev.dataTransfer.setData('application/x-sakura-asset', dragAssetId);
+          } catch (_) {}
           ev.dataTransfer.effectAllowed = 'copy';
         });
+        el.addEventListener('dragend', () => { /* keep dragAssetId until drop handled */ });
       });
+    }
+
+    function setThumbPreview(wrap, previewUrl, hint) {
+      if (!wrap) return;
+      if (previewUrl) {
+        wrap.innerHTML = `<img class="thumb" src="${previewUrl}" alt="" draggable="false" />`;
+      } else {
+        wrap.innerHTML = `<div class="thumb placeholder">${hint || 'Drop library asset or local image file'}</div>`;
+      }
     }
 
     function renderSwapCards(data) {
@@ -1215,13 +1917,11 @@ STUDIO_HTML = r"""<!DOCTYPE html>
         const assetOpts = (data.assets || [])
           .map(a => `<option value="${a.id}" ${binding?.asset_id === a.id ? 'selected' : ''}>${a.id}</option>`)
           .join('');
-        const thumb = row.preview_url
-          ? `<img class="thumb" src="${row.preview_url}" alt="" />`
-          : `<div class="thumb placeholder">drop asset here</div>`;
+        const boundPreview = row.preview_url || '';
         card.innerHTML = `
           <div class="row" style="justify-content:space-between">
             <h3>${slot.label || slot.id}</h3>
-            <span class="badge ${badgeStatus(status)}">${status}</span>
+            <span class="badge ${badgeStatus(status)} status-badge">${status}</span>
           </div>
           <div class="muted">${slot.id}</div>
           <div class="row">
@@ -1229,9 +1929,13 @@ STUDIO_HTML = r"""<!DOCTYPE html>
             <span class="badge">${slot.kind || '?'}</span>
             ${slot.required === false ? '<span class="badge">optional</span>' : '<span class="badge warn">required</span>'}
           </div>
-          ${thumb}
+          <div class="thumb-wrap" data-role="thumb">
+            ${boundPreview
+              ? `<img class="thumb" src="${boundPreview}" alt="" draggable="false" />`
+              : `<div class="thumb placeholder">Drop library asset or local image file</div>`}
+          </div>
           <div class="field">
-            <label>Asset</label>
+            <label>Asset (preview updates on pick · Bind to commit)</label>
             <select class="asset-select"><option value="">—</option>${assetOpts}</select>
           </div>
           <div class="row">
@@ -1239,25 +1943,443 @@ STUDIO_HTML = r"""<!DOCTYPE html>
             <button type="button" class="btn-approve secondary">Approve</button>
             <button type="button" class="btn-unbind danger">Unbind</button>
           </div>
+          <div class="imagine-box">
+            <label>Grok Imagine</label>
+            <textarea class="imagine-prompt" placeholder="Describe art for this slot… e.g. soft pastel red candy tile, kawaii match-3, no text"></textarea>
+            <div class="row">
+              <select class="imagine-ratio" title="Aspect ratio">
+                <option value="1:1">1:1</option>
+                <option value="16:9">16:9</option>
+                <option value="9:16">9:16</option>
+                <option value="4:3">4:3</option>
+                <option value="3:4">3:4</option>
+                <option value="auto">auto</option>
+              </select>
+              <select class="imagine-model" title="Model">
+                <option value="fast">fast</option>
+                <option value="quality">quality</option>
+              </select>
+            </div>
+            <div class="row">
+              <button type="button" class="btn-imagine-gen">Imagine</button>
+              <button type="button" class="btn-imagine-edit secondary">Edit…</button>
+            </div>
+            <div class="edit-panel" data-role="edit-panel">
+              <div class="edit-title">Edit with references</div>
+              <div class="muted">Default = current slot image. × removes · + adds file · drag library asset here (max 3)</div>
+              <div class="ref-strip" data-role="ref-strip"></div>
+              <input type="file" class="ref-file" accept="image/png,image/jpeg,image/webp,image/gif" multiple hidden />
+              <div class="row">
+                <button type="button" class="btn-edit-apply">Apply edit → slot</button>
+                <button type="button" class="btn-edit-cancel secondary">Cancel</button>
+              </div>
+            </div>
+            <div class="muted imagine-hint">${xaiConfigured === false ? 'Set XAI_API_KEY in SakuraSoft/.env' : 'Imagine = new · Edit… = refine with refs → auto-saves + binds'}</div>
+          </div>
         `;
         const sel = card.querySelector('.asset-select');
+        const thumbWrap = card.querySelector('[data-role="thumb"]');
+        const editBtn = card.querySelector('.btn-imagine-edit');
+        const editPanel = card.querySelector('[data-role="edit-panel"]');
+        // per-card edit refs: [{kind:'asset', asset_id, preview_url, label}|{kind:'file', mime, data_base64, preview_url, name}]
+        card._editRefs = [];
+
+        const refreshPreviewFromSelect = () => {
+          const id = sel.value;
+          if (id && swapAssetsById[id]) {
+            setThumbPreview(thumbWrap, swapAssetsById[id].preview_url);
+            return;
+          }
+          if (!id) {
+            setThumbPreview(thumbWrap, null);
+          } else {
+            setThumbPreview(thumbWrap, '/api/asset-file?asset_id=' + encodeURIComponent(id));
+          }
+        };
+
+        sel.addEventListener('change', () => {
+          refreshPreviewFromSelect();
+          log('Preview: ' + (sel.value || '(none)'));
+          // if edit panel open, re-seed default ref from new selection when empty
+          if (editPanel.classList.contains('open') && card._editRefs.length === 0) {
+            seedDefaultEditRef(card, slot, row, sel);
+            renderEditRefs(card);
+          }
+        });
+
         card.querySelector('.btn-bind').onclick = () => doBind(slot.id, sel.value);
         card.querySelector('.btn-approve').onclick = () => doStatus(slot.id, 'approved');
         card.querySelector('.btn-unbind').onclick = () => doUnbind(slot.id);
-        card.addEventListener('dragover', (ev) => {
+        card.querySelector('.btn-imagine-gen').onclick = () => doImagine(slot, card, 'generate');
+        editBtn.onclick = () => openEditPanel(card, slot, row, sel);
+        card.querySelector('.btn-edit-cancel').onclick = () => closeEditPanel(card);
+        card.querySelector('.btn-edit-apply').onclick = () => doImagine(slot, card, 'edit');
+
+        const markDrop = (on) => {
+          card.classList.toggle('drop-target', on);
+          thumbWrap.classList.toggle('drop-target', on);
+        };
+        const onDragOver = (ev) => {
           ev.preventDefault();
-          card.classList.add('drop-target');
-        });
-        card.addEventListener('dragleave', () => card.classList.remove('drop-target'));
-        card.addEventListener('drop', async (ev) => {
+          ev.stopPropagation();
+          if (ev.dataTransfer) ev.dataTransfer.dropEffect = 'copy';
+          markDrop(true);
+        };
+        const onDragLeave = (ev) => {
+          if (!card.contains(ev.relatedTarget)) markDrop(false);
+        };
+        const onDrop = async (ev) => {
           ev.preventDefault();
-          card.classList.remove('drop-target');
-          const id = ev.dataTransfer.getData('text/plain') || dragAssetId;
-          if (!id) return;
-          sel.value = id;
-          await doBind(slot.id, id);
+          ev.stopPropagation();
+          markDrop(false);
+          // if edit panel open and drop on ref strip / panel, treat as ref add
+          const strip = card.querySelector('[data-role="ref-strip"]');
+          if (editPanel.classList.contains('open') &&
+              (strip.contains(ev.target) || editPanel.contains(ev.target))) {
+            await handleRefDrop(ev, card);
+            return;
+          }
+          await handleSlotDrop(ev, slot, sel, thumbWrap, editBtn);
+        };
+        [card, thumbWrap].forEach(el => {
+          el.addEventListener('dragover', onDragOver);
+          el.addEventListener('dragenter', onDragOver);
+          el.addEventListener('dragleave', onDragLeave);
+          el.addEventListener('drop', onDrop);
         });
         host.appendChild(card);
+      }
+    }
+
+    const MAX_EDIT_REFS = 3;
+
+    function currentSlotAssetId(card, row, sel) {
+      if (sel && sel.value) return sel.value;
+      if (row && row.binding && row.binding.asset_id) return row.binding.asset_id;
+      return null;
+    }
+
+    function seedDefaultEditRef(card, slot, row, sel) {
+      card._editRefs = [];
+      const aid = currentSlotAssetId(card, row, sel);
+      if (!aid) return;
+      const meta = swapAssetsById[aid] || {};
+      const preview = meta.preview_url || ('/api/asset-file?asset_id=' + encodeURIComponent(aid));
+      card._editRefs.push({
+        kind: 'asset',
+        asset_id: aid,
+        preview_url: preview,
+        label: (meta.label || aid.replace(/^asset\\./, '')).slice(0, 24),
+      });
+    }
+
+    function renderEditRefs(card) {
+      const strip = card.querySelector('[data-role="ref-strip"]');
+      if (!strip) return;
+      const refs = card._editRefs || [];
+      strip.innerHTML = '';
+      refs.forEach((ref, idx) => {
+        const chip = document.createElement('div');
+        chip.className = 'ref-chip';
+        chip.title = ref.kind === 'asset' ? ref.asset_id : (ref.name || 'upload');
+        chip.innerHTML = `
+          <img src="${ref.preview_url}" alt="" draggable="false" />
+          <button type="button" class="ref-x" title="Remove reference" aria-label="Remove">×</button>
+          <div class="ref-label">${ref.kind === 'asset' ? 'asset' : 'file'}${idx === 0 ? ' · primary' : ''}</div>
+        `;
+        chip.querySelector('.ref-x').onclick = (ev) => {
+          ev.stopPropagation();
+          card._editRefs.splice(idx, 1);
+          renderEditRefs(card);
+          log('Removed reference ' + (idx + 1));
+        };
+        strip.appendChild(chip);
+      });
+      const add = document.createElement('button');
+      add.type = 'button';
+      add.className = 'ref-add';
+      add.title = refs.length >= MAX_EDIT_REFS ? 'Max 3 references' : 'Add reference image';
+      add.textContent = '+';
+      add.disabled = refs.length >= MAX_EDIT_REFS;
+      add.onclick = () => {
+        const input = card.querySelector('.ref-file');
+        if (input) input.click();
+      };
+      strip.appendChild(add);
+
+      // drag-over highlight on strip for library assets / files
+      strip.ondragover = (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        strip.classList.add('drop-target');
+      };
+      strip.ondragleave = () => strip.classList.remove('drop-target');
+      strip.ondrop = async (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        strip.classList.remove('drop-target');
+        await handleRefDrop(ev, card);
+      };
+    }
+
+    function openEditPanel(card, slot, row, sel) {
+      const panel = card.querySelector('[data-role="edit-panel"]');
+      const promptEl = card.querySelector('.imagine-prompt');
+      seedDefaultEditRef(card, slot, row, sel);
+      renderEditRefs(card);
+      panel.classList.add('open');
+      if (promptEl) {
+        promptEl.placeholder = 'Describe what to change… e.g. keep composition, make petals a deeper pink';
+        promptEl.focus();
+      }
+      // wire file input once
+      const input = card.querySelector('.ref-file');
+      if (input && !input._wired) {
+        input._wired = true;
+        input.addEventListener('change', async () => {
+          const files = [...(input.files || [])];
+          input.value = '';
+          for (const f of files) {
+            if (!(card._editRefs.length < MAX_EDIT_REFS)) break;
+            await addFileRef(card, f);
+          }
+          renderEditRefs(card);
+        });
+      }
+      if (!card._editRefs.length) {
+        log('Edit open — no current image; add a reference with + or drag a library asset');
+      } else {
+        log('Edit open — primary ref: ' + (card._editRefs[0].asset_id || card._editRefs[0].name || 'image'));
+      }
+    }
+
+    function closeEditPanel(card) {
+      const panel = card.querySelector('[data-role="edit-panel"]');
+      panel.classList.remove('open');
+      card._editRefs = [];
+      const promptEl = card.querySelector('.imagine-prompt');
+      if (promptEl) {
+        promptEl.placeholder = 'Describe art for this slot… e.g. soft pastel red candy tile, kawaii match-3, no text';
+      }
+    }
+
+    async function fileToRef(file) {
+      const buf = await file.arrayBuffer();
+      const bytes = new Uint8Array(buf);
+      let binary = '';
+      const chunk = 0x8000;
+      for (let i = 0; i < bytes.length; i += chunk) {
+        binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+      }
+      const b64 = btoa(binary);
+      const mime = file.type || 'image/png';
+      const preview_url = URL.createObjectURL(file);
+      return {
+        kind: 'file',
+        mime,
+        data_base64: b64,
+        preview_url,
+        name: file.name || 'upload',
+      };
+    }
+
+    async function addFileRef(card, file) {
+      if (!file || !(file.type || '').startsWith('image/')) {
+        // allow by extension
+        if (!/\\.(png|jpe?g|webp|gif)$/i.test(file.name || '')) {
+          log('Skip non-image: ' + (file && file.name));
+          return;
+        }
+      }
+      if (card._editRefs.length >= MAX_EDIT_REFS) {
+        log('Max ' + MAX_EDIT_REFS + ' references');
+        return;
+      }
+      const ref = await fileToRef(file);
+      card._editRefs.push(ref);
+      log('Added file ref: ' + ref.name);
+    }
+
+    function addAssetRef(card, assetId) {
+      if (!assetId || !assetId.startsWith('asset.')) return false;
+      if (card._editRefs.some(r => r.kind === 'asset' && r.asset_id === assetId)) {
+        log('Already a reference: ' + assetId);
+        return false;
+      }
+      if (card._editRefs.length >= MAX_EDIT_REFS) {
+        log('Max ' + MAX_EDIT_REFS + ' references');
+        return false;
+      }
+      const meta = swapAssetsById[assetId] || {};
+      card._editRefs.push({
+        kind: 'asset',
+        asset_id: assetId,
+        preview_url: meta.preview_url || ('/api/asset-file?asset_id=' + encodeURIComponent(assetId)),
+        label: (meta.label || assetId.replace(/^asset\\./, '')).slice(0, 24),
+      });
+      log('Added asset ref: ' + assetId);
+      return true;
+    }
+
+    async function handleRefDrop(ev, card) {
+      const dt = ev.dataTransfer;
+      const files = dt && dt.files && dt.files.length ? [...dt.files] : [];
+      for (const f of files) {
+        if (card._editRefs.length >= MAX_EDIT_REFS) break;
+        await addFileRef(card, f);
+      }
+      if (!files.length) {
+        let id = '';
+        try { id = dt.getData('application/x-sakura-asset') || dt.getData('text/plain'); } catch (_) {}
+        id = (id || dragAssetId || '').trim();
+        if (id) addAssetRef(card, id);
+      }
+      renderEditRefs(card);
+    }
+
+    async function handleSlotDrop(ev, slot, sel, thumbWrap, editBtn) {
+      const dt = ev.dataTransfer;
+      const files = dt && dt.files && dt.files.length ? dt.files : null;
+      if (files && files[0] && files[0].type && files[0].type.startsWith('image/')) {
+        await uploadFileToSlot(slot.id, files[0], sel, thumbWrap, editBtn);
+        return;
+      }
+      // some browsers expose files without type
+      if (files && files[0] && /\\.(png|jpe?g|webp|gif)$/i.test(files[0].name || '')) {
+        await uploadFileToSlot(slot.id, files[0], sel, thumbWrap, editBtn);
+        return;
+      }
+      let id = '';
+      try { id = dt.getData('application/x-sakura-asset') || dt.getData('text/plain'); } catch (_) {}
+      id = (id || dragAssetId || '').trim();
+      if (id && id.startsWith('asset.')) {
+        sel.value = id;
+        if (swapAssetsById[id]) {
+          setThumbPreview(thumbWrap, swapAssetsById[id].preview_url);
+        } else {
+          setThumbPreview(thumbWrap, '/api/asset-file?asset_id=' + encodeURIComponent(id));
+        }
+        if (editBtn) editBtn.disabled = false;
+        await doBind(slot.id, id);
+        return;
+      }
+      log('Drop ignored — use a library asset or an image file (png/jpg/webp/gif)');
+    }
+
+    async function uploadFileToSlot(slotId, file, sel, thumbWrap, editBtn) {
+      log('Uploading ' + file.name + ' → ' + slotId + '…');
+      // local preview immediately
+      try {
+        const objUrl = URL.createObjectURL(file);
+        setThumbPreview(thumbWrap, objUrl);
+      } catch (_) {}
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('title_id', currentTitleId);
+      fd.append('slot_id', slotId);
+      fd.append('bind', 'true');
+      fd.append('force', 'true');
+      try {
+        const res = await fetch('/api/assets/upload', { method: 'POST', body: fd });
+        let data = {};
+        try { data = await res.json(); } catch (_) {}
+        if (!res.ok) {
+          const detail = data.detail;
+          const msg = typeof detail === 'string' ? detail : (data.message || res.statusText);
+          throw new Error(msg);
+        }
+        log(data.message || JSON.stringify(data));
+        if (data.asset?.asset_id && sel) {
+          // ensure option exists before select
+          const aid = data.asset.asset_id;
+          if (![...sel.options].some(o => o.value === aid)) {
+            const opt = document.createElement('option');
+            opt.value = aid;
+            opt.textContent = aid;
+            sel.appendChild(opt);
+          }
+          sel.value = aid;
+          if (data.asset.preview_url) setThumbPreview(thumbWrap, data.asset.preview_url + '&t=' + Date.now());
+          if (editBtn) editBtn.disabled = false;
+        }
+        await loadSwaps();
+        await loadOverview();
+      } catch (e) {
+        log('Upload failed: ' + e.message);
+      }
+    }
+
+    async function doImagine(slot, card, mode) {
+      const promptEl = card.querySelector('.imagine-prompt');
+      const ratioEl = card.querySelector('.imagine-ratio');
+      const modelEl = card.querySelector('.imagine-model');
+      const sel = card.querySelector('.asset-select');
+      const thumbWrap = card.querySelector('[data-role="thumb"]');
+      const prompt = (promptEl?.value || '').trim();
+      if (!prompt) { log('Enter an Imagine prompt first'); promptEl?.focus(); return; }
+
+      const body = {
+        prompt,
+        mode,
+        title_id: currentTitleId,
+        slot_id: slot.id,
+        aspect_ratio: ratioEl?.value || '1:1',
+        model: modelEl?.value || 'fast',
+        bind: true,
+        force: true,
+        use_style_board: true,
+      };
+
+      if (mode === 'edit') {
+        const refs = card._editRefs || [];
+        if (!refs.length && !(styleBoard && styleBoard.active)) {
+          log('Add at least one reference image (or reopen Edit… on a bound slot)');
+          openEditPanel(card, slot, { binding: { asset_id: sel?.value }, preview_url: null }, sel);
+          return;
+        }
+        body.references = refs.map(r => {
+          if (r.kind === 'asset') {
+            return { kind: 'asset', asset_id: r.asset_id };
+          }
+          return {
+            kind: 'file',
+            data_base64: r.data_base64,
+            mime: r.mime || 'image/png',
+            name: r.name || null,
+          };
+        });
+      }
+
+      const buttons = card.querySelectorAll('.btn-imagine-gen, .btn-imagine-edit, .btn-edit-apply');
+      buttons.forEach(b => b.classList.add('busy'));
+      const styleNote = (styleBoard && styleBoard.active) ? ' · style lock' : '';
+      log(`Imagine ${mode} for ${slot.id}` +
+        (mode === 'edit' ? ` (${(card._editRefs||[]).length} ref(s))` : '') + styleNote + '…');
+      try {
+        const r = await api('/api/imagine', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(body),
+        });
+        log(r.message || JSON.stringify(r));
+        if (r.preview_url) setThumbPreview(thumbWrap, r.preview_url + '&t=' + Date.now());
+        if (r.asset?.asset_id && sel) {
+          const aid = r.asset.asset_id;
+          if (![...sel.options].some(o => o.value === aid)) {
+            const opt = document.createElement('option');
+            opt.value = aid;
+            opt.textContent = aid;
+            sel.appendChild(opt);
+          }
+          sel.value = aid;
+        }
+        closeEditPanel(card);
+        await loadSwaps();
+        await loadOverview();
+      } catch (e) {
+        log('Imagine failed: ' + e.message);
+      } finally {
+        buttons.forEach(b => b.classList.remove('busy'));
       }
     }
 
@@ -1283,7 +2405,7 @@ STUDIO_HTML = r"""<!DOCTYPE html>
         }
       } catch (e) {
         log('Bind failed: ' + e.message + ' — retry with force?');
-        if (confirm('Force bind despite constraints?\n' + e.message)) {
+        if (confirm('Force bind despite constraints?\\n' + e.message)) {
           const r = await api('/api/bind', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
@@ -1414,41 +2536,71 @@ STUDIO_HTML = r"""<!DOCTYPE html>
 
       // voice assignment UI
       (async () => {
-        const voices = await ensureElevenVoices();
+        let voicesErr = '';
+        try {
+          await ensureElevenVoices();
+        } catch (e) {
+          voicesErr = e.message || String(e);
+        }
+        // ensureElevenVoices swallows errors — recheck via API for message
+        if (!elevenVoices.length) {
+          try {
+            const res = await fetch('/api/voices');
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) voicesErr = data.detail || res.statusText;
+            else elevenVoices = data.voices || [];
+          } catch (e) { voicesErr = e.message; }
+        }
         const vm = await api('/api/voice-map?title=' + encodeURIComponent(currentTitleId)).catch(() => voiceMapCache);
         voiceMapCache = vm;
         const speakers = ['ren','mizu','akira','you','narrator'];
-        const opts = voices.length
-          ? voices.map(v => `<option value="${v.voice_id}">${v.name}</option>`).join('')
-          : '<option value="">(no voices — check API key)</option>';
+        const opts = elevenVoices.length
+          ? elevenVoices.map(v => `<option value="${v.voice_id}">${v.name}</option>`).join('')
+          : '';
         const host = document.getElementById('voiceAssignRows');
-        host.innerHTML = speakers.map(sp => {
+        const errHtml = voicesErr
+          ? `<p class="badge warn" style="display:block;margin-bottom:8px;white-space:normal;line-height:1.35">${voicesErr}</p>
+             <p class="muted">You can still paste a Voice ID from elevenlabs.io → Voices → ⋮ → Copy voice ID.</p>`
+          : (elevenVoices.length ? `<p class="muted">${elevenVoices.length} voices loaded from your account.</p>` : '');
+        host.innerHTML = errHtml + speakers.map(sp => {
           const cur = (vm.by_speaker || {})[sp] || {};
           return `<div class="row" style="margin:6px 0;align-items:center">
             <span style="min-width:90px;color:var(--text)">${sp}</span>
-            <select class="voice-select" data-speaker="${sp}" style="min-width:220px">
-              <option value="">— none —</option>
+            <select class="voice-select" data-speaker="${sp}" style="min-width:200px">
+              <option value="">— pick listed voice —</option>
               ${opts}
             </select>
+            <input class="voice-id-manual" data-speaker="${sp}" placeholder="or paste voice_id"
+              value="${cur.voice_id || ''}"
+              style="min-width:180px;background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px" />
             <button type="button" class="secondary btn-save-voice" data-speaker="${sp}">Save voice</button>
             <span class="muted voice-cur" data-speaker="${sp}">${cur.voice_name || cur.voice_id || ''}</span>
           </div>`;
         }).join('');
-        // preselect
+        // preselect dropdown if id is in list
         host.querySelectorAll('.voice-select').forEach(sel => {
           const sp = sel.dataset.speaker;
           const cur = (vm.by_speaker || {})[sp];
-          if (cur && cur.voice_id) sel.value = cur.voice_id;
+          if (cur && cur.voice_id) {
+            const has = [...sel.options].some(o => o.value === cur.voice_id);
+            if (has) sel.value = cur.voice_id;
+          }
         });
         host.querySelectorAll('.btn-save-voice').forEach(btn => {
           btn.onclick = async () => {
             const sp = btn.dataset.speaker;
             const sel = host.querySelector(`.voice-select[data-speaker="${sp}"]`);
-            const voiceId = sel.value;
-            if (!voiceId) { log('Pick a voice first'); return; }
-            const name = sel.selectedOptions[0]?.textContent || '';
+            const manual = host.querySelector(`.voice-id-manual[data-speaker="${sp}"]`);
+            const voiceId = (manual && manual.value.trim()) || sel.value;
+            if (!voiceId) { log('Pick or paste a voice id first'); return; }
+            let name = '';
+            if (sel.value === voiceId && sel.selectedOptions[0]) {
+              name = sel.selectedOptions[0].textContent || '';
+            } else {
+              name = voiceId.slice(0, 12) + '…';
+            }
             try {
-              const r = await api('/api/voice-map', {
+              await api('/api/voice-map', {
                 method: 'PUT',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({
@@ -1458,9 +2610,10 @@ STUDIO_HTML = r"""<!DOCTYPE html>
                   voice_name: name,
                 }),
               });
-              log(`Voice ${sp} → ${name}`);
+              log(`Voice ${sp} → ${name} (${voiceId.slice(0,8)}…)`);
               const label = host.querySelector(`.voice-cur[data-speaker="${sp}"]`);
               if (label) label.textContent = name;
+              if (manual) manual.value = voiceId;
             } catch (e) { log('ERROR: ' + e.message); }
           };
         });
@@ -1688,8 +2841,12 @@ STUDIO_HTML = r"""<!DOCTYPE html>
 
     (async () => {
       try {
+        await refreshHealthFlags();
         await loadProjects();
-        log('Studio v0.5 — Editable dialogue + ElevenLabs VO. Set ELEVENLABS_API_KEY to generate.');
+        const flags = [];
+        if (xaiConfigured) flags.push('Imagine ready');
+        else flags.push('set XAI_API_KEY for Imagine');
+        log('Studio v0.5.3 — Style board + Imagine/Edit multi-refs. ' + flags.join(' · '));
       } catch (e) {
         log('ERROR: ' + e.message);
       }

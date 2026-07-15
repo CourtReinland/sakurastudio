@@ -5,11 +5,6 @@ bindings:
   status: approved
   bound_at: '2026-07-14T08:19:36Z'
   bound_by: tea_house_sync
-- slot_id: slot.piece.flower
-  asset_id: asset.piece.tea.flower
-  status: approved
-  bound_at: '2026-07-14T08:19:36Z'
-  bound_by: tea_house_sync
 - slot_id: slot.piece.lantern
   asset_id: asset.piece.tea.lantern
   status: approved
@@ -725,3 +720,9 @@ bindings:
   status: approved
   bound_at: '2026-07-14T08:19:35Z'
   bound_by: gdd_import
+- slot_id: slot.piece.flower
+  asset_id: asset.studio.sprite.piece_flower_20260715_110400
+  status: review
+  bound_at: '2026-07-15T11:04:01Z'
+  bound_by: studio
+  notes: imagine:edit

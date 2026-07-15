@@ -1,0 +1,23 @@
+id: asset.studio.sprite.piece_flower_20260715_102529
+label: Studio · sprite · piece.flower
+status: review
+brand_id: brand.sakura_soft
+kind: sprite
+tags:
+- swap
+- studio
+- sprite
+characters: []
+files:
+- role: master
+  path: assets/files/studio/sprite/studio_sprite_piece_flower_20260715_102529.png
+  mime: image/png
+  width: 1024
+  height: 1024
+provenance:
+  source: generated
+  tool: grok_imagine
+  created_at: '2026-07-15'
+  license: internal_all_rights
+  author: studio
+  prompt: a glossy pink jade flower

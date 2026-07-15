@@ -1,0 +1,25 @@
+title_id: title.sakura_tea_house
+provider: elevenlabs
+model_id: eleven_multilingual_v2
+by_speaker:
+  you:
+    voice_id: aEO01A4wXwd1O8GPgGlF
+    voice_name: Arabella
+    character_id: chr.tea.keeper
+  narrator:
+    voice_id: N2lVS1w4EtoT3dr4eOWO
+    voice_name: Callum - Husky Trickster
+    character_id: null
+  ren:
+    voice_id: SOYHLrjzK2X1ezoPC6cr
+    voice_name: Harry - Fierce Warrior
+    character_id: chr.tea.ren
+by_character:
+  chr.tea.keeper:
+    voice_id: aEO01A4wXwd1O8GPgGlF
+    voice_name: Arabella
+    speaker: you
+  chr.tea.ren:
+    voice_id: SOYHLrjzK2X1ezoPC6cr
+    voice_name: Harry - Fierce Warrior
+    speaker: ren
