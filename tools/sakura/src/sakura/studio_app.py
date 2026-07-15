@@ -13,13 +13,23 @@ from pydantic import BaseModel
 
 from sakura.bind import bind_set, bind_set_status, bind_unbind, resolve_title_id
 from sakura.code_graph import load_title_code_graph
+from sakura.dialogue_edit import update_line
+from sakura.elevenlabs_client import ElevenLabsError, list_voices, resolve_api_key
 from sakura.github_projects import project_tabs
 from sakura.import_unity import import_title
 from sakura.loader import discover_catalog_root, load_catalog
+from sakura.tts import generate_line_audio
 from sakura.validate import run_validate, summarize
+from sakura.voice_map import (
+    load_voice_map,
+    line_audio_path,
+    line_audio_rel,
+    save_voice_map,
+    set_speaker_voice,
+)
 from sakura.yaml_io import load_yaml
 
-app = FastAPI(title="Sakura Studio", version="0.4.0")
+app = FastAPI(title="Sakura Studio", version="0.5.0")
 
 # Swap categories for dashboard filters
 SWAP_CATEGORIES = {
@@ -105,10 +115,38 @@ class ImportBody(BaseModel):
     dry_run: bool = False
 
 
+class DialogueLineBody(BaseModel):
+    title_id: str | None = None
+    scene_id: str
+    node_id: str
+    text: str
+
+
+class VoiceAssignBody(BaseModel):
+    title_id: str | None = None
+    speaker: str
+    voice_id: str
+    voice_name: str | None = None
+    character_id: str | None = None
+
+
+class TtsGenerateBody(BaseModel):
+    title_id: str | None = None
+    scene_id: str
+    node_id: str
+    force: bool = False
+    export_to_game: bool = True
+
+
 @app.get("/api/health")
 def health(catalog: str | None = None) -> dict[str, Any]:
     root = _catalog(catalog)
-    return {"ok": True, "catalog": str(root), "version": "0.4.0"}
+    return {
+        "ok": True,
+        "catalog": str(root),
+        "version": "0.5.0",
+        "elevenlabs_configured": bool(resolve_api_key()),
+    }
 
 
 @app.get("/api/projects")
@@ -546,13 +584,184 @@ def api_dialogue(
                 "node_count": len(nodes),
             }
         )
+    # annotate lines with audio cache status
+    tdir = _title_dir(root, title_id)
+    if tdir and scenes:
+        for sc in scenes:
+            for n in sc.get("nodes") or []:
+                if n.get("kind") != "line":
+                    continue
+                ap = line_audio_path(root, sc.get("id") or "", n.get("id") or "")
+                n["has_audio"] = ap.is_file()
+                n["audio_url"] = (
+                    f"/api/tts/audio?title={title_id}&scene_id={sc.get('id')}&node_id={n.get('id')}"
+                    if ap.is_file()
+                    else None
+                )
+
+    vmap = load_voice_map(tdir) if tdir else {}
     return {
         "title_id": title_id,
         "source": data.get("source"),
         "imported_at": data.get("imported_at"),
         "summary": summary,
         "scenes": scenes,
+        "voices": vmap,
+        "elevenlabs_configured": bool(resolve_api_key()),
     }
+
+
+@app.put("/api/dialogue/line")
+def api_dialogue_line_put(body: DialogueLineBody, catalog: str | None = None) -> dict[str, Any]:
+    root = _catalog(catalog)
+    index = load_catalog(root, include_examples=True)
+    try:
+        title_id = resolve_title_id(index, body.title_id)
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
+    tdir = _title_dir(root, title_id)
+    if not tdir:
+        raise HTTPException(404, "Title directory not found")
+    try:
+        result = update_line(
+            root,
+            tdir,
+            scene_id=body.scene_id,
+            node_id=body.node_id,
+            text=body.text,
+        )
+    except KeyError as e:
+        raise HTTPException(404, str(e)) from e
+    result["title_id"] = title_id
+    return result
+
+
+@app.get("/api/voices")
+def api_voices() -> dict[str, Any]:
+    try:
+        voices = list_voices()
+    except ElevenLabsError as e:
+        raise HTTPException(400, str(e)) from e
+    return {"voices": voices, "count": len(voices)}
+
+
+@app.get("/api/voice-map")
+def api_voice_map_get(
+    title: str | None = None,
+    catalog: str | None = None,
+    examples: bool = True,
+) -> dict[str, Any]:
+    root = _catalog(catalog)
+    index = load_catalog(root, include_examples=examples)
+    try:
+        title_id = resolve_title_id(index, title)
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
+    tdir = _title_dir(root, title_id)
+    if not tdir:
+        raise HTTPException(404, "Title directory not found")
+    data = load_voice_map(tdir)
+    data["title_id"] = title_id
+    data["elevenlabs_configured"] = bool(resolve_api_key())
+    return data
+
+
+@app.put("/api/voice-map")
+def api_voice_map_put(body: VoiceAssignBody, catalog: str | None = None) -> dict[str, Any]:
+    root = _catalog(catalog)
+    index = load_catalog(root, include_examples=True)
+    try:
+        title_id = resolve_title_id(index, body.title_id)
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
+    tdir = _title_dir(root, title_id)
+    if not tdir:
+        raise HTTPException(404, "Title directory not found")
+    try:
+        entry = set_speaker_voice(
+            tdir,
+            title_id=title_id,
+            speaker=body.speaker,
+            voice_id=body.voice_id,
+            voice_name=body.voice_name,
+            character_id=body.character_id,
+        )
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
+    return {"ok": True, "title_id": title_id, "speaker": body.speaker, "entry": entry}
+
+
+@app.post("/api/tts/generate")
+def api_tts_generate(body: TtsGenerateBody, catalog: str | None = None) -> dict[str, Any]:
+    root = _catalog(catalog)
+    index = load_catalog(root, include_examples=True)
+    try:
+        title_id = resolve_title_id(index, body.title_id)
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
+    tdir = _title_dir(root, title_id)
+    if not tdir:
+        raise HTTPException(404, "Title directory not found")
+    try:
+        result = generate_line_audio(
+            root,
+            tdir,
+            scene_id=body.scene_id,
+            node_id=body.node_id,
+            force=body.force,
+            export_to_game=body.export_to_game,
+        )
+    except (KeyError, ValueError, ElevenLabsError) as e:
+        raise HTTPException(400, str(e)) from e
+    result["title_id"] = title_id
+    result["audio_url"] = (
+        f"/api/tts/audio?title={title_id}&scene_id={body.scene_id}&node_id={body.node_id}"
+    )
+    return result
+
+
+@app.get("/api/tts/audio")
+def api_tts_audio(
+    title: str | None = None,
+    scene_id: str = Query(...),
+    node_id: str = Query(...),
+    catalog: str | None = None,
+    generate: bool = False,
+    examples: bool = True,
+) -> Response:
+    """Serve cached line audio; optionally generate on demand (runtime game path)."""
+    root = _catalog(catalog)
+    index = load_catalog(root, include_examples=examples)
+    try:
+        title_id = resolve_title_id(index, title)
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
+    tdir = _title_dir(root, title_id)
+    if not tdir:
+        raise HTTPException(404, "Title directory not found")
+    path = line_audio_path(root, scene_id, node_id)
+    if not path.is_file():
+        if not generate:
+            raise HTTPException(404, "Audio not generated yet")
+        try:
+            generate_line_audio(
+                root,
+                tdir,
+                scene_id=scene_id,
+                node_id=node_id,
+                force=False,
+                export_to_game=True,
+            )
+        except (KeyError, ValueError, ElevenLabsError) as e:
+            raise HTTPException(400, str(e)) from e
+        path = line_audio_path(root, scene_id, node_id)
+    if not path.is_file():
+        raise HTTPException(404, "Audio missing after generate")
+    return Response(
+        content=path.read_bytes(),
+        media_type="audio/mpeg",
+        headers={"Cache-Control": "no-cache"},
+    )
 
 
 @app.get("/api/code-graph")
@@ -727,8 +936,8 @@ STUDIO_HTML = r"""<!DOCTYPE html>
 <body>
   <header>
     <div>
-      <h1>🌸 <span>Sakura</span> Studio <span class="ver" id="buildVer">v0.4</span></h1>
-      <div class="muted">Use the tabs below — Overview = engine/story stats · Swaps = cards</div>
+      <h1>🌸 <span>Sakura</span> Studio <span class="ver" id="buildVer">v0.5</span></h1>
+      <div class="muted">Overview · Story · Dialogue (edit + ElevenLabs) · Swaps</div>
     </div>
     <div class="row">
       <div class="field">
@@ -1146,7 +1355,32 @@ STUDIO_HTML = r"""<!DOCTYPE html>
       document.getElementById('panel-story').innerHTML = html || '<div class="empty">No GGD yet</div>';
     }
 
-    /* ---- dialogue ledger ---- */
+    /* ---- dialogue ledger (editable + ElevenLabs) ---- */
+    let elevenVoices = [];
+    let voiceMapCache = {};
+
+    async function ensureElevenVoices() {
+      if (elevenVoices.length) return elevenVoices;
+      try {
+        const data = await api('/api/voices');
+        elevenVoices = data.voices || [];
+      } catch (e) {
+        log('ElevenLabs voices: ' + e.message);
+        elevenVoices = [];
+      }
+      return elevenVoices;
+    }
+
+    function speakerKeysFromSummary(d) {
+      const keys = new Set(['ren','mizu','akira','you','narrator']);
+      for (const sc of (d.scenes || [])) {
+        for (const n of (sc.nodes || [])) {
+          if (n.speaker) keys.add(String(n.speaker).toLowerCase());
+        }
+      }
+      return [...keys];
+    }
+
     async function loadDialogue() {
       if (!currentTitleId) return;
       const d = await api('/api/dialogue?examples=true&title=' + encodeURIComponent(currentTitleId));
@@ -1155,8 +1389,19 @@ STUDIO_HTML = r"""<!DOCTYPE html>
           '<div class="empty">No dialogue ledger. Run: sakura sync-tea-house --source &lt;sakura-match&gt;</div>';
         return;
       }
+      voiceMapCache = d.voices || {};
+      const elStatus = d.elevenlabs_configured
+        ? '<span class="badge ok">ElevenLabs key OK</span>'
+        : '<span class="badge warn">Set ELEVENLABS_API_KEY or SakuraSoft/.env</span>';
+
       let html = `<p class="muted">${d.source || ''} · ${d.summary.length} scenes ·
-        ${d.summary.reduce((a,s)=>a+(s.line_count||0),0)} lines</p>
+        ${d.summary.reduce((a,s)=>a+(s.line_count||0),0)} lines · ${elStatus}</p>
+        <div class="card" style="margin-bottom:12px" id="voiceAssignCard">
+          <h3>Character → ElevenLabs voice</h3>
+          <p class="muted">Assigned voices are used when you Generate TTS on a line. Game can pull
+            <code>/api/tts/audio?...&amp;generate=true</code> at runtime and cache under public/audio/vo/.</p>
+          <div id="voiceAssignRows" class="muted">Loading voices…</div>
+        </div>
         <div class="row" style="margin-bottom:10px">
           <label class="muted">Scene</label>
           <select id="dialogueScene"><option value="">All scenes (summary)</option>
@@ -1166,30 +1411,183 @@ STUDIO_HTML = r"""<!DOCTYPE html>
         <div id="dialogueBody"></div>`;
       document.getElementById('panel-dialogue').innerHTML = html;
       const body = document.getElementById('dialogueBody');
+
+      // voice assignment UI
+      (async () => {
+        const voices = await ensureElevenVoices();
+        const vm = await api('/api/voice-map?title=' + encodeURIComponent(currentTitleId)).catch(() => voiceMapCache);
+        voiceMapCache = vm;
+        const speakers = ['ren','mizu','akira','you','narrator'];
+        const opts = voices.length
+          ? voices.map(v => `<option value="${v.voice_id}">${v.name}</option>`).join('')
+          : '<option value="">(no voices — check API key)</option>';
+        const host = document.getElementById('voiceAssignRows');
+        host.innerHTML = speakers.map(sp => {
+          const cur = (vm.by_speaker || {})[sp] || {};
+          return `<div class="row" style="margin:6px 0;align-items:center">
+            <span style="min-width:90px;color:var(--text)">${sp}</span>
+            <select class="voice-select" data-speaker="${sp}" style="min-width:220px">
+              <option value="">— none —</option>
+              ${opts}
+            </select>
+            <button type="button" class="secondary btn-save-voice" data-speaker="${sp}">Save voice</button>
+            <span class="muted voice-cur" data-speaker="${sp}">${cur.voice_name || cur.voice_id || ''}</span>
+          </div>`;
+        }).join('');
+        // preselect
+        host.querySelectorAll('.voice-select').forEach(sel => {
+          const sp = sel.dataset.speaker;
+          const cur = (vm.by_speaker || {})[sp];
+          if (cur && cur.voice_id) sel.value = cur.voice_id;
+        });
+        host.querySelectorAll('.btn-save-voice').forEach(btn => {
+          btn.onclick = async () => {
+            const sp = btn.dataset.speaker;
+            const sel = host.querySelector(`.voice-select[data-speaker="${sp}"]`);
+            const voiceId = sel.value;
+            if (!voiceId) { log('Pick a voice first'); return; }
+            const name = sel.selectedOptions[0]?.textContent || '';
+            try {
+              const r = await api('/api/voice-map', {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                  title_id: currentTitleId,
+                  speaker: sp,
+                  voice_id: voiceId,
+                  voice_name: name,
+                }),
+              });
+              log(`Voice ${sp} → ${name}`);
+              const label = host.querySelector(`.voice-cur[data-speaker="${sp}"]`);
+              if (label) label.textContent = name;
+            } catch (e) { log('ERROR: ' + e.message); }
+          };
+        });
+      })();
+
       function renderSummary() {
         body.innerHTML = `<table><thead><tr><th>Scene</th><th>Id</th><th>Lines</th><th>Choices</th><th>Nodes</th></tr></thead><tbody>
           ${d.summary.map(s => `<tr>
-            <td>${s.label}</td><td class="muted">${s.id}</td>
+            <td><a href="#" class="scene-link" data-id="${s.id}">${s.label}</a></td>
+            <td class="muted">${s.id}</td>
             <td>${s.line_count}</td><td>${s.choice_count}</td><td>${s.node_count}</td>
           </tr>`).join('')}
         </tbody></table>
-        <p class="muted">Open a scene for full ledger. Line text is also bound as <code>slot.line.tea.*</code> under Swaps → Character lines.</p>`;
+        <p class="muted">Click a scene to edit lines and generate VO. Edits write dialogue.yaml + localization + line assets.</p>`;
+        body.querySelectorAll('.scene-link').forEach(a => {
+          a.onclick = (ev) => {
+            ev.preventDefault();
+            document.getElementById('dialogueScene').value = a.dataset.id;
+            renderScene(a.dataset.id).catch(err => log(err.message));
+          };
+        });
       }
+
       async function renderScene(sid) {
         const full = await api('/api/dialogue?examples=true&title=' + encodeURIComponent(currentTitleId) + '&scene=' + encodeURIComponent(sid));
         const sc = (full.scenes || [])[0];
         if (!sc) { body.innerHTML = '<div class="empty">Scene not found</div>'; return; }
-        body.innerHTML = `<div class="card"><h3>${sc.label}</h3>
-          <div class="muted">start: ${sc.start_node || '—'} · terminals: ${(sc.terminal_paths||[]).join(', ') || '—'}</div>
-          <table><thead><tr><th>Node</th><th>Kind</th><th>Speaker</th><th>Text</th></tr></thead><tbody>
-          ${(sc.nodes||[]).map(n => `<tr>
+        const rows = (sc.nodes || []).map((n, i) => {
+          const esc = (n.text || '').replace(/&/g,'&amp;').replace(/</g,'&lt;');
+          if (n.kind === 'line') {
+            const audioBadge = n.has_audio
+              ? `<span class="badge ok">audio</span> <audio controls preload="none" src="${n.audio_url}" style="height:28px;vertical-align:middle"></audio>`
+              : `<span class="badge warn">no audio</span>`;
+            return `<tr data-node="${n.id}">
+              <td class="muted" style="font-size:0.75rem">${n.id}</td>
+              <td><span class="badge cat">line</span></td>
+              <td>${n.speaker || '—'}</td>
+              <td>
+                <textarea class="line-edit" data-node="${n.id}" rows="2" style="width:100%;background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px;font:inherit">${esc}</textarea>
+                <div class="row" style="margin-top:6px">
+                  <button type="button" class="btn-save-line" data-node="${n.id}">Save text</button>
+                  <button type="button" class="secondary btn-tts" data-node="${n.id}" data-speaker="${n.speaker || ''}">Generate VO</button>
+                  ${audioBadge}
+                </div>
+              </td>
+            </tr>`;
+          }
+          return `<tr>
             <td class="muted" style="font-size:0.75rem">${n.id}</td>
             <td><span class="badge cat">${n.kind}</span></td>
             <td>${n.speaker || '—'}</td>
-            <td style="font-size:0.85rem">${(n.text||'').replace(/</g,'&lt;')}</td>
-          </tr>`).join('')}
+            <td style="font-size:0.85rem">${esc}</td>
+          </tr>`;
+        }).join('');
+
+        body.innerHTML = `<div class="card"><h3>${sc.label}</h3>
+          <div class="muted">start: ${sc.start_node || '—'} · terminals: ${(sc.terminal_paths||[]).join(', ') || '—'}</div>
+          <table><thead><tr><th>Node</th><th>Kind</th><th>Speaker</th><th>Text / VO</th></tr></thead><tbody>
+          ${rows}
           </tbody></table></div>`;
+
+        body.querySelectorAll('.btn-save-line').forEach(btn => {
+          btn.onclick = async () => {
+            const nid = btn.dataset.node;
+            const ta = body.querySelector(`textarea.line-edit[data-node="${nid}"]`);
+            try {
+              const r = await api('/api/dialogue/line', {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                  title_id: currentTitleId,
+                  scene_id: sid,
+                  node_id: nid,
+                  text: ta.value,
+                }),
+              });
+              log(`Saved ${sid}/${nid}`);
+              btn.textContent = 'Saved ✓';
+              setTimeout(() => { btn.textContent = 'Save text'; }, 1200);
+            } catch (e) { log('ERROR: ' + e.message); }
+          };
+        });
+        body.querySelectorAll('.btn-tts').forEach(btn => {
+          btn.onclick = async () => {
+            const nid = btn.dataset.node;
+            // save text first so VO matches editor
+            const ta = body.querySelector(`textarea.line-edit[data-node="${nid}"]`);
+            if (ta) {
+              try {
+                await api('/api/dialogue/line', {
+                  method: 'PUT',
+                  headers: {'Content-Type': 'application/json'},
+                  body: JSON.stringify({
+                    title_id: currentTitleId,
+                    scene_id: sid,
+                    node_id: nid,
+                    text: ta.value,
+                  }),
+                });
+              } catch (_) {}
+            }
+            btn.disabled = true;
+            btn.textContent = 'Generating…';
+            try {
+              const r = await api('/api/tts/generate', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                  title_id: currentTitleId,
+                  scene_id: sid,
+                  node_id: nid,
+                  force: true,
+                  export_to_game: true,
+                }),
+              });
+              log(`VO ${nid}: ${r.voice_name || r.voice_id} · ${r.bytes} bytes` +
+                (r.game_path ? ` · game: ${r.game_path}` : ''));
+              await renderScene(sid);
+            } catch (e) {
+              log('TTS ERROR: ' + e.message);
+              btn.disabled = false;
+              btn.textContent = 'Generate VO';
+            }
+          };
+        });
       }
+
       renderSummary();
       document.getElementById('dialogueScene').onchange = (e) => {
         const v = e.target.value;
@@ -1291,7 +1689,7 @@ STUDIO_HTML = r"""<!DOCTYPE html>
     (async () => {
       try {
         await loadProjects();
-        log('Studio v0.4 — Dialogue ledger, asset library, Code map (graphify-style).');
+        log('Studio v0.5 — Editable dialogue + ElevenLabs VO. Set ELEVENLABS_API_KEY to generate.');
       } catch (e) {
         log('ERROR: ' + e.message);
       }

@@ -24,3 +24,7 @@ gates:
   require_approved_bindings_for_release: true
   require_approved_player_facing_nodes: false
 notes: Maps to GitHub CourtReinland/sakura-match. Dialogue ledger imported from GDD §13; public/assets wired as catalog library.
+exports:
+  # Absolute path to game repo root OR public/ folder — VO files export here as audio/vo/<scene>/<node>.mp3
+  # game_audio_root: /path/to/sakura-match
+  # Or set env SAKURA_GAME_AUDIO_ROOT / SAKURA_GAME_PUBLIC
