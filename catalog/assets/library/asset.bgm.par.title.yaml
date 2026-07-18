@@ -1,0 +1,17 @@
+id: asset.bgm.par.title
+label: "Title theme — music box waltz"
+status: approved
+brand_id: brand.sakura_soft
+kind: audio_bgm
+tags: [midnight_par, music]
+characters: []
+files:
+  - role: master
+    path: assets/files/midnight_par/audio/music_title.mp3
+    mime: audio/mpeg
+provenance:
+  source: generated
+  tool: elevenlabs_music
+  prompt: ""
+  created_at: '2026-07-17'
+  license: internal_all_rights

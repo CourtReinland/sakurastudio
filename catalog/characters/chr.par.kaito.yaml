@@ -1,0 +1,16 @@
+id: chr.par.kaito
+label: Kaito
+status: approved
+brand_id: brand.sakura_soft
+role_tags: [love_interest, boyfriend]
+profile:
+  occupation: student
+  one_liner: Cocky plans, kettle scream. Devoted anyway.
+  personality: [teasing, nervous, devoted]
+voice:
+  register: mid
+  notes: text-only barks
+visual:
+  hair: messy black
+  eyes: grey
+  default_outfit: black bomber jacket over striped shirt

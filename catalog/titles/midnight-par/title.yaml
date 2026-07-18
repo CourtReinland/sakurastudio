@@ -1,0 +1,17 @@
+id: title.midnight_par
+label: MIDNIGHT PAR — the ghost of hole 13
+status: draft
+brand_id: brand.sakura_soft
+engine_id: engine.threejs_golf
+genre_tags: [otome, horror, golf, vn, sports]
+platforms: [web, ios]
+default_locale: en
+content_files:
+  cast: cast.yaml
+  ggd: ggd.yaml
+  slots: slots.yaml
+  bindings: bindings.yaml
+gates:
+  require_approved_bindings_for_release: false
+  require_approved_player_facing_nodes: false
+notes: Maps to GitHub CourtReinland/nightmaregolf. Game binaries live in the game repo; catalog copies in assets/files/midnight_par are the studio-editable mirror.

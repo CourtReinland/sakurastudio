@@ -1,0 +1,366 @@
+title_id: title.midnight_par
+source: js/story.js (game runtime script)
+imported_at: '2026-07-17T12:00:00Z'
+notes: Speakers map to voices.yaml. Kirara lines marked audio_ref have shipped
+  ElevenLabs voice audio (assets/audio/*.mp3 in the game repo).
+scenes:
+- id: prologue
+  label: Prologue — the fence & the ghost
+  start_node: narr-1
+  nodes:
+  - id: narr-1
+    kind: line
+    speaker: narrator
+    text: Tsukimori Greens. Abandoned since 1985. They say the floodlights still flicker on at midnight… and the windmill on hole thirteen still turns.
+  - id: kaito-1
+    kind: line
+    speaker: kaito
+    text: And over the fence we go. Happy six-month anniversary, Hana. Told you the gate chain was fake-rusty.
+  - id: hana-1
+    kind: line
+    speaker: hana
+    text: A haunted mini-golf course at midnight. You really know how to spoil a girl, Kaito.
+  - id: kaito-2
+    kind: line
+    speaker: kaito
+    text: Legend says couples who finish hole thirteen stay together forever. I did research.
+  - id: hana-2
+    kind: line
+    speaker: hana
+    text: You made that up.
+  - id: kaito-3
+    kind: line
+    speaker: kaito
+    text: I made that up. Come on — the moon's watching. First date that's literally to die for.
+  - id: kaito-4
+    kind: line
+    speaker: kaito
+    text: Hole eleven. See? Harmless. Just a rusty windmill and some aggressively haunted pumpkins.
+  - id: hana-3
+    kind: line
+    speaker: hana
+    text: …Kaito. The power's been cut for forty years. Who turned the lights on?
+  - id: kaito-5
+    kind: line
+    speaker: kaito
+    text: Okay. That's — fine. That's fine. Wind. Wind turns on floodlights. Everybody knows that.
+  - id: kirara-1
+    kind: line
+    speaker: kirara
+    text: Ara ara~ what a cute couple. I HATE cute couples.
+    audio_ref: vo_k04
+  - id: kaito-6
+    kind: line
+    speaker: kaito
+    text: G-G-GHOST! A cute ghost! BUT A GHOST!
+  - id: hana-4
+    kind: line
+    speaker: hana
+    text: She's… just a kid. A terrifying, floating, glowing kid.
+  - id: kirara-2
+    kind: line
+    speaker: kirara
+    text: Fufufu… nobody's played with me in forty years.
+    audio_ref: vo_k02
+  - id: kirara-3
+    kind: line
+    speaker: kirara
+    text: You climbed MY fence. Rang MY gate. And you brought a DATE. To MY course. Under MY moon.
+  - id: kirara-4
+    kind: line
+    speaker: kirara
+    text: So here's the wager, lovebirds. Three holes. Thirteen strokes. Beat my course… or stay and play with me. FOREVER.
+    audio_ref: vo_k03
+  - id: choice-1
+    kind: choice
+    speaker: null
+    text: '**The ghost girl smiles. The windmill creaks. What does Hana do?**'
+  - id: opt-hand
+    kind: option
+    speaker: → `resp-hand`
+    text: 'Take Kaito''s hand. "Together. Win or ghosts." _(affinity: kaito+2)_'
+  - id: opt-ask
+    kind: option
+    speaker: → `resp-ask`
+    text: 'Ask softly: "Forty years… who stood you up?" _(affinity: kirara+2)_'
+  - id: opt-grin
+    kind: option
+    speaker: → `resp-grin`
+    text: 'Grin back: "We accept. And we don''t lose." _(affinity: kaito+1, kirara+1)_'
+  - id: resp-hand
+    kind: line
+    speaker: kaito
+    text: Right. Together. My knees are only shaking romantically, I swear.
+  - id: resp-hand-2
+    kind: line
+    speaker: kirara
+    text: Hand-holding on MY green? Disgusting. …Continue.
+  - id: resp-ask
+    kind: line
+    speaker: kirara
+    text: …He never came. Ask me again after hole twelve. If you're still here. Fufu.
+  - id: resp-grin
+    kind: line
+    speaker: kirara
+    text: Confidence! My favorite flavor of regret.
+  - id: kirara-5
+    kind: line
+    speaker: kirara
+    text: 'Hole eleven: the Windmill of Regret. Mind the blades — they''re older than your love and twice as sharp.'
+    audio_ref: vo_k05
+  - id: kaito-7
+    kind: line
+    speaker: kaito
+    text: You can do this, Hana. Aim, breathe, ignore the death windmill.
+
+- id: wager
+  label: After hole 11 — the stakes rise
+  start_node: kirara-1
+  nodes:
+  - id: kirara-1
+    kind: line
+    speaker: kirara
+    text: …Not bad. The windmill likes you. It doesn't like ANYONE.
+  - id: kaito-1
+    kind: line
+    speaker: kaito
+    text: Did everyone see that? I only screamed twice. Manfully.
+  - id: kirara-2
+    kind: line
+    speaker: kirara
+    text: Your boyfriend screams like a kettle. I like him.
+    audio_ref: vo_k06
+  - id: choice-1
+    kind: choice
+    speaker: null
+    text: '**Kirara floats a little closer, glowing eyes curious.**'
+  - id: opt-claim
+    kind: option
+    speaker: → `resp-claim`
+    text: '"He''s MY brave idiot. Hands off, ghost girl." _(affinity: kaito+2)_'
+  - id: opt-lonely
+    kind: option
+    speaker: → `resp-lonely`
+    text: '"You''ve watched couples for decades… that''s so lonely." _(affinity: kirara+2)_'
+  - id: resp-claim
+    kind: line
+    speaker: kaito
+    text: She called me brave. In front of the ghost. Best. Date. Ever.
+  - id: resp-claim-2
+    kind: line
+    speaker: kirara
+    text: Hmph. Claim him all you want. The night is LONG.
+  - id: resp-lonely
+    kind: line
+    speaker: kirara
+    text: …Watching is what ghosts DO. Don't pity me. …Don't stop, either.
+  - id: kirara-3
+    kind: line
+    speaker: kirara
+    text: 'Hole twelve: Lovers'' Lane. The spikes remember every couple who swore "forever" on this green. They take that word VERY seriously.'
+  - id: kirara-4
+    kind: line
+    speaker: kirara
+    text: Don't you dare lose. I haven't had this much fun in decades.
+    audio_ref: vo_k07
+
+- id: storm
+  label: After hole 12 — her backstory
+  start_node: kaito-1
+  nodes:
+  - id: kaito-1
+    kind: line
+    speaker: kaito
+    text: Hana. Real talk. If we blow this… do we really stay here? Forever?
+  - id: hana-1
+    kind: line
+    speaker: hana
+    text: Then we don't blow it. Simple. …Right?
+  - id: kirara-1
+    kind: line
+    speaker: kirara
+    text: Why do YOU get a date under the moon… when I got nothing but rain?
+    audio_ref: vo_k08
+  - id: kirara-2
+    kind: line
+    speaker: kirara
+    text: '1985. He wrote: "Meet me at the windmill. I''ll bring umbrellas for two." I waited through the whole storm. He never came.'
+  - id: kirara-3
+    kind: line
+    speaker: kirara
+    text: So I played hole thirteen alone. And the storm… played back.
+  - id: hana-2
+    kind: line
+    speaker: hana
+    text: Kirara… that's—
+  - id: kirara-4
+    kind: line
+    speaker: kirara
+    text: Don't. Pity. Me. Hole thirteen is next. MY hole. MY grave.
+    audio_ref: vo_k09
+  - id: choice-1
+    kind: choice
+    speaker: null
+    text: '**The storm rises. Kirara''s glow flickers like a candle.**'
+  - id: opt-walk
+    kind: option
+    speaker: → `resp-walk`
+    text: '"We''re walking out together, Kaito. I promise." _(affinity: kaito+2)_'
+  - id: opt-score
+    kind: option
+    speaker: → `resp-score`
+    text: '"Tell me your best score, Kirara. I want to know you." _(affinity: kirara+2)_'
+  - id: opt-finish
+    kind: option
+    speaker: → `resp-finish`
+    text: '"Storm or ghost — we finish what we started." _(affinity: kaito+1, kirara+1)_'
+  - id: resp-walk
+    kind: line
+    speaker: kaito
+    text: Then I'll guard this putter with my LIFE. And you. Mostly you. Okay, entirely you.
+  - id: resp-score
+    kind: line
+    speaker: kirara
+    text: …Eleven. I scored eleven, once. In the rain. Nobody ever asked before.
+  - id: resp-finish
+    kind: line
+    speaker: kirara
+    text: Fufu. You sound like me, forty years ago. That should worry you.
+  - id: kirara-5
+    kind: line
+    speaker: kirara
+    text: If you win… maybe I'll let you go. Maybe. Fufu.
+    audio_ref: vo_k10
+
+- id: finale-kaito
+  label: Ending — TRUE LOVE PAR
+  start_node: kirara-1
+  nodes:
+  - id: kirara-1
+    kind: line
+    speaker: kirara
+    text: …Count them again. {total} strokes. You actually beat my course.
+  - id: kaito-1
+    kind: line
+    speaker: kaito
+    text: Hana. When we get out of here — every anniversary, normal dates. Boring ones. Movie theater. Overpriced popcorn. I promise.
+  - id: hana-1
+    kind: line
+    speaker: hana
+    text: Boring sounds perfect. As long as it's with you.
+  - id: kirara-2
+    kind: line
+    speaker: kirara
+    text: Go. Before I change my mind. …Take this with you. So I know you made it home.
+  - id: narr-1
+    kind: line
+    speaker: narrator
+    text: A blue wisp followed them over the fence that night. It still flickers on their windowsill — every anniversary, right on cue.
+
+- id: finale-kirara
+  label: Ending — ETERNAL TEE TIME
+  start_node: hana-1
+  nodes:
+  - id: hana-1
+    kind: line
+    speaker: hana
+    text: Kaito… I keep my promises. So I'm making a new one.
+  - id: hana-2
+    kind: line
+    speaker: hana
+    text: Kirara. We'll be back. Every Friday at midnight. Bring your A-game, ghost girl.
+  - id: kirara-1
+    kind: line
+    speaker: kirara
+    text: You'd come back and visit me? …Liar. …Please don't be a liar.
+    audio_ref: vo_k11
+  - id: kaito-1
+    kind: line
+    speaker: kaito
+    text: …If it keeps you two smiling, I'll bring snacks. And a priest. Mostly snacks.
+  - id: narr-1
+    kind: line
+    speaker: narrator
+    text: They kept the promise. Every Friday at midnight, three putters click at Tsukimori Greens. Two living. One learning to laugh again.
+
+- id: finale-bad
+  label: Ending — HOLE IN NONE
+  start_node: kirara-1
+  nodes:
+  - id: kirara-1
+    kind: line
+    speaker: kirara
+    text: '{total} strokes… oh my. You lost count. That''s alright — you have FOREVER to practice.'
+  - id: kaito-1
+    kind: line
+    speaker: kaito
+    text: HANA—! The fence— it's GONE—
+  - id: kirara-2
+    kind: line
+    speaker: kirara
+    text: Fore~! …Just kidding. You're already mine.
+    audio_ref: vo_k01
+  - id: narr-1
+    kind: line
+    speaker: narrator
+    text: The course gained two new regulars that night. On quiet evenings the windmill turns a little faster. Locals swear they hear three giggles now.
+
+- id: barks
+  label: Gameplay barks — taunts & encouragement
+  start_node: k-fall-1
+  nodes:
+  - id: k-fall-1
+    kind: line
+    speaker: kirara
+    text: Wheee~ down, down, down it goes! Fufufu.
+    audio_ref: vo_k13
+  - id: k-fall-2
+    kind: line
+    speaker: kirara
+    text: Mind the drop, darling. It's bottomless. Like my loneliness.
+    audio_ref: vo_k14
+  - id: k-windmill
+    kind: line
+    speaker: kirara
+    text: My windmill says NO. Fufufu!
+    audio_ref: vo_k15
+  - id: k-close
+    kind: line
+    speaker: kirara
+    text: Ooh~ so close! I was totally rooting for the hole.
+    audio_ref: vo_k16
+  - id: k-spikes
+    kind: line
+    speaker: kirara
+    text: The spikes were hungry today.
+    audio_ref: vo_k17
+  - id: k-pit
+    kind: line
+    speaker: kirara
+    text: Careful… my green bites back.
+    audio_ref: vo_k18
+  - id: k-lastputt
+    kind: line
+    speaker: kirara
+    text: One last putt. Make it romantic.
+    audio_ref: vo_k12
+  - id: k-budget
+    kind: line
+    speaker: kirara
+    text: Thirteen… and counting. Fufufu. The course LOVES persistent guests.
+  - id: ka-scythe
+    kind: line
+    speaker: kaito
+    text: W-watch the scythe! WATCH THE SCYTHE!
+  - id: ka-cheat
+    kind: line
+    speaker: kaito
+    text: She's CHEATING! Ghosts cheat!
+  - id: ka-nice
+    kind: line
+    speaker: kaito
+    text: Nice read! Finish it, Hana!
+  - id: ka-shake
+    kind: line
+    speaker: kaito
+    text: Shake it off — we've got this.

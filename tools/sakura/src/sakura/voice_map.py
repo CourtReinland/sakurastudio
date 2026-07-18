@@ -96,12 +96,22 @@ def resolve_voice_for_speaker(title_dir: Path, speaker: str | None) -> dict[str,
     return None
 
 
-def line_audio_rel(scene_id: str, node_id: str) -> str:
-    return f"assets/files/tea_house/audio/{_slug(scene_id)}/{_slug(node_id)}.mp3"
+# Per-title catalog roots for line VO files (relative to catalog root).
+# Older callers omit title_id and fall through to the tea-house default.
+TITLE_AUDIO_ROOTS = {
+    "title.sakura_tea_house": "assets/files/tea_house/audio",
+    "title.midnight_par": "assets/files/midnight_par/audio/vo",
+}
+_DEFAULT_AUDIO_ROOT = TITLE_AUDIO_ROOTS["title.sakura_tea_house"]
 
 
-def line_audio_path(catalog_root: Path, scene_id: str, node_id: str) -> Path:
-    return catalog_root / line_audio_rel(scene_id, node_id)
+def line_audio_rel(scene_id: str, node_id: str, title_id: str | None = None) -> str:
+    root = TITLE_AUDIO_ROOTS.get(title_id, _DEFAULT_AUDIO_ROOT) if title_id else _DEFAULT_AUDIO_ROOT
+    return f"{root}/{_slug(scene_id)}/{_slug(node_id)}.mp3"
+
+
+def line_audio_path(catalog_root: Path, scene_id: str, node_id: str, title_id: str | None = None) -> Path:
+    return catalog_root / line_audio_rel(scene_id, node_id, title_id)
 
 
 def game_audio_rel(scene_id: str, node_id: str) -> str:

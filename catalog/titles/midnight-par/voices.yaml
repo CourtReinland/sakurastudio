@@ -1,0 +1,35 @@
+title_id: title.midnight_par
+provider: elevenlabs
+model_id: eleven_flash_v2_5
+by_speaker:
+  kirara:
+    voice_id: MF3mGyEYCl7XYWbV9V6O
+    voice_name: Elli - Young, Expressive
+    character_id: chr.par.kirara
+  hana:
+    voice_id: cgSgspJ2msm6clMCkdW9
+    voice_name: Jessica - Playful, Bright, Warm
+    character_id: chr.par.hana
+  kaito:
+    voice_id: TX3LPaxmHKxFdv7VOQHJ
+    voice_name: Liam - Energetic, Social Media Creator
+    character_id: chr.par.kaito
+  narrator:
+    voice_id: N2lVS1w4EtoT3dr4eOWO
+    voice_name: Callum - Husky Trickster
+    character_id: null
+by_character:
+  chr.par.kirara:
+    voice_id: MF3mGyEYCl7XYWbV9V6O
+    voice_name: Elli - Young, Expressive
+    speaker: kirara
+  chr.par.hana:
+    voice_id: cgSgspJ2msm6clMCkdW9
+    voice_name: Jessica - Playful, Bright, Warm
+    speaker: hana
+  chr.par.kaito:
+    voice_id: TX3LPaxmHKxFdv7VOQHJ
+    voice_name: Liam - Energetic, Social Media Creator
+    speaker: kaito
+notes: Only kirara is voiced in-game today (the ghost is the only one you HEAR);
+  other speakers are mapped for future TTS passes via the Studio voice picker.

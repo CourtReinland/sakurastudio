@@ -1,0 +1,19 @@
+id: asset.bg.par.title_splash
+label: "Title splash"
+status: approved
+brand_id: brand.sakura_soft
+kind: bg
+tags: [midnight_par, bg]
+characters: []
+files:
+  - role: master
+    path: assets/files/midnight_par/img/title_bg.png
+    mime: image/png
+    width: 1280
+    height: 720
+provenance:
+  source: generated
+  tool: grok_imagine
+  prompt: "wide establishing shot, ghost girl on the green, windmill, Spooky-cute anime illustration, soft cel shading, deep purple and teal midnight palette, crescent moon, will-o-wisps, jack-o-lanterns, haunted abandoned mini-golf course"
+  created_at: '2026-07-17'
+  license: internal_all_rights

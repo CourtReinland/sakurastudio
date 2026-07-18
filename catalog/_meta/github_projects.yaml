@@ -5,6 +5,10 @@ mappings:
     title_id: title.sakura_tea_house
     label: Sakura Tea House
     notes: Shipping Three.js + otome Chapter 1/2 prototype
+  - github: CourtReinland/nightmaregolf
+    title_id: title.midnight_par
+    label: MIDNIGHT PAR
+    notes: Otome horror mini-golf (Three.js); ghost of hole 13
   - github: CourtReinland/sakurastudio
     title_id: null
     label: Sakura Studio (this repo)

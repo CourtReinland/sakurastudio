@@ -1,0 +1,17 @@
+id: asset.font.par.display
+label: "Font — display"
+status: approved
+brand_id: brand.sakura_soft
+kind: font
+tags: [midnight_par, font]
+characters: []
+files:
+  - role: master
+    path: assets/files/midnight_par/fonts/creepster.woff2
+    mime: font/woff2
+provenance:
+  source: generated
+  tool: google_fonts
+  prompt: ""
+  created_at: '2026-07-17'
+  license: internal_all_rights

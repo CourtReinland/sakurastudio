@@ -1,0 +1,17 @@
+id: chr.par.kirara
+label: Kirara
+status: approved
+brand_id: brand.sakura_soft
+role_tags: [love_interest, antagonist, yokai, ghost]
+profile:
+  occupation: course guardian (deceased, 1985)
+  one_liner: Stood up at the windmill forty years ago; collects couples ever since.
+  personality: [tsundere, lonely, playful-menacing]
+voice:
+  register: young-cute with echo
+  notes: ElevenLabs voice Elli (MF3mGyEYCl7XYWbV9V6O)
+visual:
+  hair: platinum silver-blonde, covers one eye
+  eyes: glowing cyan-blue
+  default_outfit: navy sailor uniform, oversized bow, red plaid skirt, single golf glove
+  signature: haunted putter

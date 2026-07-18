@@ -1,0 +1,18 @@
+id: asset.vo.par.kirara_k09
+label: "Kirara line 09"
+status: approved
+brand_id: brand.sakura_soft
+kind: audio_voice
+tags: [midnight_par, voice, kirara]
+characters:
+  - chr.par.kirara
+files:
+  - role: master
+    path: assets/files/midnight_par/audio/vo_k09.mp3
+    mime: audio/mpeg
+provenance:
+  source: generated
+  tool: elevenlabs_tts_elli
+  prompt: "Careful on hole thirteen. That's my hole. My grave."
+  created_at: '2026-07-17'
+  license: internal_all_rights

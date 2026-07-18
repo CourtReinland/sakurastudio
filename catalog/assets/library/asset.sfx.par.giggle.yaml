@@ -1,0 +1,17 @@
+id: asset.sfx.par.giggle
+label: "SFX — giggle"
+status: approved
+brand_id: brand.sakura_soft
+kind: audio_sfx
+tags: [midnight_par, sfx]
+characters: []
+files:
+  - role: master
+    path: assets/files/midnight_par/audio/sfx_giggle.mp3
+    mime: audio/mpeg
+provenance:
+  source: generated
+  tool: elevenlabs_sfx
+  prompt: ""
+  created_at: '2026-07-17'
+  license: internal_all_rights

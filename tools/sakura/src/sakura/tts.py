@@ -86,7 +86,12 @@ def generate_line_audio(
     vmap = load_voice_map(title_dir)
     model_id = vmap.get("model_id") or "eleven_multilingual_v2"
 
-    out_path = line_audio_path(catalog_root, scene_id, node_id)
+    title_id = vmap.get("title_id")
+    if not title_id:
+        title_yaml = load_yaml(title_dir / "title.yaml") or {}
+        title_id = title_yaml.get("id")
+
+    out_path = line_audio_path(catalog_root, scene_id, node_id, title_id)
     cached = out_path.is_file() and not force
     if not cached:
         audio = text_to_speech(
@@ -121,7 +126,7 @@ def generate_line_audio(
         "voice_name": voice.get("voice_name"),
         "cached": cached,
         "bytes": len(audio),
-        "catalog_path": line_audio_rel(scene_id, node_id),
+        "catalog_path": line_audio_rel(scene_id, node_id, title_id),
         "catalog_abs": str(out_path),
         "game_path": game_path,
         "game_rel": game_rel,

@@ -1,0 +1,85 @@
+title_id: title.midnight_par
+nodes:
+  - id: node.system.runtime
+    kind: system
+    label: Game runtime
+    status: approved
+  - id: node.scene.prologue
+    kind: scene
+    label: Prologue — the fence
+    status: approved
+  - id: node.cg.intro
+    kind: cg_moment
+    label: Intro CG — keep out
+    status: approved
+  - id: node.hole.11
+    kind: minigame
+    label: Hole 11 — The Windmill of Regret
+    status: approved
+    data: {par: 3}
+  - id: node.scene.wager
+    kind: scene
+    label: The wager
+    status: approved
+  - id: node.choice.hand
+    kind: choice
+    label: Take Kaito's hand
+    status: approved
+  - id: node.choice.ask
+    kind: choice
+    label: Ask who stood her up
+    status: approved
+  - id: node.hole.12
+    kind: minigame
+    label: Hole 12 — Lovers' Lane
+    status: approved
+    data: {par: 4}
+  - id: node.scene.storm
+    kind: scene
+    label: Storm — her backstory
+    status: approved
+  - id: node.hole.13
+    kind: minigame
+    label: Hole 13 — The Final Green
+    status: approved
+    data: {par: 5}
+  - id: node.gate.strokes
+    kind: gate
+    label: 13 strokes or forever
+    status: approved
+    data: {budget: 13}
+  - id: node.ending.kaito
+    kind: ending
+    label: TRUE LOVE PAR
+    status: approved
+  - id: node.ending.kirara
+    kind: ending
+    label: ETERNAL TEE TIME
+    status: approved
+  - id: node.ending.bad
+    kind: ending
+    label: HOLE IN NONE
+    status: approved
+  - id: node.flag.affinity.kaito
+    kind: flag
+    label: Kaito affection
+    status: approved
+  - id: node.flag.affinity.kirara
+    kind: flag
+    label: Kirara affection
+    status: approved
+edges:
+  - {id: edge.prologue.cg, kind: contains, from: node.scene.prologue, to: node.cg.intro}
+  - {id: edge.prologue.h11, kind: leads_to, from: node.scene.prologue, to: node.hole.11}
+  - {id: edge.h11.wager, kind: leads_to, from: node.hole.11, to: node.scene.wager}
+  - {id: edge.wager.h12, kind: leads_to, from: node.scene.wager, to: node.hole.12}
+  - {id: edge.choice.hand.mod, kind: modifies, from: node.choice.hand, to: node.flag.affinity.kaito}
+  - {id: edge.choice.ask.mod, kind: modifies, from: node.choice.ask, to: node.flag.affinity.kirara}
+  - {id: edge.h12.storm, kind: leads_to, from: node.hole.12, to: node.scene.storm}
+  - {id: edge.storm.h13, kind: leads_to, from: node.scene.storm, to: node.hole.13}
+  - {id: edge.h13.gate, kind: leads_to, from: node.hole.13, to: node.gate.strokes}
+  - {id: edge.gate.kaito, kind: leads_to, from: node.gate.strokes, to: node.ending.kaito}
+  - {id: edge.gate.kirara, kind: leads_to, from: node.gate.strokes, to: node.ending.kirara}
+  - {id: edge.gate.bad, kind: leads_to, from: node.gate.strokes, to: node.ending.bad}
+  - {id: edge.kirara_end.req_flag, kind: requires, from: node.ending.kirara, to: node.flag.affinity.kirara}
+  - {id: edge.kaito_end.req_flag, kind: requires, from: node.ending.kaito, to: node.flag.affinity.kaito}

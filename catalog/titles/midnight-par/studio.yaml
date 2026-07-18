@@ -1,0 +1,7 @@
+title_id: title.midnight_par
+style:
+  enabled: false
+  asset_id: asset.bg.par.title_splash
+  notes: Project-wide style lock for Grok Imagine. Toggle in Studio Swaps.
+flow:
+  positions: {}

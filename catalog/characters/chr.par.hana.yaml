@@ -1,0 +1,16 @@
+id: chr.par.hana
+label: Hana
+status: approved
+brand_id: brand.sakura_soft
+role_tags: [heroine, player]
+profile:
+  occupation: student
+  one_liner: Brave enough to climb the fence; stubborn enough to finish the round.
+  personality: [warm, brave, reckless]
+voice:
+  register: mid-bright
+  notes: text-only; the ghost is the only voice
+visual:
+  hair: chestnut brown side ponytail, moon hair clip
+  eyes: amber
+  default_outfit: cream cardigan over burgundy sundress, white sneakers

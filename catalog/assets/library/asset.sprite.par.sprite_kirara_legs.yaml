@@ -1,0 +1,20 @@
+id: asset.sprite.par.sprite_kirara_legs
+label: "Full body — Kirara (legs)"
+status: approved
+brand_id: brand.sakura_soft
+kind: sprite
+tags: [midnight_par, sprite, cutout]
+characters:
+  - chr.par.kirara
+files:
+  - role: master
+    path: assets/files/midnight_par/img/cut/kirara_full2.png
+    mime: image/png
+    width: 864
+    height: 1152
+provenance:
+  source: generated
+  tool: grok_imagine
+  prompt: ""
+  created_at: '2026-07-17'
+  license: internal_all_rights

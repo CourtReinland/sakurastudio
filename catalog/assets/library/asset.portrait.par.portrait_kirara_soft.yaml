@@ -1,0 +1,20 @@
+id: asset.portrait.par.portrait_kirara_soft
+label: "Portrait — Kirara (soft)"
+status: approved
+brand_id: brand.sakura_soft
+kind: portrait
+tags: [midnight_par, portrait, cutout]
+characters:
+  - chr.par.kirara
+files:
+  - role: master
+    path: assets/files/midnight_par/img/cut/portrait_kirara_soft.png
+    mime: image/png
+    width: 864
+    height: 1152
+provenance:
+  source: generated
+  tool: grok_imagine
+  prompt: ""
+  created_at: '2026-07-17'
+  license: internal_all_rights

@@ -1,0 +1,12 @@
+title_id: title.midnight_par
+entries:
+  - character_id: chr.par.hana
+    billing: heroine
+    unlock: always
+  - character_id: chr.par.kaito
+    billing: love_interest
+    unlock: always
+  - character_id: chr.par.kirara
+    billing: antagonist
+    unlock: always
+    notes: Secret third route — ETERNAL TEE TIME ending

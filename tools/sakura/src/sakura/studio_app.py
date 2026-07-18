@@ -1044,7 +1044,7 @@ def api_dialogue(
             for n in sc.get("nodes") or []:
                 if n.get("kind") != "line":
                     continue
-                ap = line_audio_path(root, sc.get("id") or "", n.get("id") or "")
+                ap = line_audio_path(root, sc.get("id") or "", n.get("id") or "", title_id)
                 n["has_audio"] = ap.is_file()
                 n["audio_url"] = (
                     f"/api/tts/audio?title={title_id}&scene_id={sc.get('id')}&node_id={n.get('id')}"
@@ -1192,7 +1192,7 @@ def api_tts_audio(
     tdir = _title_dir(root, title_id)
     if not tdir:
         raise HTTPException(404, "Title directory not found")
-    path = line_audio_path(root, scene_id, node_id)
+    path = line_audio_path(root, scene_id, node_id, title_id)
     if not path.is_file():
         if not generate:
             raise HTTPException(404, "Audio not generated yet")
@@ -1207,7 +1207,7 @@ def api_tts_audio(
             )
         except (KeyError, ValueError, ElevenLabsError) as e:
             raise HTTPException(400, str(e)) from e
-        path = line_audio_path(root, scene_id, node_id)
+        path = line_audio_path(root, scene_id, node_id, title_id)
     if not path.is_file():
         raise HTTPException(404, "Audio missing after generate")
     return Response(

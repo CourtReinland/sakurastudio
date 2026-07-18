@@ -1,0 +1,19 @@
+id: asset.bg.par.sky_night
+label: "Night sky panorama"
+status: approved
+brand_id: brand.sakura_soft
+kind: bg
+tags: [midnight_par, bg]
+characters: []
+files:
+  - role: master
+    path: assets/files/midnight_par/img/sky_night.png
+    mime: image/png
+    width: 1280
+    height: 720
+provenance:
+  source: generated
+  tool: grok_imagine
+  prompt: "crescent moon, purple clouds, anime background, no characters"
+  created_at: '2026-07-17'
+  license: internal_all_rights

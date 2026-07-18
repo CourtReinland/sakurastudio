@@ -1,0 +1,17 @@
+id: engine.threejs_golf
+label: Three.js Golf Kit (no-build web)
+status: approved
+runtime: web
+repo_path: null
+capabilities:
+  - golf.physics
+  - golf.traps
+  - vn.scenes
+  - vn.choices
+  - vn.affinity
+  - cutscene.camera
+  - audio.webaudio
+exports:
+  bindings_consumer: assets/ paths + js modules
+  notes: Midnight Par runtime at CourtReinland/nightmaregolf
+tags: [threejs, golf, otome, horror]

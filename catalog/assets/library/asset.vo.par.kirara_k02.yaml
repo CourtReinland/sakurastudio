@@ -1,0 +1,18 @@
+id: asset.vo.par.kirara_k02
+label: "Kirara line 02"
+status: approved
+brand_id: brand.sakura_soft
+kind: audio_voice
+tags: [midnight_par, voice, kirara]
+characters:
+  - chr.par.kirara
+files:
+  - role: master
+    path: assets/files/midnight_par/audio/vo_k02.mp3
+    mime: audio/mpeg
+provenance:
+  source: generated
+  tool: elevenlabs_tts_elli
+  prompt: "Fufufu... nobody's played with me in forty years."
+  created_at: '2026-07-17'
+  license: internal_all_rights
