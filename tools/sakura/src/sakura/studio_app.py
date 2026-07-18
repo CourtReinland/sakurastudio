@@ -27,6 +27,7 @@ from sakura.imagine_client import (
 )
 from sakura.import_unity import import_title
 from sakura.loader import discover_catalog_root, load_catalog
+from sakura.flow_graph import auto_layout, build_flow_graph, save_flow_positions
 from sakura.studio_style import load_studio_style, save_studio_style
 from sakura.tts import generate_line_audio
 from sakura.validate import run_validate, summarize
@@ -39,7 +40,7 @@ from sakura.voice_map import (
 )
 from sakura.yaml_io import load_yaml
 
-app = FastAPI(title="Sakura Studio", version="0.5.3")
+app = FastAPI(title="Sakura Studio", version="0.6.0")
 
 # Swap categories for dashboard filters
 SWAP_CATEGORIES = {
@@ -199,9 +200,94 @@ def health(catalog: str | None = None) -> dict[str, Any]:
     return {
         "ok": True,
         "catalog": str(root),
-        "version": "0.5.3",
+        "version": "0.6.0",
         "elevenlabs_configured": bool(resolve_api_key()),
         "xai_configured": bool(resolve_xai_api_key()),
+    }
+
+
+class FlowLayoutBody(BaseModel):
+    title_id: str
+    positions: dict[str, dict[str, float]]
+
+
+@app.get("/api/flow")
+def api_flow(
+    title: str | None = None,
+    catalog: str | None = None,
+    dialogue_detail: bool = True,
+    all_slots: bool = False,
+) -> dict[str, Any]:
+    """Story / art / engine flow graph for the node editor."""
+    root = _catalog(catalog)
+    index = load_catalog(root, include_examples=True)
+    try:
+        title_id = resolve_title_id(index, title)
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
+    try:
+        graph = build_flow_graph(
+            root,
+            title_id,
+            include_dialogue_detail=dialogue_detail,
+            include_all_slots=all_slots,
+        )
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
+    return graph
+
+
+@app.post("/api/flow/layout")
+def api_flow_layout(body: FlowLayoutBody, catalog: str | None = None) -> dict[str, Any]:
+    """Persist node positions into title studio.yaml (flow.positions)."""
+    root = _catalog(catalog)
+    try:
+        path = save_flow_positions(root, body.title_id, body.positions)
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
+    return {
+        "ok": True,
+        "path": str(path),
+        "count": len(body.positions),
+        "message": f"Saved {len(body.positions)} node positions → {path.name}",
+    }
+
+
+@app.post("/api/flow/auto-layout")
+def api_flow_auto_layout(
+    title: str | None = None,
+    catalog: str | None = None,
+    dialogue_detail: bool = True,
+    persist: bool = True,
+) -> dict[str, Any]:
+    """Recompute column layout; optionally write to studio.yaml."""
+    root = _catalog(catalog)
+    index = load_catalog(root, include_examples=True)
+    try:
+        title_id = resolve_title_id(index, title)
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
+    graph = build_flow_graph(
+        root, title_id, include_dialogue_detail=dialogue_detail
+    )
+    # ignore saved positions for auto
+    positions = auto_layout(graph["nodes"])
+    if persist:
+        path = save_flow_positions(root, title_id, positions)
+    else:
+        path = None
+    for n in graph["nodes"]:
+        p = positions.get(n["id"])
+        if p:
+            n["x"], n["y"] = p["x"], p["y"]
+    return {
+        "ok": True,
+        "title_id": title_id,
+        "positions": positions,
+        "path": str(path) if path else None,
+        "nodes": graph["nodes"],
+        "edges": graph["edges"],
+        "message": "Auto-layout applied" + (" and saved" if persist else ""),
     }
 
 
@@ -1421,6 +1507,78 @@ STUDIO_HTML = r"""<!DOCTYPE html>
     .toggle.off { color: var(--muted); }
     button:disabled { opacity: 0.45; cursor: not-allowed; }
     button.busy { opacity: 0.7; pointer-events: none; }
+    /* ---- Flow canvas (node graph) ---- */
+    #panel-flow { position: relative; }
+    .flow-toolbar {
+      display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+      margin-bottom: 10px; padding: 8px 10px;
+      background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+    }
+    .flow-toolbar .legend {
+      display: flex; flex-wrap: wrap; gap: 6px; font-size: 0.72rem; color: var(--muted);
+    }
+    .flow-toolbar .legend span {
+      border: 1px solid var(--border); border-radius: 999px; padding: 2px 8px;
+    }
+    .flow-wrap {
+      position: relative; height: min(72vh, 820px); border: 1px solid var(--border);
+      border-radius: 12px; overflow: hidden; background:
+        radial-gradient(circle at 1px 1px, #3f335466 1px, transparent 0);
+      background-size: 24px 24px; background-color: #100c16;
+      cursor: grab;
+    }
+    .flow-wrap.panning { cursor: grabbing; }
+    .flow-viewport {
+      position: absolute; inset: 0; transform-origin: 0 0;
+    }
+    .flow-edges { position: absolute; inset: 0; width: 4000px; height: 3000px; pointer-events: none; overflow: visible; }
+    .flow-edges path {
+      fill: none; stroke: #c8b6ff88; stroke-width: 2;
+    }
+    .flow-edges path.kind-leads_to { stroke: #ff8fabcc; }
+    .flow-edges path.kind-unlocks { stroke: #7dffa0aa; }
+    .flow-edges path.kind-uses_slot, .flow-edges path.kind-binds { stroke: #c8b6ffaa; }
+    .flow-edges path.kind-has_dialogue, .flow-edges path.kind-choice, .flow-edges path.kind-option { stroke: #ffe66baa; }
+    .flow-edges path.kind-runs, .flow-edges path.kind-contains { stroke: #8ecae6aa; }
+    .flow-edges text {
+      fill: var(--muted); font-size: 11px; font-family: system-ui, sans-serif;
+      paint-order: stroke; stroke: #100c16; stroke-width: 3px;
+    }
+    .flow-node {
+      position: absolute; width: 176px; min-height: 56px;
+      background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+      padding: 8px 10px; box-shadow: 0 4px 16px #0006; cursor: grab; user-select: none;
+      z-index: 2;
+    }
+    .flow-node:active { cursor: grabbing; }
+    .flow-node.selected { border-color: var(--accent); box-shadow: 0 0 0 2px #ff8fab55; }
+    .flow-node .fn-kind {
+      font-size: 0.62rem; text-transform: uppercase; letter-spacing: .06em;
+      color: var(--muted); margin-bottom: 2px;
+    }
+    .flow-node .fn-label {
+      font-size: 0.82rem; font-weight: 600; line-height: 1.25;
+      word-break: break-word;
+    }
+    .flow-node .fn-sub { font-size: 0.68rem; color: var(--muted); margin-top: 3px; }
+    .flow-node.kind-route { border-left: 3px solid #c8b6ff; }
+    .flow-node.kind-level { border-left: 3px solid #ff8fab; }
+    .flow-node.kind-scene { border-left: 3px solid #ffb4c8; }
+    .flow-node.kind-ending { border-left: 3px solid #7dffa0; }
+    .flow-node.kind-dialogue { border-left: 3px solid #ffe66b; }
+    .flow-node.kind-choice, .flow-node.kind-option { border-left: 3px solid #e9c46a; }
+    .flow-node.kind-system, .flow-node.kind-engine { border-left: 3px solid #8ecae6; }
+    .flow-node.kind-slot, .flow-node.kind-asset { border-left: 3px solid #bdb2ff; }
+    .flow-node .fn-thumb {
+      width: 100%; height: 48px; object-fit: contain; margin-top: 4px;
+      background: #100c16; border-radius: 6px;
+    }
+    .flow-detail {
+      margin-top: 10px; padding: 10px 12px; background: var(--panel);
+      border: 1px solid var(--border); border-radius: 10px; font-size: 0.82rem;
+      min-height: 48px;
+    }
+    .flow-hidden { display: none !important; }
     .badge {
       display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 0.7rem;
       border: 1px solid var(--border); color: var(--muted);
@@ -1470,8 +1628,8 @@ STUDIO_HTML = r"""<!DOCTYPE html>
 <body>
   <header>
     <div>
-      <h1>🌸 <span>Sakura</span> Studio <span class="ver" id="buildVer">v0.5.3</span></h1>
-      <div class="muted">Overview · Story · Dialogue · Swaps (style board · Imagine)</div>
+      <h1>🌸 <span>Sakura</span> Studio <span class="ver" id="buildVer">v0.6.0</span></h1>
+      <div class="muted">Flow · Swaps · Story · Dialogue · Imagine</div>
     </div>
     <div class="row">
       <div class="field">
@@ -1487,7 +1645,8 @@ STUDIO_HTML = r"""<!DOCTYPE html>
   <main>
     <div class="tabs" id="mainTabs">
       <button type="button" data-tab="overview" class="active">Overview</button>
-      <button type="button" data-tab="swaps">Swaps ★</button>
+      <button type="button" data-tab="flow">Flow ★</button>
+      <button type="button" data-tab="swaps">Swaps</button>
       <button type="button" data-tab="story">Story</button>
       <button type="button" data-tab="dialogue">Dialogue</button>
       <button type="button" data-tab="cast">Cast</button>
@@ -1495,6 +1654,25 @@ STUDIO_HTML = r"""<!DOCTYPE html>
     </div>
 
     <section id="panel-overview" class="panel active"></section>
+    <section id="panel-flow" class="panel">
+      <div class="flow-toolbar" id="flowToolbar">
+        <strong style="font-size:0.9rem">Story · art · engine flow</strong>
+        <button type="button" class="secondary" id="btnFlowReload">Reload</button>
+        <button type="button" class="secondary" id="btnFlowAuto">Auto-layout</button>
+        <button type="button" id="btnFlowSave">Save layout</button>
+        <label class="toggle" style="margin:0"><input type="checkbox" id="flowDlgDetail" checked /> Dialogue detail</label>
+        <span class="muted" style="font-size:0.75rem">Drag nodes · scroll zoom · space/middle-drag pan</span>
+        <div class="legend" id="flowLegend"></div>
+      </div>
+      <div class="row" style="margin-bottom:8px;gap:10px" id="flowLayers"></div>
+      <div class="flow-wrap" id="flowWrap">
+        <div class="flow-viewport" id="flowViewport">
+          <svg class="flow-edges" id="flowEdges"></svg>
+          <div id="flowNodes"></div>
+        </div>
+      </div>
+      <div class="flow-detail" id="flowDetail">Select a node to inspect connections.</div>
+    </section>
     <section id="panel-swaps" class="panel">
       <div class="style-board" id="styleBoard">
         <div id="styleThumb" class="style-thumb placeholder">style</div>
@@ -1626,12 +1804,14 @@ STUDIO_HTML = r"""<!DOCTYPE html>
         document.getElementById('panel-dialogue').innerHTML = '';
         document.getElementById('panel-cast').innerHTML = '';
         document.getElementById('panel-code').innerHTML = '';
+        document.getElementById('flowNodes').innerHTML = '';
+        document.getElementById('flowEdges').innerHTML = '';
         log('Selected unmapped project: ' + opt.textContent);
         return;
       }
       currentTitleId = titleId;
       await Promise.all([
-        loadOverview(), loadSwaps(), loadStory(), loadDialogue(), loadCast(), loadCode(),
+        loadOverview(), loadFlow(), loadSwaps(), loadStory(), loadDialogue(), loadCast(), loadCode(),
       ]);
     }
 
@@ -2446,6 +2626,313 @@ STUDIO_HTML = r"""<!DOCTYPE html>
       } catch (e) { log('ERROR: ' + e.message); }
     }
 
+    /* ---- Flow node graph ---- */
+    let flowGraph = { nodes: [], edges: [], legend: [] };
+    let flowPos = {};
+    let flowLayersOn = {};
+    let flowScale = 1;
+    let flowPan = { x: 20, y: 20 };
+    let flowDrag = null;
+    let flowPanDrag = null;
+    let flowSelected = null;
+
+    async function loadFlow() {
+      if (!currentTitleId) return;
+      const detail = document.getElementById('flowDlgDetail')?.checked !== false;
+      const q = new URLSearchParams({
+        title: currentTitleId,
+        dialogue_detail: detail ? 'true' : 'false',
+      });
+      const g = await api('/api/flow?' + q.toString());
+      flowGraph = g;
+      flowPos = {};
+      for (const n of g.nodes || []) {
+        flowPos[n.id] = { x: n.x || 0, y: n.y || 0 };
+      }
+      const layers = g.layers || [];
+      if (!Object.keys(flowLayersOn).length) {
+        for (const L of layers) flowLayersOn[L] = true;
+      } else {
+        for (const L of layers) if (flowLayersOn[L] === undefined) flowLayersOn[L] = true;
+      }
+      renderFlowLayers();
+      renderFlowLegend(g.legend || []);
+      renderFlowGraph();
+      log(`Flow: ${g.stats?.nodes || 0} nodes · ${g.stats?.edges || 0} edges` +
+        (g.layout_saved ? ' (saved layout)' : ' (auto layout)'));
+    }
+
+    function renderFlowLayers() {
+      const host = document.getElementById('flowLayers');
+      if (!host) return;
+      const layers = flowGraph.layers || Object.keys(flowLayersOn);
+      host.innerHTML = '<span class="muted">Layers:</span>' + layers.map(L => `
+        <label class="toggle" style="margin:0">
+          <input type="checkbox" data-layer="${L}" ${flowLayersOn[L] !== false ? 'checked' : ''}/> ${L}
+        </label>`).join('');
+      host.querySelectorAll('input[data-layer]').forEach(inp => {
+        inp.onchange = () => {
+          flowLayersOn[inp.dataset.layer] = inp.checked;
+          renderFlowGraph();
+        };
+      });
+    }
+
+    function renderFlowLegend(legend) {
+      const el = document.getElementById('flowLegend');
+      if (!el) return;
+      el.innerHTML = (legend || []).map(x =>
+        `<span title="${x.kind}">${x.phrase || x.kind}</span>`
+      ).join('');
+    }
+
+    function nodeVisible(n) {
+      return flowLayersOn[n.layer] !== false;
+    }
+
+    function applyFlowTransform() {
+      const vp = document.getElementById('flowViewport');
+      if (vp) vp.style.transform = `translate(${flowPan.x}px,${flowPan.y}px) scale(${flowScale})`;
+    }
+
+    function renderFlowGraph() {
+      const nodesHost = document.getElementById('flowNodes');
+      const svg = document.getElementById('flowEdges');
+      if (!nodesHost || !svg) return;
+      const nodes = (flowGraph.nodes || []).filter(nodeVisible);
+      const ids = new Set(nodes.map(n => n.id));
+      const edges = (flowGraph.edges || []).filter(e => ids.has(e.from) && ids.has(e.to));
+
+      // nodes
+      nodesHost.innerHTML = '';
+      for (const n of nodes) {
+        const pos = flowPos[n.id] || { x: n.x || 0, y: n.y || 0 };
+        const el = document.createElement('div');
+        el.className = 'flow-node kind-' + (n.kind || 'other') + (flowSelected === n.id ? ' selected' : '');
+        el.dataset.id = n.id;
+        el.style.left = pos.x + 'px';
+        el.style.top = pos.y + 'px';
+        const thumb = n.preview_url
+          ? `<img class="fn-thumb" src="${n.preview_url}" alt="" draggable="false" />`
+          : '';
+        el.innerHTML = `
+          <div class="fn-kind">${n.kind || '?'}</div>
+          <div class="fn-label">${escapeHtml(n.label || n.id)}</div>
+          ${n.subtitle ? `<div class="fn-sub">${escapeHtml(n.subtitle)}</div>` : ''}
+          ${thumb}
+        `;
+        el.addEventListener('pointerdown', (ev) => onFlowNodeDown(ev, n, el));
+        el.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          selectFlowNode(n.id);
+        });
+        nodesHost.appendChild(el);
+      }
+
+      // edges (after nodes so we can measure)
+      requestAnimationFrame(() => {
+        drawFlowEdges(svg, nodes, edges);
+        applyFlowTransform();
+      });
+    }
+
+    function escapeHtml(s) {
+      return String(s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function nodeCenter(id) {
+      const el = document.querySelector('.flow-node[data-id="' + String(id).replace(/"/g, '\\"') + '"]');
+      const pos = flowPos[id] || { x: 0, y: 0 };
+      if (!el) return { x: pos.x + 88, y: pos.y + 28 };
+      return {
+        x: pos.x + el.offsetWidth / 2,
+        y: pos.y + el.offsetHeight / 2,
+      };
+    }
+
+    function drawFlowEdges(svg, nodes, edges) {
+      const NS = 'http://www.w3.org/2000/svg';
+      while (svg.firstChild) svg.removeChild(svg.firstChild);
+      // arrow marker
+      const defs = document.createElementNS(NS, 'defs');
+      const marker = document.createElementNS(NS, 'marker');
+      marker.setAttribute('id', 'flowArrow');
+      marker.setAttribute('viewBox', '0 0 10 10');
+      marker.setAttribute('refX', '9');
+      marker.setAttribute('refY', '5');
+      marker.setAttribute('markerWidth', '7');
+      marker.setAttribute('markerHeight', '7');
+      marker.setAttribute('orient', 'auto-start-reverse');
+      const ap = document.createElementNS(NS, 'path');
+      ap.setAttribute('d', 'M 0 0 L 10 5 L 0 10 z');
+      ap.setAttribute('fill', '#c8b6ffaa');
+      marker.appendChild(ap);
+      defs.appendChild(marker);
+      svg.appendChild(defs);
+
+      for (const e of edges) {
+        const a = nodeCenter(e.from);
+        const b = nodeCenter(e.to);
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
+        const c1x = a.x + dx * 0.45;
+        const c1y = a.y;
+        const c2x = a.x + dx * 0.55;
+        const c2y = b.y;
+        const path = document.createElementNS(NS, 'path');
+        path.setAttribute('d', `M ${a.x} ${a.y} C ${c1x} ${c1y}, ${c2x} ${c2y}, ${b.x} ${b.y}`);
+        path.setAttribute('class', 'kind-' + (e.kind || ''));
+        path.setAttribute('marker-end', 'url(#flowArrow)');
+        svg.appendChild(path);
+        const mx = (a.x + b.x) / 2;
+        const my = (a.y + b.y) / 2 - 6;
+        const text = document.createElementNS(NS, 'text');
+        text.setAttribute('x', String(mx));
+        text.setAttribute('y', String(my));
+        text.setAttribute('text-anchor', 'middle');
+        text.textContent = e.label || e.kind || '';
+        svg.appendChild(text);
+      }
+    }
+
+    function selectFlowNode(id) {
+      flowSelected = id;
+      document.querySelectorAll('.flow-node').forEach(el => {
+        el.classList.toggle('selected', el.dataset.id === id);
+      });
+      const n = (flowGraph.nodes || []).find(x => x.id === id);
+      const detail = document.getElementById('flowDetail');
+      if (!n || !detail) return;
+      const outs = (flowGraph.edges || []).filter(e => e.from === id);
+      const ins = (flowGraph.edges || []).filter(e => e.to === id);
+      detail.innerHTML = `
+        <div class="row" style="justify-content:space-between">
+          <div>
+            <strong>${escapeHtml(n.label || n.id)}</strong>
+            <span class="badge cat">${escapeHtml(n.kind)}</span>
+            <span class="badge">${escapeHtml(n.layer || '')}</span>
+          </div>
+          <span class="muted" style="font-size:0.72rem">${escapeHtml(n.id)}</span>
+        </div>
+        ${n.subtitle ? `<p class="muted" style="margin:6px 0 0">${escapeHtml(n.subtitle)}</p>` : ''}
+        <div class="two-col" style="margin-top:8px">
+          <div>
+            <div class="muted" style="margin-bottom:4px">Inbound</div>
+            ${ins.length ? ins.map(e =>
+              `<div>• <em>${escapeHtml(e.label)}</em> ← ${escapeHtml(e.from)}</div>`
+            ).join('') : '<div class="muted">—</div>'}
+          </div>
+          <div>
+            <div class="muted" style="margin-bottom:4px">Outbound</div>
+            ${outs.length ? outs.map(e =>
+              `<div>• <em>${escapeHtml(e.label)}</em> → ${escapeHtml(e.to)}</div>`
+            ).join('') : '<div class="muted">—</div>'}
+          </div>
+        </div>
+      `;
+    }
+
+    function onFlowNodeDown(ev, n, el) {
+      if (ev.button === 1 || ev.spaceKey) return;
+      ev.stopPropagation();
+      ev.preventDefault();
+      const startX = ev.clientX;
+      const startY = ev.clientY;
+      const origin = flowPos[n.id] || { x: n.x || 0, y: n.y || 0 };
+      flowDrag = { id: n.id, startX, startY, ox: origin.x, oy: origin.y, el };
+      el.setPointerCapture?.(ev.pointerId);
+    }
+
+    function onFlowPointerMove(ev) {
+      if (flowDrag) {
+        const dx = (ev.clientX - flowDrag.startX) / flowScale;
+        const dy = (ev.clientY - flowDrag.startY) / flowScale;
+        const nx = flowDrag.ox + dx;
+        const ny = flowDrag.oy + dy;
+        flowPos[flowDrag.id] = { x: nx, y: ny };
+        flowDrag.el.style.left = nx + 'px';
+        flowDrag.el.style.top = ny + 'px';
+        const svg = document.getElementById('flowEdges');
+        const nodes = (flowGraph.nodes || []).filter(nodeVisible);
+        const ids = new Set(nodes.map(n => n.id));
+        const edges = (flowGraph.edges || []).filter(e => ids.has(e.from) && ids.has(e.to));
+        drawFlowEdges(svg, nodes, edges);
+        return;
+      }
+      if (flowPanDrag) {
+        flowPan.x = flowPanDrag.ox + (ev.clientX - flowPanDrag.startX);
+        flowPan.y = flowPanDrag.oy + (ev.clientY - flowPanDrag.startY);
+        applyFlowTransform();
+      }
+    }
+
+    function onFlowPointerUp() {
+      flowDrag = null;
+      flowPanDrag = null;
+      document.getElementById('flowWrap')?.classList.remove('panning');
+    }
+
+    (function wireFlowCanvas() {
+      const wrap = document.getElementById('flowWrap');
+      if (!wrap) return;
+      wrap.addEventListener('pointerdown', (ev) => {
+        if (ev.target.closest('.flow-node')) return;
+        // pan with middle button or when holding space via data attr
+        if (ev.button === 1 || ev.button === 0) {
+          flowPanDrag = {
+            startX: ev.clientX,
+            startY: ev.clientY,
+            ox: flowPan.x,
+            oy: flowPan.y,
+          };
+          wrap.classList.add('panning');
+          wrap.setPointerCapture?.(ev.pointerId);
+        }
+      });
+      wrap.addEventListener('pointermove', onFlowPointerMove);
+      wrap.addEventListener('pointerup', onFlowPointerUp);
+      wrap.addEventListener('pointercancel', onFlowPointerUp);
+      wrap.addEventListener('wheel', (ev) => {
+        ev.preventDefault();
+        const delta = ev.deltaY > 0 ? 0.92 : 1.08;
+        flowScale = Math.min(2.5, Math.max(0.35, flowScale * delta));
+        applyFlowTransform();
+      }, { passive: false });
+
+      document.getElementById('btnFlowReload')?.addEventListener('click', () =>
+        loadFlow().catch(e => log(e.message)));
+      document.getElementById('flowDlgDetail')?.addEventListener('change', () =>
+        loadFlow().catch(e => log(e.message)));
+      document.getElementById('btnFlowSave')?.addEventListener('click', async () => {
+        if (!currentTitleId) return;
+        try {
+          const r = await api('/api/flow/layout', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ title_id: currentTitleId, positions: flowPos }),
+          });
+          log(r.message || 'Layout saved');
+        } catch (e) { log('Save layout failed: ' + e.message); }
+      });
+      document.getElementById('btnFlowAuto')?.addEventListener('click', async () => {
+        if (!currentTitleId) return;
+        try {
+          const detail = document.getElementById('flowDlgDetail')?.checked !== false;
+          const r = await api('/api/flow/auto-layout?title=' + encodeURIComponent(currentTitleId) +
+            '&dialogue_detail=' + (detail ? 'true' : 'false') + '&persist=true', { method: 'POST' });
+          for (const n of r.nodes || []) {
+            flowPos[n.id] = { x: n.x, y: n.y };
+          }
+          if (r.edges) flowGraph.edges = r.edges;
+          if (r.nodes) flowGraph.nodes = r.nodes;
+          renderFlowGraph();
+          log(r.message || 'Auto-layout');
+        } catch (e) { log('Auto-layout failed: ' + e.message); }
+      });
+    })();
+
     /* ---- story ---- */
     async function loadStory() {
       if (!currentTitleId) return;
@@ -2846,7 +3333,7 @@ STUDIO_HTML = r"""<!DOCTYPE html>
         const flags = [];
         if (xaiConfigured) flags.push('Imagine ready');
         else flags.push('set XAI_API_KEY for Imagine');
-        log('Studio v0.5.3 — Style board + Imagine/Edit multi-refs. ' + flags.join(' · '));
+        log('Studio v0.6.0 — Flow node graph · style board · Imagine. ' + flags.join(' · '));
       } catch (e) {
         log('ERROR: ' + e.message);
       }

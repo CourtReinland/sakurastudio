@@ -1,0 +1,535 @@
+"""Build a rearrangeable story/art/engine flow graph for Studio."""
+
+from __future__ import annotations
+
+import re
+from collections import defaultdict
+from pathlib import Path
+from typing import Any
+
+from sakura.loader import load_catalog
+from sakura.yaml_io import dump_yaml, load_yaml
+
+# Human-readable connector copy (Nuke-style: edge says what happens)
+EDGE_PHRASE: dict[str, str] = {
+    "leads_to": "then opens",
+    "unlocks": "unlocks",
+    "contains": "contains",
+    "uses_slot": "uses art slot",
+    "requires": "requires",
+    "modifies": "modifies",
+    "references": "references",
+    "binds": "shows asset",
+    "has_dialogue": "plays dialogue",
+    "runs": "runs in engine",
+    "choice": "player chooses",
+    "option": "choice leads to",
+    "after_level": "level completes →",
+}
+
+LAYER_FOR_KIND: dict[str, str] = {
+    "route": "story",
+    "level": "story",
+    "scene": "story",
+    "ending": "story",
+    "choice": "dialogue",
+    "option": "dialogue",
+    "dialogue": "dialogue",
+    "system": "engine",
+    "engine": "engine",
+    "slot": "art",
+    "asset": "art",
+    "character": "cast",
+    "gate": "story",
+    "beat": "story",
+    "cg_moment": "art",
+    "other": "story",
+}
+
+NODE_W = 180
+NODE_H = 64
+COL_GAP = 240
+ROW_GAP = 88
+
+
+def _slug(text: str) -> str:
+    s = re.sub(r"[^a-z0-9]+", "-", (text or "").lower()).strip("-")
+    return s
+
+
+def _match_dialogue_scene(ggd_scene: dict[str, Any], dlg_scenes: list[dict[str, Any]]) -> dict[str, Any] | None:
+    label = (ggd_scene.get("label") or "").strip().lower()
+    sid = str(ggd_scene.get("id") or "")
+    # node.scene.visitor_dusk → visitor-dusk-ish
+    tail = sid.split("scene.", 1)[-1].replace("_", "-")
+    for sc in dlg_scenes:
+        if not isinstance(sc, dict):
+            continue
+        if (sc.get("label") or "").strip().lower() == label:
+            return sc
+        did = str(sc.get("id") or "")
+        if did == tail or did.replace("-", "_") == tail.replace("-", "_"):
+            return sc
+        # fuzzy: token overlap
+        if label and label in (sc.get("label") or "").lower():
+            return sc
+    return None
+
+
+def _title_dir(catalog: Path, title_id: str) -> Path | None:
+    index = load_catalog(catalog, include_examples=True)
+    ent = index.titles.get(title_id)
+    return ent.path.parent if ent else None
+
+
+def load_flow_positions(catalog: Path, title_id: str) -> dict[str, dict[str, float]]:
+    td = _title_dir(catalog, title_id)
+    if not td:
+        return {}
+    path = td / "studio.yaml"
+    if not path.is_file():
+        return {}
+    raw = load_yaml(path)
+    if not isinstance(raw, dict):
+        return {}
+    flow = raw.get("flow") if isinstance(raw.get("flow"), dict) else {}
+    pos = flow.get("positions") if isinstance(flow.get("positions"), dict) else {}
+    out: dict[str, dict[str, float]] = {}
+    for k, v in pos.items():
+        if isinstance(v, dict) and "x" in v and "y" in v:
+            try:
+                out[str(k)] = {"x": float(v["x"]), "y": float(v["y"])}
+            except (TypeError, ValueError):
+                continue
+    return out
+
+
+def save_flow_positions(
+    catalog: Path,
+    title_id: str,
+    positions: dict[str, dict[str, float]],
+) -> Path:
+    td = _title_dir(catalog, title_id)
+    if not td:
+        raise ValueError(f"Unknown title: {title_id}")
+    path = td / "studio.yaml"
+    doc: dict[str, Any]
+    if path.is_file():
+        raw = load_yaml(path)
+        doc = raw if isinstance(raw, dict) else {"title_id": title_id}
+    else:
+        doc = {"title_id": title_id}
+    doc["title_id"] = title_id
+    flow = doc.get("flow") if isinstance(doc.get("flow"), dict) else {}
+    clean: dict[str, dict[str, float]] = {}
+    for k, v in positions.items():
+        if not isinstance(v, dict):
+            continue
+        try:
+            clean[str(k)] = {"x": round(float(v["x"]), 1), "y": round(float(v["y"]), 1)}
+        except (KeyError, TypeError, ValueError):
+            continue
+    flow["positions"] = clean
+    doc["flow"] = flow
+    # preserve style if missing
+    if "style" not in doc:
+        doc["style"] = {
+            "enabled": False,
+            "asset_id": None,
+            "notes": "Project-wide style lock for Grok Imagine.",
+        }
+    dump_yaml(path, doc)
+    return path
+
+
+def auto_layout(nodes: list[dict[str, Any]]) -> dict[str, dict[str, float]]:
+    """Column layout by narrative role; stable sort within columns."""
+    columns: dict[str, int] = {
+        "route": 0,
+        "level": 1,
+        "scene": 2,
+        "dialogue": 3,
+        "choice": 3,
+        "option": 4,
+        "ending": 5,
+        "system": 6,
+        "engine": 6,
+        "slot": 7,
+        "asset": 8,
+        "character": 5,
+        "gate": 2,
+        "cg_moment": 7,
+        "other": 4,
+    }
+    buckets: dict[int, list[dict[str, Any]]] = defaultdict(list)
+    for n in nodes:
+        kind = str(n.get("kind") or "other")
+        buckets[columns.get(kind, 4)].append(n)
+
+    def sort_key(n: dict[str, Any]) -> tuple:
+        data = n.get("data") if isinstance(n.get("data"), dict) else {}
+        idx = data.get("index")
+        if isinstance(idx, int):
+            return (0, idx, n.get("label") or n.get("id") or "")
+        return (1, n.get("label") or n.get("id") or "")
+
+    positions: dict[str, dict[str, float]] = {}
+    for col, items in buckets.items():
+        items_sorted = sorted(items, key=sort_key)
+        for row, n in enumerate(items_sorted):
+            nid = str(n["id"])
+            positions[nid] = {
+                "x": 40 + col * COL_GAP,
+                "y": 40 + row * ROW_GAP,
+            }
+    return positions
+
+
+def build_flow_graph(
+    catalog: Path,
+    title_id: str,
+    *,
+    include_dialogue_detail: bool = True,
+    include_all_slots: bool = False,
+) -> dict[str, Any]:
+    """
+    Aggregate GGD + dialogue + bindings + engine into a flow graph.
+
+    Node ids stay stable (node.*, slot.*, synth.*).
+    """
+    root = catalog.resolve()
+    index = load_catalog(root, include_examples=True)
+    if title_id not in index.titles:
+        raise ValueError(f"Unknown title: {title_id}")
+
+    files = index.title_files.get(title_id, {})
+    title_ent = index.titles[title_id]
+    title_data = title_ent.data
+
+    ggd_ent = files.get("ggd")
+    ggd_nodes = (
+        [n for n in (ggd_ent.data.get("nodes") or []) if isinstance(n, dict)]
+        if ggd_ent
+        else []
+    )
+    ggd_edges = (
+        [e for e in (ggd_ent.data.get("edges") or []) if isinstance(e, dict)]
+        if ggd_ent
+        else []
+    )
+
+    slots_ent = files.get("slots")
+    slots = (
+        [s for s in (slots_ent.data.get("slots") or []) if isinstance(s, dict)]
+        if slots_ent
+        else []
+    )
+    slot_by_id = {s["id"]: s for s in slots if s.get("id")}
+
+    bindings_ent = files.get("bindings")
+    bindings = (
+        [b for b in (bindings_ent.data.get("bindings") or []) if isinstance(b, dict)]
+        if bindings_ent
+        else []
+    )
+    bind_by_slot = {
+        b["slot_id"]: b for b in bindings if isinstance(b.get("slot_id"), str)
+    }
+
+    # dialogue
+    dlg_scenes: list[dict[str, Any]] = []
+    title_dir = title_ent.path.parent
+    for name in ("dialogue.yaml", "dialogue.json"):
+        p = title_dir / name
+        if p.is_file():
+            raw = load_yaml(p) if p.suffix == ".yaml" else None
+            if raw is None and p.suffix == ".json":
+                import json
+
+                raw = json.loads(p.read_text(encoding="utf-8"))
+            if isinstance(raw, dict):
+                dlg_scenes = [
+                    s for s in (raw.get("scenes") or []) if isinstance(s, dict)
+                ]
+            break
+
+    nodes: list[dict[str, Any]] = []
+    edges: list[dict[str, Any]] = []
+    seen_nodes: set[str] = set()
+    seen_edges: set[tuple[str, str, str]] = set()
+
+    def add_node(
+        nid: str,
+        *,
+        kind: str,
+        label: str,
+        status: str | None = None,
+        data: dict[str, Any] | None = None,
+        subtitle: str | None = None,
+        preview_url: str | None = None,
+        source: str = "ggd",
+    ) -> None:
+        if nid in seen_nodes:
+            return
+        seen_nodes.add(nid)
+        layer = LAYER_FOR_KIND.get(kind, "story")
+        nodes.append(
+            {
+                "id": nid,
+                "kind": kind,
+                "layer": layer,
+                "label": label,
+                "subtitle": subtitle,
+                "status": status,
+                "data": data or {},
+                "preview_url": preview_url,
+                "source": source,
+            }
+        )
+
+    def add_edge(
+        ekind: str,
+        frm: str,
+        to: str,
+        *,
+        label: str | None = None,
+        eid: str | None = None,
+        data: dict[str, Any] | None = None,
+    ) -> None:
+        key = (ekind, frm, to)
+        if key in seen_edges:
+            return
+        if frm not in seen_nodes or to not in seen_nodes:
+            return
+        seen_edges.add(key)
+        phrase = label or EDGE_PHRASE.get(ekind, ekind.replace("_", " "))
+        edges.append(
+            {
+                "id": eid or f"edge.{_slug(ekind)}.{_slug(frm)}.{_slug(to)}",
+                "kind": ekind,
+                "from": frm,
+                "to": to,
+                "label": phrase,
+                "data": data or {},
+            }
+        )
+
+    # --- GGD nodes ---
+    for n in ggd_nodes:
+        nid = n.get("id")
+        if not isinstance(nid, str):
+            continue
+        add_node(
+            nid,
+            kind=str(n.get("kind") or "other"),
+            label=str(n.get("label") or nid),
+            status=n.get("status"),
+            data=n.get("data") if isinstance(n.get("data"), dict) else {},
+            source="ggd",
+        )
+
+    # --- Engine node ---
+    engine_id = title_data.get("engine_id")
+    engine_node_id = None
+    if isinstance(engine_id, str) and engine_id in index.engines:
+        eng = index.engines[engine_id].data
+        engine_node_id = f"synth.engine.{engine_id.replace('engine.', '')}"
+        add_node(
+            engine_node_id,
+            kind="engine",
+            label=str(eng.get("label") or engine_id),
+            subtitle=str(eng.get("runtime") or ""),
+            status=eng.get("status"),
+            data={"engine_id": engine_id, "runtime": eng.get("runtime")},
+            source="title",
+        )
+
+    # --- GGD edges ---
+    slot_ids_needed: set[str] = set()
+    for e in ggd_edges:
+        frm = e.get("from")
+        to = e.get("to")
+        kind = str(e.get("kind") or "leads_to")
+        if not isinstance(frm, str) or not isinstance(to, str):
+            continue
+        if kind == "uses_slot" or to.startswith("slot."):
+            slot_ids_needed.add(to if to.startswith("slot.") else "")
+            if to.startswith("slot."):
+                slot_ids_needed.add(to)
+        # ensure endpoint nodes for slots created later
+        if kind == "uses_slot" and isinstance(to, str) and to.startswith("slot."):
+            slot_ids_needed.add(to)
+
+    if include_all_slots:
+        for sid in slot_by_id:
+            slot_ids_needed.add(sid)
+
+    # From uses_slot edges collect slots
+    for e in ggd_edges:
+        if e.get("kind") == "uses_slot" and isinstance(e.get("to"), str):
+            slot_ids_needed.add(e["to"])
+
+    # --- Slot + asset nodes ---
+    for sid in sorted(slot_ids_needed):
+        if not sid or not sid.startswith("slot."):
+            continue
+        slot = slot_by_id.get(sid) or {"id": sid, "label": sid, "kind": "other"}
+        add_node(
+            sid,
+            kind="slot",
+            label=str(slot.get("label") or sid),
+            subtitle=str(slot.get("kind") or "slot"),
+            status=slot.get("status"),
+            data={"slot_kind": slot.get("kind")},
+            source="slots",
+        )
+        b = bind_by_slot.get(sid)
+        if b and isinstance(b.get("asset_id"), str):
+            aid = b["asset_id"]
+            ad = index.assets.get(aid)
+            label = aid
+            preview = f"/api/asset-file?asset_id={aid}"
+            if ad:
+                label = str(ad.data.get("label") or aid)
+            add_node(
+                aid,
+                kind="asset",
+                label=label,
+                subtitle=aid.replace("asset.", "")[:40],
+                status=(ad.data.get("status") if ad else None),
+                preview_url=preview,
+                data={"asset_id": aid},
+                source="bindings",
+            )
+            add_edge("binds", sid, aid, label="shows asset")
+
+    # GGD edges (after slots exist)
+    for e in ggd_edges:
+        frm = e.get("from")
+        to = e.get("to")
+        kind = str(e.get("kind") or "leads_to")
+        if not isinstance(frm, str) or not isinstance(to, str):
+            continue
+        # create dangling slot targets already handled
+        if to.startswith("slot.") and to not in seen_nodes:
+            continue
+        if frm.startswith("slot.") and frm not in seen_nodes:
+            continue
+        add_edge(
+            kind,
+            frm,
+            to,
+            label=e.get("label") or EDGE_PHRASE.get(kind),
+            eid=e.get("id"),
+            data=e.get("data") if isinstance(e.get("data"), dict) else {},
+        )
+
+    # Engine runs board system
+    if engine_node_id:
+        for n in ggd_nodes:
+            if n.get("kind") == "system" and isinstance(n.get("id"), str):
+                add_edge("runs", engine_node_id, n["id"], label="runs system")
+
+    # --- Dialogue hubs + optional detail ---
+    for n in ggd_nodes:
+        if n.get("kind") != "scene" or not isinstance(n.get("id"), str):
+            continue
+        sc = _match_dialogue_scene(n, dlg_scenes)
+        if not sc:
+            continue
+        dlg_id = f"synth.dialogue.{sc.get('id') or _slug(str(sc.get('label')))}"
+        lines = [x for x in (sc.get("nodes") or []) if isinstance(x, dict)]
+        n_lines = sum(1 for x in lines if x.get("kind") == "line")
+        n_choices = sum(1 for x in lines if x.get("kind") == "choice")
+        add_node(
+            dlg_id,
+            kind="dialogue",
+            label=f"Dialogue · {sc.get('label') or sc.get('id')}",
+            subtitle=f"{n_lines} lines · {n_choices} choices",
+            data={
+                "dialogue_scene_id": sc.get("id"),
+                "line_count": n_lines,
+                "choice_count": n_choices,
+            },
+            source="dialogue",
+        )
+        add_edge("has_dialogue", n["id"], dlg_id, label="plays dialogue")
+
+        if not include_dialogue_detail:
+            continue
+
+        # choice / option fan-out (compact)
+        for dn in lines:
+            dkind = dn.get("kind")
+            did = dn.get("id")
+            if not isinstance(did, str):
+                continue
+            if dkind == "choice":
+                cid = f"synth.choice.{sc.get('id')}.{did}"
+                add_node(
+                    cid,
+                    kind="choice",
+                    label=str(dn.get("text") or did)[:80],
+                    subtitle="player choice",
+                    data={"dialogue_node": did, "scene": sc.get("id")},
+                    source="dialogue",
+                )
+                add_edge("choice", dlg_id, cid, label="player chooses")
+            elif dkind == "option":
+                oid = f"synth.option.{sc.get('id')}.{did}"
+                add_node(
+                    oid,
+                    kind="option",
+                    label=str(dn.get("text") or did)[:80],
+                    subtitle=str(dn.get("speaker") or "option"),
+                    data={"dialogue_node": did, "scene": sc.get("id")},
+                    source="dialogue",
+                )
+                # link from last choice in same scene if any — heuristic: previous choice
+                # attach to dialogue hub with option phrase if no parent
+                # Prefer: any choice node already added gets option edges via terminal_paths later
+                add_edge("option", dlg_id, oid, label="option")
+
+        # terminal_paths: choice option ids
+        for tp in sc.get("terminal_paths") or []:
+            if not isinstance(tp, str):
+                continue
+            oid = f"synth.option.{sc.get('id')}.{tp}"
+            # find a choice in scene to link
+            for dn in lines:
+                if dn.get("kind") == "choice" and isinstance(dn.get("id"), str):
+                    cid = f"synth.choice.{sc.get('id')}.{dn['id']}"
+                    if cid in seen_nodes and oid in seen_nodes:
+                        add_edge("option", cid, oid, label="player picks")
+                    break
+
+    # Positions
+    saved = load_flow_positions(root, title_id)
+    auto = auto_layout(nodes)
+    for n in nodes:
+        nid = n["id"]
+        pos = saved.get(nid) or auto.get(nid) or {"x": 40.0, "y": 40.0}
+        n["x"] = pos["x"]
+        n["y"] = pos["y"]
+
+    layers = sorted({str(n.get("layer")) for n in nodes})
+    kinds = sorted({str(n.get("kind")) for n in nodes})
+
+    return {
+        "title_id": title_id,
+        "nodes": nodes,
+        "edges": edges,
+        "layers": layers,
+        "kinds": kinds,
+        "legend": [
+            {"kind": k, "phrase": EDGE_PHRASE.get(k, k)}
+            for k in sorted({e["kind"] for e in edges})
+        ],
+        "stats": {
+            "nodes": len(nodes),
+            "edges": len(edges),
+            "ggd_nodes": len(ggd_nodes),
+            "dialogue_scenes": len(dlg_scenes),
+        },
+        "layout_saved": bool(saved),
+    }

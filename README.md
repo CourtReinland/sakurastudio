@@ -49,19 +49,17 @@ sakura sync-tea-house --catalog catalog --source /path/to/sakura-match
 | Sakura Tea House (Three.js + otome Ch.1) | [CourtReinland/sakura-match](https://github.com/CourtReinland/sakura-match) | `title.sakura_tea_house` |
 | Unity match-3 sketch | local `projects/sakura-match` | `title.sakura_match` |
 
-## Studio · Imagine & style board
+## Studio · Flow, Imagine & style board
 
-Swaps tab supports:
+- **Flow ★** — node graph of story branches, dialogue choices, art slots/assets, and engine (rearrange + save layout). See [`docs/STUDIO-FLOW.md`](./docs/STUDIO-FLOW.md).  
+- **Swaps** — drag/drop rebinds, local file import, **Grok Imagine** generate/edit.  
+- **Style board** — per-title style lock in `studio.yaml` (ON/OFF).  
 
-- Drag library assets / drop local images onto slots  
-- **Grok Imagine** text → image and **Edit…** with up to 3 references  
-- **Project style board** (per title `studio.yaml`) with ON/OFF lock  
-
-Set `XAI_API_KEY` in `.env`. Full write-up: [`docs/STUDIO-IMAGINE.md`](./docs/STUDIO-IMAGINE.md).
+Set `XAI_API_KEY` in `.env`. Write-ups: [`docs/STUDIO-FLOW.md`](./docs/STUDIO-FLOW.md), [`docs/STUDIO-IMAGINE.md`](./docs/STUDIO-IMAGINE.md).
 
 ## Design
 
-See [`catalog/SCHEMA.md`](./catalog/SCHEMA.md), [`docs/GDD-DASHBOARD-GAP.md`](./docs/GDD-DASHBOARD-GAP.md), and [`docs/STUDIO-IMAGINE.md`](./docs/STUDIO-IMAGINE.md).
+See [`catalog/SCHEMA.md`](./catalog/SCHEMA.md), [`docs/GDD-DASHBOARD-GAP.md`](./docs/GDD-DASHBOARD-GAP.md), [`docs/STUDIO-FLOW.md`](./docs/STUDIO-FLOW.md), and [`docs/STUDIO-IMAGINE.md`](./docs/STUDIO-IMAGINE.md).
 
 ## License
 

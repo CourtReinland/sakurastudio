@@ -1,6 +1,6 @@
 [project]
 name = "sakura-catalog"
-version = "0.5.3"
+version = "0.6.0"
 description = "Sakura Soft catalog CLI (validate, bind, import, studio, TTS)"
 readme = "README.md"
 requires-python = ">=3.10"
