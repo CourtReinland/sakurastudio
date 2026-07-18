@@ -2981,12 +2981,17 @@ STUDIO_HTML = r"""<!DOCTYPE html>
     }
 
     function speakerKeysFromSummary(d) {
-      const keys = new Set(['ren','mizu','akira','you','narrator']);
+      const keys = new Set();
       for (const sc of (d.scenes || [])) {
         for (const n of (sc.nodes || [])) {
-          if (n.speaker) keys.add(String(n.speaker).toLowerCase());
+          // option rows abuse `speaker` as a jump target ("→ `node`") — not a person
+          if (n.speaker && n.kind !== 'option' && !String(n.speaker).startsWith('→')) {
+            keys.add(String(n.speaker).toLowerCase());
+          }
         }
       }
+      // keep speakers that have an assigned voice even if they have no lines yet
+      for (const sp of Object.keys(((d.voices || {}).by_speaker) || {})) keys.add(sp);
       return [...keys];
     }
 
@@ -3040,7 +3045,7 @@ STUDIO_HTML = r"""<!DOCTYPE html>
         }
         const vm = await api('/api/voice-map?title=' + encodeURIComponent(currentTitleId)).catch(() => voiceMapCache);
         voiceMapCache = vm;
-        const speakers = ['ren','mizu','akira','you','narrator'];
+        const speakers = speakerKeysFromSummary(d);
         const opts = elevenVoices.length
           ? elevenVoices.map(v => `<option value="${v.voice_id}">${v.name}</option>`).join('')
           : '';
