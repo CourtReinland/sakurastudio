@@ -1,20 +1,27 @@
 id: asset.sprite.par.anim_hana_swing1
-label: "Anim — Hana backswing"
+label: Anim — Hana swing 1
 status: approved
 brand_id: brand.sakura_soft
 kind: sprite
-tags: [midnight_par, sprite, cutout]
+tags:
+- midnight_par
+- sprite
+- cutout
+- swing
+- video_first
 characters:
-  - chr.par.hana
+- chr.par.hana
 files:
-  - role: master
-    path: assets/files/midnight_par/img/cut/hana_swing1.png
-    mime: image/png
-    width: 864
-    height: 1152
+- role: master
+  path: assets/files/midnight_par/img/cut/hana_swing1.png
+  mime: image/png
+  width: 864
+  height: 1152
 provenance:
   source: generated
-  tool: grok_imagine
-  prompt: ""
-  created_at: '2026-07-17'
+  tool: game_animation_frames_video
+  skill: game-animation-frames
+  prompt: image_to_video golf putt swing from hana_full; harvest key phases; rembg
+  created_at: '2026-07-19'
   license: internal_all_rights
+  author: studio_goal

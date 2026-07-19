@@ -366,3 +366,27 @@ slots:
   required: true
   used_by:
   - node.system.runtime
+- id: slot.sprite.par.anim_hana_swing3
+  label: Anim — Hana swing 3
+  kind: sprite
+  required: true
+  used_by:
+  - node.system.runtime
+- id: slot.sprite.par.anim_hana_swing4
+  label: Anim — Hana swing 4
+  kind: sprite
+  required: true
+  used_by:
+  - node.system.runtime
+- id: slot.sprite.par.anim_hana_swing5
+  label: Anim — Hana swing 5
+  kind: sprite
+  required: true
+  used_by:
+  - node.system.runtime
+- id: slot.sprite.par.anim_hana_swing6
+  label: Anim — Hana swing 6
+  kind: sprite
+  required: true
+  used_by:
+  - node.system.runtime

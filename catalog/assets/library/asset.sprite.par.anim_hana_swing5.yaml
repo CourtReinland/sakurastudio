@@ -1,5 +1,5 @@
-id: asset.sprite.par.anim_hana_swing2
-label: Anim — Hana swing 2
+id: asset.sprite.par.anim_hana_swing5
+label: Anim — Hana swing 5
 status: approved
 brand_id: brand.sakura_soft
 kind: sprite
@@ -13,7 +13,7 @@ characters:
 - chr.par.hana
 files:
 - role: master
-  path: assets/files/midnight_par/img/cut/hana_swing2.png
+  path: assets/files/midnight_par/img/cut/hana_swing5.png
   mime: image/png
   width: 864
   height: 1152

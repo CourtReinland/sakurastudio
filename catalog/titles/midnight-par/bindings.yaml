@@ -96,13 +96,15 @@ bindings:
 - slot_id: slot.sprite.par.anim_hana_swing1
   asset_id: asset.sprite.par.anim_hana_swing1
   status: approved
-  bound_at: '2026-07-17T12:00:00Z'
-  bound_by: kimi.agent
+  bound_at: '2026-07-19T08:16:21Z'
+  bound_by: studio.video_swing
+  notes: video-first swing keyframes
 - slot_id: slot.sprite.par.anim_hana_swing2
   asset_id: asset.sprite.par.anim_hana_swing2
   status: approved
-  bound_at: '2026-07-17T12:00:00Z'
-  bound_by: kimi.agent
+  bound_at: '2026-07-19T08:16:21Z'
+  bound_by: studio.video_swing
+  notes: video-first swing keyframes
 - slot_id: slot.bgm.par.title
   asset_id: asset.bgm.par.title
   status: approved
@@ -313,3 +315,27 @@ bindings:
   bound_at: '2026-07-19T08:11:40Z'
   bound_by: studio.video_walk
   notes: video-first walk cycle
+- slot_id: slot.sprite.par.anim_hana_swing3
+  asset_id: asset.sprite.par.anim_hana_swing3
+  status: approved
+  bound_at: '2026-07-19T08:16:21Z'
+  bound_by: studio.video_swing
+  notes: video-first swing keyframes
+- slot_id: slot.sprite.par.anim_hana_swing4
+  asset_id: asset.sprite.par.anim_hana_swing4
+  status: approved
+  bound_at: '2026-07-19T08:16:21Z'
+  bound_by: studio.video_swing
+  notes: video-first swing keyframes
+- slot_id: slot.sprite.par.anim_hana_swing5
+  asset_id: asset.sprite.par.anim_hana_swing5
+  status: approved
+  bound_at: '2026-07-19T08:16:21Z'
+  bound_by: studio.video_swing
+  notes: video-first swing keyframes
+- slot_id: slot.sprite.par.anim_hana_swing6
+  asset_id: asset.sprite.par.anim_hana_swing6
+  status: approved
+  bound_at: '2026-07-19T08:16:21Z'
+  bound_by: studio.video_swing
+  notes: video-first swing keyframes
