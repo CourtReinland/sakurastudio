@@ -15,7 +15,12 @@ from sakura.asset_write import create_image_asset
 from sakura.bind import bind_set, bind_set_status, bind_unbind, resolve_title_id
 from sakura.code_graph import load_title_code_graph
 from sakura.dialogue_edit import update_line
-from sakura.elevenlabs_client import ElevenLabsError, list_voices, resolve_api_key
+from sakura.elevenlabs_client import (
+    ElevenLabsError,
+    list_voices,
+    resolve_api_key,
+    text_to_speech,
+)
 from sakura.github_projects import project_tabs
 from sakura.imagine_client import (
     DEFAULT_MODEL,
@@ -27,7 +32,14 @@ from sakura.imagine_client import (
 )
 from sakura.import_unity import import_title
 from sakura.loader import discover_catalog_root, load_catalog
-from sakura.flow_graph import auto_layout, build_flow_graph, save_flow_positions
+from sakura.flow_graph import (
+    auto_layout,
+    build_character_bundle,
+    build_flow_graph,
+    save_flow_positions,
+)
+from sakura.export_game import export_title_to_game
+from sakura.game_assets import run_tool as run_game_asset_tool, tool_catalog as game_asset_tool_catalog
 from sakura.studio_style import load_studio_style, save_studio_style
 from sakura.tts import generate_line_audio
 from sakura.validate import run_validate, summarize
@@ -40,7 +52,7 @@ from sakura.voice_map import (
 )
 from sakura.yaml_io import load_yaml
 
-app = FastAPI(title="Sakura Studio", version="0.6.0")
+app = FastAPI(title="Sakura Studio", version="0.8.0")
 
 # Swap categories for dashboard filters
 SWAP_CATEGORIES = {
@@ -200,10 +212,94 @@ def health(catalog: str | None = None) -> dict[str, Any]:
     return {
         "ok": True,
         "catalog": str(root),
-        "version": "0.6.0",
+        "version": "0.8.0",
         "elevenlabs_configured": bool(resolve_api_key()),
         "xai_configured": bool(resolve_xai_api_key()),
+        "game_asset_tools": [t["id"] for t in game_asset_tool_catalog()],
     }
+
+
+class ExportGameBody(BaseModel):
+    title_id: str | None = None
+    game_root: str | None = None
+    dry_run: bool = False
+
+
+@app.post("/api/export-game")
+def api_export_game(body: ExportGameBody, catalog: str | None = None) -> dict[str, Any]:
+    """Copy bound catalog masters into a game checkout + write catalog_bindings.json."""
+    root = _catalog(catalog)
+    index = load_catalog(root, include_examples=True)
+    try:
+        title_id = resolve_title_id(index, body.title_id)
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
+    try:
+        result = export_title_to_game(
+            root,
+            title_id,
+            game_root=body.game_root,
+            dry_run=body.dry_run,
+        )
+    except FileNotFoundError as e:
+        raise HTTPException(404, str(e)) from e
+    except Exception as e:
+        raise HTTPException(500, f"Export failed: {e}") from e
+    return result
+
+
+class GameAssetBody(BaseModel):
+    tool: str
+    title_id: str | None = None
+    prompt: str | None = None
+    style_prompt: str | None = None
+    kind: str | None = "sprite"
+    aspect_ratio: str = "1:1"
+    slot_id: str | None = None
+    base_asset_id: str | None = None
+    mode: str | None = "expression"
+    tile_px: int = 128
+    icons: str | None = None
+    bg_color: str | None = "pure #00FF00 chroma green"
+    frame_count: int = 8
+    quality: bool = True
+    use_style_board: bool = True
+    video_first: bool = True
+    duration: int = 6
+
+
+@app.get("/api/game-assets/tools")
+def api_game_asset_tools() -> dict[str, Any]:
+    """Catalog of Studio game-asset tools (Grok Build skill suite port)."""
+    return {
+        "tools": game_asset_tool_catalog(),
+        "source": "Sakura Studio port of Grok Build game-asset skill suite "
+        "(game-asset-core, game-character-consistency, game-tilesets, "
+        "game-ui-icons, game-animation-frames). Local skill files may live under "
+        "~/.grok/bundled/skills/ on newer Grok installs.",
+        "xai_configured": bool(resolve_xai_api_key()),
+    }
+
+
+@app.post("/api/game-assets/run")
+def api_game_asset_run(body: GameAssetBody, catalog: str | None = None) -> dict[str, Any]:
+    """Run a game-asset tool → catalog assets (+ optional slot bind)."""
+    root = _catalog(catalog)
+    if not resolve_xai_api_key():
+        raise HTTPException(
+            400,
+            "XAI_API_KEY required for game-asset tools (set in SakuraSoft/.env)",
+        )
+    payload = body.model_dump()
+    try:
+        result = run_game_asset_tool(root, body.tool, payload)
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
+    except ImagineError as e:
+        raise HTTPException(502, str(e)) from e
+    except Exception as e:
+        raise HTTPException(500, f"Game asset tool failed: {e}") from e
+    return result
 
 
 class FlowLayoutBody(BaseModel):
@@ -235,6 +331,20 @@ def api_flow(
     except ValueError as e:
         raise HTTPException(400, str(e)) from e
     return graph
+
+
+@app.get("/api/character-bundle")
+def api_character_bundle(
+    title: str = Query(...),
+    character_id: str = Query(...),
+    catalog: str | None = None,
+) -> dict[str, Any]:
+    """Portrait, body, anim clips, voice — for Flow character inspector."""
+    root = _catalog(catalog)
+    try:
+        return build_character_bundle(root, title, character_id)
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
 
 
 @app.post("/api/flow/layout")
@@ -1184,6 +1294,67 @@ def api_voices() -> dict[str, Any]:
     return {"voices": voices, "count": len(voices)}
 
 
+@app.get("/api/voices/{voice_id}/preview")
+def api_voice_preview(voice_id: str) -> Response:
+    """
+    Stream a short sample for a voice.
+
+    Prefers ElevenLabs' stock preview_url (no TTS charge); falls back to a
+    short synthesize if the voice has no preview clip.
+    """
+    import httpx
+
+    vid = (voice_id or "").strip()
+    if not vid:
+        raise HTTPException(400, "voice_id required")
+
+    preview_url: str | None = None
+    try:
+        for v in list_voices():
+            if v.get("voice_id") == vid:
+                preview_url = v.get("preview_url")
+                break
+    except ElevenLabsError as e:
+        raise HTTPException(400, str(e)) from e
+
+    if preview_url:
+        try:
+            with httpx.Client(timeout=60.0, follow_redirects=True) as client:
+                r = client.get(preview_url)
+                if r.status_code < 400 and r.content:
+                    # CDN often mislabels mp3 as text/plain — sniff magic / force audio
+                    raw = r.content
+                    ctype = (r.headers.get("content-type") or "").split(";")[0].strip().lower()
+                    if raw[:3] == b"ID3" or raw[:2] == b"\xff\xfb" or raw[:2] == b"\xff\xf3":
+                        ctype = "audio/mpeg"
+                    elif raw[:4] == b"RIFF":
+                        ctype = "audio/wav"
+                    elif raw[:4] == b"OggS":
+                        ctype = "audio/ogg"
+                    elif not ctype.startswith("audio/"):
+                        ctype = "audio/mpeg"
+                    return Response(
+                        content=raw,
+                        media_type=ctype,
+                        headers={"Cache-Control": "public, max-age=3600"},
+                    )
+        except httpx.HTTPError:
+            pass  # fall through to TTS sample
+
+    try:
+        audio = text_to_speech(
+            "[friendly] Hello. This is a short voice sample for Sakura Studio.",
+            vid,
+        )
+    except ElevenLabsError as e:
+        raise HTTPException(502, f"Voice preview failed: {e}") from e
+    return Response(
+        content=audio,
+        media_type="audio/mpeg",
+        headers={"Cache-Control": "no-store"},
+    )
+
+
 @app.get("/api/voice-map")
 def api_voice_map_get(
     title: str | None = None,
@@ -1569,6 +1740,27 @@ STUDIO_HTML = r"""<!DOCTYPE html>
     .flow-node.kind-choice, .flow-node.kind-option { border-left: 3px solid #e9c46a; }
     .flow-node.kind-system, .flow-node.kind-engine { border-left: 3px solid #8ecae6; }
     .flow-node.kind-slot, .flow-node.kind-asset { border-left: 3px solid #bdb2ff; }
+    .flow-node.kind-character { border-left: 3px solid #ff8fab; min-height: 72px; }
+    .flow-node.kind-anim_clip { border-left: 3px solid #f4a261; }
+    .flow-node.kind-world { border-left: 3px solid #2a9d8f; }
+    .flow-node.kind-minigame { border-left: 3px solid #e9c46a; }
+    .char-film {
+      display: flex; gap: 6px; overflow-x: auto; padding: 6px 0;
+    }
+    .char-film .cf {
+      flex: 0 0 72px; text-align: center; font-size: 0.65rem; color: var(--muted);
+    }
+    .char-film img {
+      width: 72px; height: 96px; object-fit: contain; background: #100c16;
+      border-radius: 6px; border: 1px solid var(--border);
+    }
+    .flow-detail .hero-row {
+      display: flex; gap: 12px; align-items: flex-start; margin: 8px 0;
+    }
+    .flow-detail .hero-row img {
+      width: 96px; height: 128px; object-fit: contain; background: #100c16;
+      border-radius: 8px; border: 1px solid var(--border);
+    }
     .flow-node .fn-thumb {
       width: 100%; height: 48px; object-fit: contain; margin-top: 4px;
       background: #100c16; border-radius: 6px;
@@ -1579,6 +1771,28 @@ STUDIO_HTML = r"""<!DOCTYPE html>
       min-height: 48px;
     }
     .flow-hidden { display: none !important; }
+    .asset-tool-tab {
+      border-radius: 999px; padding: 6px 12px; font-size: 0.82rem;
+    }
+    .asset-tool-tab.active { outline: 2px solid var(--accent2); }
+    .asset-result-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px;
+    }
+    .asset-result-grid .ar-item {
+      background: var(--panel2); border: 1px solid var(--border); border-radius: 10px;
+      padding: 6px; text-align: center; font-size: 0.68rem; color: var(--muted);
+    }
+    .asset-result-grid img {
+      width: 100%; aspect-ratio: 1; object-fit: contain; background: #100c16; border-radius: 6px;
+    }
+    #assetToolFields .field { margin-bottom: 10px; }
+    #assetToolFields textarea {
+      width: 100%; min-height: 72px; background: #100c16; color: var(--text);
+      border: 1px solid var(--border); border-radius: 8px; padding: 8px; font-family: inherit;
+    }
+    #assetToolFields input[type=text], #assetToolFields select {
+      width: 100%;
+    }
     .badge {
       display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 0.7rem;
       border: 1px solid var(--border); color: var(--muted);
@@ -1628,8 +1842,8 @@ STUDIO_HTML = r"""<!DOCTYPE html>
 <body>
   <header>
     <div>
-      <h1>🌸 <span>Sakura</span> Studio <span class="ver" id="buildVer">v0.6.0</span></h1>
-      <div class="muted">Flow · Swaps · Story · Dialogue · Imagine</div>
+      <h1>🌸 <span>Sakura</span> Studio <span class="ver" id="buildVer">v0.8.0</span></h1>
+      <div class="muted">Flow · Assets · Export · Swaps · Dialogue</div>
     </div>
     <div class="row">
       <div class="field">
@@ -1638,6 +1852,7 @@ STUDIO_HTML = r"""<!DOCTYPE html>
       </div>
       <button id="btnReload" class="secondary" type="button">Reload</button>
       <button id="btnValidate" class="secondary" type="button">Validate</button>
+      <button id="btnExportGame" class="secondary" type="button">Export → Game</button>
       <button id="btnImport" type="button">Import → Unity</button>
     </div>
   </header>
@@ -1646,6 +1861,7 @@ STUDIO_HTML = r"""<!DOCTYPE html>
     <div class="tabs" id="mainTabs">
       <button type="button" data-tab="overview" class="active">Overview</button>
       <button type="button" data-tab="flow">Flow ★</button>
+      <button type="button" data-tab="assets">Assets ✦</button>
       <button type="button" data-tab="swaps">Swaps</button>
       <button type="button" data-tab="story">Story</button>
       <button type="button" data-tab="dialogue">Dialogue</button>
@@ -1654,6 +1870,36 @@ STUDIO_HTML = r"""<!DOCTYPE html>
     </div>
 
     <section id="panel-overview" class="panel active"></section>
+    <section id="panel-assets" class="panel">
+      <div class="card" style="margin-bottom:12px">
+        <h3 style="margin:0 0 6px">Game asset tools</h3>
+        <p class="muted" style="margin:0">
+          Studio port of the Grok Build skill suite
+          (<code>game-asset-core</code>, <code>game-character-consistency</code>,
+          <code>game-tilesets</code>, <code>game-ui-icons</code>, <code>game-animation-frames</code>).
+          Engine-ready defaults are forced in prompts. Uses project <strong>style board</strong> when lock is ON.
+          Results land in the catalog library (and optional slot bind).
+        </p>
+        <p class="muted" id="assetsXaiStatus" style="margin:8px 0 0"></p>
+      </div>
+      <div class="row" id="assetToolTabs" style="margin-bottom:12px;gap:6px;flex-wrap:wrap"></div>
+      <div class="two-col" id="assetToolBody">
+        <div class="card" id="assetToolFormCard">
+          <h3 id="assetToolTitle">Select a tool</h3>
+          <ol class="muted" id="assetToolInstructions" style="padding-left:18px;line-height:1.45"></ol>
+          <div id="assetToolFields"></div>
+          <div class="row" style="margin-top:12px">
+            <label class="toggle"><input type="checkbox" id="assetUseStyle" checked /> Use style board</label>
+            <label class="toggle"><input type="checkbox" id="assetQuality" checked /> Quality model</label>
+            <button type="button" id="btnAssetRun">Generate → catalog</button>
+          </div>
+        </div>
+        <div class="card" id="assetToolResultCard">
+          <h3>Result</h3>
+          <div id="assetToolResult" class="muted">Run a tool to see assets here.</div>
+        </div>
+      </div>
+    </section>
     <section id="panel-flow" class="panel">
       <div class="flow-toolbar" id="flowToolbar">
         <strong style="font-size:0.9rem">Story · art · engine flow</strong>
@@ -1806,12 +2052,13 @@ STUDIO_HTML = r"""<!DOCTYPE html>
         document.getElementById('panel-code').innerHTML = '';
         document.getElementById('flowNodes').innerHTML = '';
         document.getElementById('flowEdges').innerHTML = '';
+        document.getElementById('assetToolResult').innerHTML = 'Pick a catalog title first.';
         log('Selected unmapped project: ' + opt.textContent);
         return;
       }
       currentTitleId = titleId;
       await Promise.all([
-        loadOverview(), loadFlow(), loadSwaps(), loadStory(), loadDialogue(), loadCast(), loadCode(),
+        loadOverview(), loadFlow(), loadAssets(), loadSwaps(), loadStory(), loadDialogue(), loadCast(), loadCode(),
       ]);
     }
 
@@ -2626,6 +2873,139 @@ STUDIO_HTML = r"""<!DOCTYPE html>
       } catch (e) { log('ERROR: ' + e.message); }
     }
 
+    /* ---- Game asset tools (Grok Build skill suite port) ---- */
+    let gameAssetTools = [];
+    let activeAssetTool = null;
+    let assetLibraryList = [];
+
+    async function loadAssets() {
+      try {
+        const data = await api('/api/game-assets/tools');
+        gameAssetTools = data.tools || [];
+        const st = document.getElementById('assetsXaiStatus');
+        if (st) {
+          st.innerHTML = data.xai_configured
+            ? '<span class="badge ok">XAI_API_KEY ready · Imagine enabled</span>'
+            : '<span class="badge warn">Set XAI_API_KEY in SakuraSoft/.env for generation</span>';
+        }
+        // load library for asset pickers
+        if (currentTitleId) {
+          try {
+            const b = await api('/api/bindings?examples=true&title=' + encodeURIComponent(currentTitleId));
+            assetLibraryList = b.assets || [];
+          } catch (_) { assetLibraryList = []; }
+        }
+        renderAssetToolTabs();
+        if (!activeAssetTool && gameAssetTools.length) {
+          selectAssetTool(gameAssetTools[0].id);
+        } else if (activeAssetTool) {
+          selectAssetTool(activeAssetTool);
+        }
+      } catch (e) {
+        log('Assets tools: ' + e.message);
+      }
+    }
+
+    function renderAssetToolTabs() {
+      const host = document.getElementById('assetToolTabs');
+      if (!host) return;
+      host.innerHTML = gameAssetTools.map(t =>
+        `<button type="button" class="secondary asset-tool-tab ${activeAssetTool === t.id ? 'active' : ''}"
+          data-tool="${t.id}">${t.icon || ''} ${t.label}</button>`
+      ).join('');
+      host.querySelectorAll('[data-tool]').forEach(btn => {
+        btn.onclick = () => selectAssetTool(btn.dataset.tool);
+      });
+    }
+
+    function selectAssetTool(id) {
+      activeAssetTool = id;
+      const tool = gameAssetTools.find(t => t.id === id);
+      renderAssetToolTabs();
+      if (!tool) return;
+      document.getElementById('assetToolTitle').textContent = `${tool.icon || ''} ${tool.label}`;
+      const ol = document.getElementById('assetToolInstructions');
+      ol.innerHTML = (tool.instructions || []).map(s => `<li>${escapeHtml(s)}</li>`).join('');
+      const fields = document.getElementById('assetToolFields');
+      fields.innerHTML = (tool.fields || []).map(f => {
+        const req = f.required ? ' *' : '';
+        if (f.type === 'textarea') {
+          return `<div class="field"><label>${escapeHtml(f.label)}${req}</label>
+            <textarea data-field="${f.name}" placeholder="${escapeHtml(f.placeholder || '')}">${escapeHtml(f.default || '')}</textarea></div>`;
+        }
+        if (f.type === 'select') {
+          const opts = (f.options || []).map(o =>
+            `<option value="${escapeHtml(o)}" ${String(o) === String(f.default) ? 'selected' : ''}>${escapeHtml(o)}</option>`
+          ).join('');
+          return `<div class="field"><label>${escapeHtml(f.label)}${req}</label>
+            <select data-field="${f.name}">${opts}</select></div>`;
+        }
+        if (f.type === 'asset') {
+          const opts = ['<option value="">— pick base asset —</option>']
+            .concat(assetLibraryList.map(a =>
+              `<option value="${escapeHtml(a.id)}">${escapeHtml(a.id)}</option>`
+            )).join('');
+          return `<div class="field"><label>${escapeHtml(f.label)}${req}</label>
+            <select data-field="${f.name}">${opts}</select>
+            <div class="muted" style="margin-top:4px">From catalog library (filter via Swaps if needed)</div></div>`;
+        }
+        return `<div class="field"><label>${escapeHtml(f.label)}${req}</label>
+          <input type="text" data-field="${f.name}" value="${escapeHtml(f.default || '')}"
+            placeholder="${escapeHtml(f.placeholder || '')}" /></div>`;
+      }).join('');
+    }
+
+    document.getElementById('btnAssetRun')?.addEventListener('click', async () => {
+      if (!activeAssetTool) { log('Pick a tool first'); return; }
+      if (!currentTitleId) { log('Select a catalog project first'); return; }
+      const fields = document.getElementById('assetToolFields');
+      const body = {
+        tool: activeAssetTool,
+        title_id: currentTitleId,
+        use_style_board: document.getElementById('assetUseStyle')?.checked !== false,
+        quality: document.getElementById('assetQuality')?.checked !== false,
+      };
+      fields.querySelectorAll('[data-field]').forEach(el => {
+        body[el.dataset.field] = el.value;
+      });
+      const btn = document.getElementById('btnAssetRun');
+      const result = document.getElementById('assetToolResult');
+      btn.classList.add('busy');
+      result.innerHTML = '<span class="muted">Generating with Grok Imagine… this can take 15–60s per image.</span>';
+      log(`Game asset tool «${activeAssetTool}»…`);
+      try {
+        const r = await api('/api/game-assets/run', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(body),
+        });
+        log(r.message || JSON.stringify(r));
+        const assets = r.assets || [];
+        result.innerHTML = `
+          <p style="color:var(--ok);margin:0 0 8px">${escapeHtml(r.message || 'Done')}</p>
+          <div class="asset-result-grid">
+            ${assets.map(a => `
+              <div class="ar-item">
+                <img src="${a.preview_url || ('/api/asset-file?asset_id=' + encodeURIComponent(a.asset_id))}" alt="" />
+                <div style="margin-top:4px;word-break:break-all">${escapeHtml(a.asset_id || '')}</div>
+                <div>${escapeHtml(a.label || '')}</div>
+              </div>`).join('')}
+          </div>
+          ${r.bind ? `<p class="muted" style="margin-top:8px">Bind: ${escapeHtml(r.bind.message || JSON.stringify(r.bind))}</p>` : ''}
+          <p class="muted" style="margin-top:8px">Open <strong>Swaps</strong> to rebind or edit with Imagine.</p>`;
+        // refresh library for next character/anim base pick
+        try {
+          const b = await api('/api/bindings?examples=true&title=' + encodeURIComponent(currentTitleId));
+          assetLibraryList = b.assets || [];
+        } catch (_) {}
+      } catch (e) {
+        result.innerHTML = `<span class="badge warn" style="white-space:normal">${escapeHtml(e.message)}</span>`;
+        log('Asset tool failed: ' + e.message);
+      } finally {
+        btn.classList.remove('busy');
+      }
+    });
+
     /* ---- Flow node graph ---- */
     let flowGraph = { nodes: [], edges: [], legend: [] };
     let flowPos = {};
@@ -2726,6 +3106,10 @@ STUDIO_HTML = r"""<!DOCTYPE html>
           ev.stopPropagation();
           selectFlowNode(n.id);
         });
+        el.addEventListener('dblclick', (ev) => {
+          ev.stopPropagation();
+          openFlowNodeDeep(n).catch(err => log(err.message));
+        });
         nodesHost.appendChild(el);
       }
 
@@ -2807,6 +3191,9 @@ STUDIO_HTML = r"""<!DOCTYPE html>
       if (!n || !detail) return;
       const outs = (flowGraph.edges || []).filter(e => e.from === id);
       const ins = (flowGraph.edges || []).filter(e => e.to === id);
+      const deepHint = (n.data && n.data.open)
+        ? `<p class="muted" style="margin:8px 0 0">Double-click to open <strong>${escapeHtml(n.data.open)}</strong> inspector</p>`
+        : '';
       detail.innerHTML = `
         <div class="row" style="justify-content:space-between">
           <div>
@@ -2817,6 +3204,8 @@ STUDIO_HTML = r"""<!DOCTYPE html>
           <span class="muted" style="font-size:0.72rem">${escapeHtml(n.id)}</span>
         </div>
         ${n.subtitle ? `<p class="muted" style="margin:6px 0 0">${escapeHtml(n.subtitle)}</p>` : ''}
+        ${n.preview_url ? `<div class="hero-row"><img src="${n.preview_url}" alt="" /></div>` : ''}
+        ${deepHint}
         <div class="two-col" style="margin-top:8px">
           <div>
             <div class="muted" style="margin-bottom:4px">Inbound</div>
@@ -2832,6 +3221,150 @@ STUDIO_HTML = r"""<!DOCTYPE html>
           </div>
         </div>
       `;
+    }
+
+    async function openFlowNodeDeep(n) {
+      selectFlowNode(n.id);
+      const open = n.data && n.data.open;
+      if (open === 'character' || n.kind === 'character' || n.kind === 'anim_clip') {
+        const cid = n.data && n.data.character_id;
+        if (!cid || !currentTitleId) {
+          log('No character_id on this node');
+          return;
+        }
+        await renderCharacterInspector(cid);
+        return;
+      }
+      if (open === 'world' || n.kind === 'world') {
+        renderWorldInspector(n);
+        return;
+      }
+      log('No deep inspector for ' + (n.kind || n.id));
+    }
+
+    async function renderCharacterInspector(characterId) {
+      const detail = document.getElementById('flowDetail');
+      detail.innerHTML = '<span class="muted">Loading character bundle…</span>';
+      try {
+        const b = await api(
+          '/api/character-bundle?title=' + encodeURIComponent(currentTitleId) +
+          '&character_id=' + encodeURIComponent(characterId)
+        );
+        const walk = (b.clips && b.clips.walk && b.clips.walk.frames) || [];
+        const swing = (b.clips && b.clips.swing && b.clips.swing.frames) || [];
+        const portrait = (b.portrait || [])[0];
+        const body = (b.body || [])[0];
+        const voice = b.voice_map || {};
+        const diag = (b.diagnosis || []).map(d => `<li>${escapeHtml(d)}</li>`).join('');
+        detail.innerHTML = `
+          <div class="row" style="justify-content:space-between">
+            <div>
+              <strong>${escapeHtml(b.label || characterId)}</strong>
+              <span class="badge cat">character</span>
+            </div>
+            <span class="muted" style="font-size:0.72rem">${escapeHtml(characterId)}</span>
+          </div>
+          <p class="muted" style="margin:6px 0">${escapeHtml((b.profile && b.profile.one_liner) || '')}</p>
+          <div class="hero-row">
+            ${portrait && portrait.preview_url ? `<div><div class="muted">Portrait</div><img src="${portrait.preview_url}" alt="" /></div>` : ''}
+            ${body && body.preview_url ? `<div><div class="muted">Full body / idle</div><img src="${body.preview_url}" alt="" /></div>` : ''}
+          </div>
+          <h3 style="margin:12px 0 4px;font-size:0.9rem">Walk cycle (${walk.length} frames)</h3>
+          <p class="muted" style="margin:0 0 4px">${escapeHtml((b.clips.walk && b.clips.walk.recommended) || '')}</p>
+          <div class="char-film">
+            ${walk.map((f,i) => `<div class="cf">
+              ${f.preview_url ? `<img src="${f.preview_url}" alt="" />` : '<div class="muted">empty</div>'}
+              <div>f${i+1}</div>
+            </div>`).join('') || '<span class="muted">No walk frames in catalog</span>'}
+          </div>
+          <h3 style="margin:12px 0 4px;font-size:0.9rem">Swing (${swing.length} frames)</h3>
+          <div class="char-film">
+            ${swing.map((f,i) => `<div class="cf">
+              ${f.preview_url ? `<img src="${f.preview_url}" alt="" />` : ''}
+              <div>s${i+1}</div>
+            </div>`).join('') || '<span class="muted">No swing frames</span>'}
+          </div>
+          <h3 style="margin:12px 0 4px;font-size:0.9rem">Voice</h3>
+          <p style="margin:0">${voice.voice_name || voice.voice_id
+            ? `<span class="badge ok">${escapeHtml(voice.voice_name || '')}</span>
+               <span class="muted">${escapeHtml(voice.voice_id || '')}</span>`
+            : '<span class="badge warn">No voice mapped — set in Dialogue tab</span>'}</p>
+          <h3 style="margin:12px 0 4px;font-size:0.9rem">Pipeline diagnosis</h3>
+          <ul class="muted" style="margin:0;padding-left:18px;line-height:1.4">${diag}</ul>
+          <p class="muted" style="margin-top:10px">
+            Runtime paths are hardcoded in the game (e.g. <code>assets/img/cut/hana_walk1.png</code>).
+            Rebind in <strong>Swaps</strong>, then re-copy binaries into the game repo — or use Assets ✦ → Character / Animation to regenerate with skill-correct pipelines.
+          </p>
+          <div class="row" style="margin-top:10px">
+            <button type="button" class="secondary" id="btnOpenSwapsFromChar">Open Swaps</button>
+            <button type="button" class="secondary" id="btnOpenAssetsFromChar">Open Assets ✦</button>
+            <button type="button" class="secondary" id="btnOpenDialogueFromChar">Open Dialogue</button>
+          </div>
+        `;
+        document.getElementById('btnOpenSwapsFromChar').onclick = () => {
+          document.querySelector('#mainTabs [data-tab="swaps"]')?.click();
+        };
+        document.getElementById('btnOpenAssetsFromChar').onclick = () => {
+          document.querySelector('#mainTabs [data-tab="assets"]')?.click();
+        };
+        document.getElementById('btnOpenDialogueFromChar').onclick = () => {
+          document.querySelector('#mainTabs [data-tab="dialogue"]')?.click();
+        };
+        log('Character inspector: ' + (b.label || characterId));
+      } catch (e) {
+        detail.innerHTML = `<span class="badge warn">${escapeHtml(e.message)}</span>`;
+      }
+    }
+
+    async function renderWorldInspector(n) {
+      const detail = document.getElementById('flowDetail');
+      const holes = (n.data && n.data.holes) || [];
+      detail.innerHTML = '<span class="muted">Loading world slots…</span>';
+      let worldSlots = [];
+      try {
+        const b = await api('/api/bindings?examples=true&title=' + encodeURIComponent(currentTitleId));
+        worldSlots = (b.rows || []).filter(r => {
+          const sid = (r.slot && r.slot.id) || '';
+          const kind = (r.slot && r.slot.kind) || '';
+          return /turf|sky|bg\.|texture|title_splash|board/.test(sid) ||
+            ['bg', 'texture'].includes(kind);
+        });
+      } catch (e) {
+        log('World slots: ' + e.message);
+      }
+      detail.innerHTML = `
+        <div class="row" style="justify-content:space-between">
+          <strong>${escapeHtml(n.label || 'World')}</strong>
+          <span class="badge cat">world</span>
+        </div>
+        <p class="muted">Course / world hub. Holes:</p>
+        <ul class="muted">${holes.map(h => `<li>${escapeHtml(h)}</li>`).join('') || '<li>—</li>'}</ul>
+        <h3 style="margin:10px 0 4px;font-size:0.9rem">Environment slots</h3>
+        <div class="char-film">
+          ${worldSlots.map(r => {
+            const sid = r.slot.id;
+            const prev = r.preview_url;
+            return `<div class="cf" title="${escapeHtml(sid)}">
+              ${prev ? `<img src="${prev}" alt="" style="height:72px;width:96px;object-fit:cover" />` : '<div class="muted">empty</div>'}
+              <div>${escapeHtml((r.slot.label || sid).slice(0, 18))}</div>
+            </div>`;
+          }).join('') || '<span class="muted">No bg/texture slots found</span>'}
+        </div>
+        <p class="muted" style="margin-top:8px">
+          Lighting (tone mapping / fog / moon) is currently in <code>engine.js</code> constants.
+          Rebind turf/sky here via Swaps, then <strong>Export → Game</strong>.
+        </p>
+        <div class="row" style="margin-top:8px">
+          <button type="button" class="secondary" id="btnWorldSwaps">Open Swaps</button>
+          <button type="button" id="btnWorldExport">Export → Game</button>
+        </div>
+      `;
+      document.getElementById('btnWorldSwaps').onclick = () => {
+        document.querySelector('#mainTabs [data-tab="swaps"]')?.click();
+      };
+      document.getElementById('btnWorldExport').onclick = () => {
+        document.getElementById('btnExportGame')?.click();
+      };
     }
 
     function onFlowNodeDown(ev, n, el) {
@@ -3062,6 +3595,8 @@ STUDIO_HTML = r"""<!DOCTYPE html>
               <option value="">— pick listed voice —</option>
               ${opts}
             </select>
+            <button type="button" class="secondary btn-preview-voice" data-speaker="${sp}"
+              title="Play ElevenLabs sample for selected voice">▶ Preview</button>
             <input class="voice-id-manual" data-speaker="${sp}" placeholder="or paste voice_id"
               value="${cur.voice_id || ''}"
               style="min-width:180px;background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px" />
@@ -3077,7 +3612,100 @@ STUDIO_HTML = r"""<!DOCTYPE html>
             const has = [...sel.options].some(o => o.value === cur.voice_id);
             if (has) sel.value = cur.voice_id;
           }
+          sel.addEventListener('change', () => {
+            const manual = host.querySelector(`.voice-id-manual[data-speaker="${sp}"]`);
+            if (manual && sel.value) manual.value = sel.value;
+            syncPreviewBtn(sp);
+          });
         });
+        host.querySelectorAll('.voice-id-manual').forEach(inp => {
+          inp.addEventListener('input', () => syncPreviewBtn(inp.dataset.speaker));
+        });
+        function voiceIdForSpeaker(sp) {
+          const sel = host.querySelector(`.voice-select[data-speaker="${sp}"]`);
+          const manual = host.querySelector(`.voice-id-manual[data-speaker="${sp}"]`);
+          return ((manual && manual.value.trim()) || (sel && sel.value) || '').trim();
+        }
+        function syncPreviewBtn(sp) {
+          const btn = host.querySelector(`.btn-preview-voice[data-speaker="${sp}"]`);
+          if (!btn) return;
+          const vid = voiceIdForSpeaker(sp);
+          btn.disabled = !vid;
+          btn.title = vid
+            ? 'Play sample for this voice'
+            : 'Pick or paste a voice first';
+        }
+        speakers.forEach(sp => syncPreviewBtn(sp));
+
+        let previewAudio = null;
+        host.querySelectorAll('.btn-preview-voice').forEach(btn => {
+          btn.onclick = async () => {
+            const sp = btn.dataset.speaker;
+            const voiceId = voiceIdForSpeaker(sp);
+            if (!voiceId) { log('Pick or paste a voice id first'); return; }
+            // Prefer library preview_url when present (no TTS charge); else studio proxy
+            const meta = elevenVoices.find(v => v.voice_id === voiceId);
+            const src = (meta && meta.preview_url)
+              ? meta.preview_url
+              : ('/api/voices/' + encodeURIComponent(voiceId) + '/preview');
+            try {
+              if (previewAudio) {
+                previewAudio.pause();
+                previewAudio = null;
+              }
+              // stop any other row previews
+              if (window._sakuraVoicePreview) {
+                try { window._sakuraVoicePreview.pause(); } catch (_) {}
+              }
+              btn.classList.add('busy');
+              btn.textContent = '…';
+              const audio = new Audio(src);
+              window._sakuraVoicePreview = audio;
+              previewAudio = audio;
+              audio.onended = () => {
+                btn.textContent = '▶ Preview';
+                btn.classList.remove('busy');
+              };
+              audio.onerror = async () => {
+                // CORS or dead URL — retry via our proxy
+                if (src !== '/api/voices/' + encodeURIComponent(voiceId) + '/preview') {
+                  try {
+                    const a2 = new Audio('/api/voices/' + encodeURIComponent(voiceId) + '/preview');
+                    window._sakuraVoicePreview = a2;
+                    previewAudio = a2;
+                    a2.onended = () => {
+                      btn.textContent = '▶ Preview';
+                      btn.classList.remove('busy');
+                    };
+                    a2.onerror = () => {
+                      btn.textContent = '▶ Preview';
+                      btn.classList.remove('busy');
+                      log('Preview failed for ' + sp);
+                    };
+                    await a2.play();
+                    log('Preview ' + sp + ' (proxy) · ' + (meta?.name || voiceId.slice(0, 8)));
+                    return;
+                  } catch (e2) {
+                    btn.textContent = '▶ Preview';
+                    btn.classList.remove('busy');
+                    log('Preview failed: ' + e2.message);
+                    return;
+                  }
+                }
+                btn.textContent = '▶ Preview';
+                btn.classList.remove('busy');
+                log('Preview failed for ' + sp);
+              };
+              await audio.play();
+              log('Preview ' + sp + ' · ' + (meta?.name || voiceId.slice(0, 8) + '…'));
+            } catch (e) {
+              btn.textContent = '▶ Preview';
+              btn.classList.remove('busy');
+              log('Preview failed: ' + e.message);
+            }
+          };
+        });
+
         host.querySelectorAll('.btn-save-voice').forEach(btn => {
           btn.onclick = async () => {
             const sp = btn.dataset.speaker;
@@ -3106,6 +3734,7 @@ STUDIO_HTML = r"""<!DOCTYPE html>
               const label = host.querySelector(`.voice-cur[data-speaker="${sp}"]`);
               if (label) label.textContent = name;
               if (manual) manual.value = voiceId;
+              syncPreviewBtn(sp);
             } catch (e) { log('ERROR: ' + e.message); }
           };
         });
@@ -3330,6 +3959,21 @@ STUDIO_HTML = r"""<!DOCTYPE html>
         log(data.message || JSON.stringify(data));
       } catch (e) { log('ERROR: ' + e.message); }
     };
+    document.getElementById('btnExportGame').onclick = async () => {
+      if (!currentTitleId) { log('No catalog title selected'); return; }
+      try {
+        log('Export → game…');
+        const data = await api('/api/export-game', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ title_id: currentTitleId }),
+        });
+        log(data.message || JSON.stringify(data));
+        if (data.cast && data.cast.hana) {
+          log('Hana walk frames: ' + (data.cast.hana.walk || []).join(', '));
+        }
+      } catch (e) { log('Export failed: ' + e.message); }
+    };
 
     (async () => {
       try {
@@ -3338,7 +3982,8 @@ STUDIO_HTML = r"""<!DOCTYPE html>
         const flags = [];
         if (xaiConfigured) flags.push('Imagine ready');
         else flags.push('set XAI_API_KEY for Imagine');
-        log('Studio v0.6.0 — Flow node graph · style board · Imagine. ' + flags.join(' · '));
+        log('Studio v0.8.0 — video-first anim · Export→Game · Flow characters. ' + flags.join(' · '));
+        loadAssets().catch(() => {});
       } catch (e) {
         log('ERROR: ' + e.message);
       }

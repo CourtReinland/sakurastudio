@@ -1,282 +1,315 @@
 title_id: title.midnight_par
 bindings:
-  - slot_id: slot.bg.par.title_splash
-    asset_id: asset.bg.par.title_splash
-    status: approved
-    bound_at: '2026-07-17T12:00:00Z'
-    bound_by: kimi.agent
-  - slot_id: slot.cg.par.intro_cg
-    asset_id: asset.cg.par.intro_cg
-    status: approved
-    bound_at: '2026-07-17T12:00:00Z'
-    bound_by: kimi.agent
-  - slot_id: slot.cg.par.cg_kaito_end
-    asset_id: asset.cg.par.cg_kaito_end
-    status: approved
-    bound_at: '2026-07-17T12:00:00Z'
-    bound_by: kimi.agent
-  - slot_id: slot.cg.par.cg_kirara_end
-    asset_id: asset.cg.par.cg_kirara_end
-    status: approved
-    bound_at: '2026-07-17T12:00:00Z'
-    bound_by: kimi.agent
-  - slot_id: slot.cg.par.cg_bad_end
-    asset_id: asset.cg.par.cg_bad_end
-    status: approved
-    bound_at: '2026-07-17T12:00:00Z'
-    bound_by: kimi.agent
-  - slot_id: slot.bg.par.sky_night
-    asset_id: asset.bg.par.sky_night
-    status: approved
-    bound_at: '2026-07-17T12:00:00Z'
-    bound_by: kimi.agent
-  - slot_id: slot.texture.par.turf
-    asset_id: asset.tex.par.turf
-    status: approved
-    bound_at: '2026-07-17T12:00:00Z'
-    bound_by: kimi.agent
-  - slot_id: slot.portrait.par.portrait_hana
-    asset_id: asset.portrait.par.portrait_hana
-    status: approved
-    bound_at: '2026-07-17T12:00:00Z'
-    bound_by: kimi.agent
-  - slot_id: slot.portrait.par.portrait_kaito
-    asset_id: asset.portrait.par.portrait_kaito
-    status: approved
-    bound_at: '2026-07-17T12:00:00Z'
-    bound_by: kimi.agent
-  - slot_id: slot.portrait.par.portrait_kirara
-    asset_id: asset.portrait.par.portrait_kirara
-    status: approved
-    bound_at: '2026-07-17T12:00:00Z'
-    bound_by: kimi.agent
-  - slot_id: slot.portrait.par.portrait_kirara_soft
-    asset_id: asset.portrait.par.portrait_kirara_soft
-    status: approved
-    bound_at: '2026-07-17T12:00:00Z'
-    bound_by: kimi.agent
-  - slot_id: slot.sprite.par.sprite_hana_full
-    asset_id: asset.sprite.par.sprite_hana_full
-    status: approved
-    bound_at: '2026-07-17T12:00:00Z'
-    bound_by: kimi.agent
-  - slot_id: slot.sprite.par.sprite_kaito_full
-    asset_id: asset.sprite.par.sprite_kaito_full
-    status: approved
-    bound_at: '2026-07-17T12:00:00Z'
-    bound_by: kimi.agent
-  - slot_id: slot.sprite.par.sprite_kirara_ghosttail
-    asset_id: asset.sprite.par.sprite_kirara_ghosttail
-    status: approved
-    bound_at: '2026-07-17T12:00:00Z'
-    bound_by: kimi.agent
-  - slot_id: slot.sprite.par.sprite_kirara_legs
-    asset_id: asset.sprite.par.sprite_kirara_legs
-    status: approved
-    bound_at: '2026-07-17T12:00:00Z'
-    bound_by: kimi.agent
-  - slot_id: slot.sprite.par.anim_hana_walk1
-    asset_id: asset.sprite.par.anim_hana_walk1
-    status: approved
-    bound_at: '2026-07-17T12:00:00Z'
-    bound_by: kimi.agent
-  - slot_id: slot.sprite.par.anim_hana_walk2
-    asset_id: asset.sprite.par.anim_hana_walk2
-    status: approved
-    bound_at: '2026-07-17T12:00:00Z'
-    bound_by: kimi.agent
-  - slot_id: slot.sprite.par.anim_hana_walk3
-    asset_id: asset.sprite.par.anim_hana_walk3
-    status: approved
-    bound_at: '2026-07-17T12:00:00Z'
-    bound_by: kimi.agent
-  - slot_id: slot.sprite.par.anim_hana_swing1
-    asset_id: asset.sprite.par.anim_hana_swing1
-    status: approved
-    bound_at: '2026-07-17T12:00:00Z'
-    bound_by: kimi.agent
-  - slot_id: slot.sprite.par.anim_hana_swing2
-    asset_id: asset.sprite.par.anim_hana_swing2
-    status: approved
-    bound_at: '2026-07-17T12:00:00Z'
-    bound_by: kimi.agent
-  - slot_id: slot.bgm.par.title
-    asset_id: asset.bgm.par.title
-    status: approved
-    bound_at: '2026-07-17T12:00:00Z'
-    bound_by: kimi.agent
-  - slot_id: slot.bgm.par.game
-    asset_id: asset.bgm.par.game
-    status: approved
-    bound_at: '2026-07-17T12:00:00Z'
-    bound_by: kimi.agent
-  - slot_id: slot.bgm.par.romance
-    asset_id: asset.bgm.par.romance
-    status: approved
-    bound_at: '2026-07-17T12:00:00Z'
-    bound_by: kimi.agent
-  - slot_id: slot.bgm.par.badend
-    asset_id: asset.bgm.par.badend
-    status: approved
-    bound_at: '2026-07-17T12:00:00Z'
-    bound_by: kimi.agent
-  - slot_id: slot.sfx.par.putt
-    asset_id: asset.sfx.par.putt
-    status: approved
-    bound_at: '2026-07-17T12:00:00Z'
-    bound_by: kimi.agent
-  - slot_id: slot.sfx.par.bounce
-    asset_id: asset.sfx.par.bounce
-    status: approved
-    bound_at: '2026-07-17T12:00:00Z'
-    bound_by: kimi.agent
-  - slot_id: slot.sfx.par.hole
-    asset_id: asset.sfx.par.hole
-    status: approved
-    bound_at: '2026-07-17T12:00:00Z'
-    bound_by: kimi.agent
-  - slot_id: slot.sfx.par.thunder
-    asset_id: asset.sfx.par.thunder
-    status: approved
-    bound_at: '2026-07-17T12:00:00Z'
-    bound_by: kimi.agent
-  - slot_id: slot.sfx.par.giggle
-    asset_id: asset.sfx.par.giggle
-    status: approved
-    bound_at: '2026-07-17T12:00:00Z'
-    bound_by: kimi.agent
-  - slot_id: slot.sfx.par.whoosh
-    asset_id: asset.sfx.par.whoosh
-    status: approved
-    bound_at: '2026-07-17T12:00:00Z'
-    bound_by: kimi.agent
-  - slot_id: slot.sfx.par.spikes
-    asset_id: asset.sfx.par.spikes
-    status: approved
-    bound_at: '2026-07-17T12:00:00Z'
-    bound_by: kimi.agent
-  - slot_id: slot.sfx.par.lightning
-    asset_id: asset.sfx.par.lightning
-    status: approved
-    bound_at: '2026-07-17T12:00:00Z'
-    bound_by: kimi.agent
-  - slot_id: slot.sfx.par.wisp
-    asset_id: asset.sfx.par.wisp
-    status: approved
-    bound_at: '2026-07-17T12:00:00Z'
-    bound_by: kimi.agent
-  - slot_id: slot.sfx.par.scare
-    asset_id: asset.sfx.par.scare
-    status: approved
-    bound_at: '2026-07-17T12:00:00Z'
-    bound_by: kimi.agent
-  - slot_id: slot.sfx.par.ui
-    asset_id: asset.sfx.par.ui
-    status: approved
-    bound_at: '2026-07-17T12:00:00Z'
-    bound_by: kimi.agent
-  - slot_id: slot.sfx.par.heartbeat
-    asset_id: asset.sfx.par.heartbeat
-    status: approved
-    bound_at: '2026-07-17T12:00:00Z'
-    bound_by: kimi.agent
-  - slot_id: slot.sfx.par.splash
-    asset_id: asset.sfx.par.splash
-    status: approved
-    bound_at: '2026-07-17T12:00:00Z'
-    bound_by: kimi.agent
-  - slot_id: slot.sfx.par.crow
-    asset_id: asset.sfx.par.crow
-    status: approved
-    bound_at: '2026-07-17T12:00:00Z'
-    bound_by: kimi.agent
-  - slot_id: slot.vo.par.kirara_k01
-    asset_id: asset.vo.par.kirara_k01
-    status: approved
-    bound_at: '2026-07-17T12:00:00Z'
-    bound_by: kimi.agent
-  - slot_id: slot.vo.par.kirara_k02
-    asset_id: asset.vo.par.kirara_k02
-    status: approved
-    bound_at: '2026-07-17T12:00:00Z'
-    bound_by: kimi.agent
-  - slot_id: slot.vo.par.kirara_k03
-    asset_id: asset.vo.par.kirara_k03
-    status: approved
-    bound_at: '2026-07-17T12:00:00Z'
-    bound_by: kimi.agent
-  - slot_id: slot.vo.par.kirara_k04
-    asset_id: asset.vo.par.kirara_k04
-    status: approved
-    bound_at: '2026-07-17T12:00:00Z'
-    bound_by: kimi.agent
-  - slot_id: slot.vo.par.kirara_k05
-    asset_id: asset.vo.par.kirara_k05
-    status: approved
-    bound_at: '2026-07-17T12:00:00Z'
-    bound_by: kimi.agent
-  - slot_id: slot.vo.par.kirara_k06
-    asset_id: asset.vo.par.kirara_k06
-    status: approved
-    bound_at: '2026-07-17T12:00:00Z'
-    bound_by: kimi.agent
-  - slot_id: slot.vo.par.kirara_k07
-    asset_id: asset.vo.par.kirara_k07
-    status: approved
-    bound_at: '2026-07-17T12:00:00Z'
-    bound_by: kimi.agent
-  - slot_id: slot.vo.par.kirara_k08
-    asset_id: asset.vo.par.kirara_k08
-    status: approved
-    bound_at: '2026-07-17T12:00:00Z'
-    bound_by: kimi.agent
-  - slot_id: slot.vo.par.kirara_k09
-    asset_id: asset.vo.par.kirara_k09
-    status: approved
-    bound_at: '2026-07-17T12:00:00Z'
-    bound_by: kimi.agent
-  - slot_id: slot.vo.par.kirara_k10
-    asset_id: asset.vo.par.kirara_k10
-    status: approved
-    bound_at: '2026-07-17T12:00:00Z'
-    bound_by: kimi.agent
-  - slot_id: slot.vo.par.kirara_k11
-    asset_id: asset.vo.par.kirara_k11
-    status: approved
-    bound_at: '2026-07-17T12:00:00Z'
-    bound_by: kimi.agent
-  - slot_id: slot.vo.par.kirara_k12
-    asset_id: asset.vo.par.kirara_k12
-    status: approved
-    bound_at: '2026-07-17T12:00:00Z'
-    bound_by: kimi.agent
-  - slot_id: slot.vo.par.kirara_k13
-    asset_id: asset.vo.par.kirara_k13
-    status: approved
-    bound_at: '2026-07-17T12:00:00Z'
-    bound_by: kimi.agent
-  - slot_id: slot.vo.par.kirara_k14
-    asset_id: asset.vo.par.kirara_k14
-    status: approved
-    bound_at: '2026-07-17T12:00:00Z'
-    bound_by: kimi.agent
-  - slot_id: slot.vo.par.kirara_k15
-    asset_id: asset.vo.par.kirara_k15
-    status: approved
-    bound_at: '2026-07-17T12:00:00Z'
-    bound_by: kimi.agent
-  - slot_id: slot.vo.par.kirara_k16
-    asset_id: asset.vo.par.kirara_k16
-    status: approved
-    bound_at: '2026-07-17T12:00:00Z'
-    bound_by: kimi.agent
-  - slot_id: slot.vo.par.kirara_k17
-    asset_id: asset.vo.par.kirara_k17
-    status: approved
-    bound_at: '2026-07-17T12:00:00Z'
-    bound_by: kimi.agent
-  - slot_id: slot.vo.par.kirara_k18
-    asset_id: asset.vo.par.kirara_k18
-    status: approved
-    bound_at: '2026-07-17T12:00:00Z'
-    bound_by: kimi.agent
+- slot_id: slot.bg.par.title_splash
+  asset_id: asset.bg.par.title_splash
+  status: approved
+  bound_at: '2026-07-17T12:00:00Z'
+  bound_by: kimi.agent
+- slot_id: slot.cg.par.intro_cg
+  asset_id: asset.cg.par.intro_cg
+  status: approved
+  bound_at: '2026-07-17T12:00:00Z'
+  bound_by: kimi.agent
+- slot_id: slot.cg.par.cg_kaito_end
+  asset_id: asset.cg.par.cg_kaito_end
+  status: approved
+  bound_at: '2026-07-17T12:00:00Z'
+  bound_by: kimi.agent
+- slot_id: slot.cg.par.cg_kirara_end
+  asset_id: asset.cg.par.cg_kirara_end
+  status: approved
+  bound_at: '2026-07-17T12:00:00Z'
+  bound_by: kimi.agent
+- slot_id: slot.cg.par.cg_bad_end
+  asset_id: asset.cg.par.cg_bad_end
+  status: approved
+  bound_at: '2026-07-17T12:00:00Z'
+  bound_by: kimi.agent
+- slot_id: slot.bg.par.sky_night
+  asset_id: asset.bg.par.sky_night
+  status: approved
+  bound_at: '2026-07-17T12:00:00Z'
+  bound_by: kimi.agent
+- slot_id: slot.texture.par.turf
+  asset_id: asset.tex.par.turf
+  status: approved
+  bound_at: '2026-07-17T12:00:00Z'
+  bound_by: kimi.agent
+- slot_id: slot.portrait.par.portrait_hana
+  asset_id: asset.portrait.par.portrait_hana
+  status: approved
+  bound_at: '2026-07-17T12:00:00Z'
+  bound_by: kimi.agent
+- slot_id: slot.portrait.par.portrait_kaito
+  asset_id: asset.portrait.par.portrait_kaito
+  status: approved
+  bound_at: '2026-07-17T12:00:00Z'
+  bound_by: kimi.agent
+- slot_id: slot.portrait.par.portrait_kirara
+  asset_id: asset.portrait.par.portrait_kirara
+  status: approved
+  bound_at: '2026-07-17T12:00:00Z'
+  bound_by: kimi.agent
+- slot_id: slot.portrait.par.portrait_kirara_soft
+  asset_id: asset.portrait.par.portrait_kirara_soft
+  status: approved
+  bound_at: '2026-07-17T12:00:00Z'
+  bound_by: kimi.agent
+- slot_id: slot.sprite.par.sprite_hana_full
+  asset_id: asset.sprite.par.sprite_hana_full
+  status: approved
+  bound_at: '2026-07-17T12:00:00Z'
+  bound_by: kimi.agent
+- slot_id: slot.sprite.par.sprite_kaito_full
+  asset_id: asset.sprite.par.sprite_kaito_full
+  status: approved
+  bound_at: '2026-07-17T12:00:00Z'
+  bound_by: kimi.agent
+- slot_id: slot.sprite.par.sprite_kirara_ghosttail
+  asset_id: asset.sprite.par.sprite_kirara_ghosttail
+  status: approved
+  bound_at: '2026-07-17T12:00:00Z'
+  bound_by: kimi.agent
+- slot_id: slot.sprite.par.sprite_kirara_legs
+  asset_id: asset.sprite.par.sprite_kirara_legs
+  status: approved
+  bound_at: '2026-07-17T12:00:00Z'
+  bound_by: kimi.agent
+- slot_id: slot.sprite.par.anim_hana_walk1
+  asset_id: asset.sprite.par.anim_hana_walk1
+  status: approved
+  bound_at: '2026-07-19T08:11:40Z'
+  bound_by: studio.video_walk
+  notes: video-first walk cycle
+- slot_id: slot.sprite.par.anim_hana_walk2
+  asset_id: asset.sprite.par.anim_hana_walk2
+  status: approved
+  bound_at: '2026-07-19T08:11:40Z'
+  bound_by: studio.video_walk
+  notes: video-first walk cycle
+- slot_id: slot.sprite.par.anim_hana_walk3
+  asset_id: asset.sprite.par.anim_hana_walk3
+  status: approved
+  bound_at: '2026-07-19T08:11:40Z'
+  bound_by: studio.video_walk
+  notes: video-first walk cycle
+- slot_id: slot.sprite.par.anim_hana_swing1
+  asset_id: asset.sprite.par.anim_hana_swing1
+  status: approved
+  bound_at: '2026-07-17T12:00:00Z'
+  bound_by: kimi.agent
+- slot_id: slot.sprite.par.anim_hana_swing2
+  asset_id: asset.sprite.par.anim_hana_swing2
+  status: approved
+  bound_at: '2026-07-17T12:00:00Z'
+  bound_by: kimi.agent
+- slot_id: slot.bgm.par.title
+  asset_id: asset.bgm.par.title
+  status: approved
+  bound_at: '2026-07-17T12:00:00Z'
+  bound_by: kimi.agent
+- slot_id: slot.bgm.par.game
+  asset_id: asset.bgm.par.game
+  status: approved
+  bound_at: '2026-07-17T12:00:00Z'
+  bound_by: kimi.agent
+- slot_id: slot.bgm.par.romance
+  asset_id: asset.bgm.par.romance
+  status: approved
+  bound_at: '2026-07-17T12:00:00Z'
+  bound_by: kimi.agent
+- slot_id: slot.bgm.par.badend
+  asset_id: asset.bgm.par.badend
+  status: approved
+  bound_at: '2026-07-17T12:00:00Z'
+  bound_by: kimi.agent
+- slot_id: slot.sfx.par.putt
+  asset_id: asset.sfx.par.putt
+  status: approved
+  bound_at: '2026-07-17T12:00:00Z'
+  bound_by: kimi.agent
+- slot_id: slot.sfx.par.bounce
+  asset_id: asset.sfx.par.bounce
+  status: approved
+  bound_at: '2026-07-17T12:00:00Z'
+  bound_by: kimi.agent
+- slot_id: slot.sfx.par.hole
+  asset_id: asset.sfx.par.hole
+  status: approved
+  bound_at: '2026-07-17T12:00:00Z'
+  bound_by: kimi.agent
+- slot_id: slot.sfx.par.thunder
+  asset_id: asset.sfx.par.thunder
+  status: approved
+  bound_at: '2026-07-17T12:00:00Z'
+  bound_by: kimi.agent
+- slot_id: slot.sfx.par.giggle
+  asset_id: asset.sfx.par.giggle
+  status: approved
+  bound_at: '2026-07-17T12:00:00Z'
+  bound_by: kimi.agent
+- slot_id: slot.sfx.par.whoosh
+  asset_id: asset.sfx.par.whoosh
+  status: approved
+  bound_at: '2026-07-17T12:00:00Z'
+  bound_by: kimi.agent
+- slot_id: slot.sfx.par.spikes
+  asset_id: asset.sfx.par.spikes
+  status: approved
+  bound_at: '2026-07-17T12:00:00Z'
+  bound_by: kimi.agent
+- slot_id: slot.sfx.par.lightning
+  asset_id: asset.sfx.par.lightning
+  status: approved
+  bound_at: '2026-07-17T12:00:00Z'
+  bound_by: kimi.agent
+- slot_id: slot.sfx.par.wisp
+  asset_id: asset.sfx.par.wisp
+  status: approved
+  bound_at: '2026-07-17T12:00:00Z'
+  bound_by: kimi.agent
+- slot_id: slot.sfx.par.scare
+  asset_id: asset.sfx.par.scare
+  status: approved
+  bound_at: '2026-07-17T12:00:00Z'
+  bound_by: kimi.agent
+- slot_id: slot.sfx.par.ui
+  asset_id: asset.sfx.par.ui
+  status: approved
+  bound_at: '2026-07-17T12:00:00Z'
+  bound_by: kimi.agent
+- slot_id: slot.sfx.par.heartbeat
+  asset_id: asset.sfx.par.heartbeat
+  status: approved
+  bound_at: '2026-07-17T12:00:00Z'
+  bound_by: kimi.agent
+- slot_id: slot.sfx.par.splash
+  asset_id: asset.sfx.par.splash
+  status: approved
+  bound_at: '2026-07-17T12:00:00Z'
+  bound_by: kimi.agent
+- slot_id: slot.sfx.par.crow
+  asset_id: asset.sfx.par.crow
+  status: approved
+  bound_at: '2026-07-17T12:00:00Z'
+  bound_by: kimi.agent
+- slot_id: slot.vo.par.kirara_k01
+  asset_id: asset.vo.par.kirara_k01
+  status: approved
+  bound_at: '2026-07-17T12:00:00Z'
+  bound_by: kimi.agent
+- slot_id: slot.vo.par.kirara_k02
+  asset_id: asset.vo.par.kirara_k02
+  status: approved
+  bound_at: '2026-07-17T12:00:00Z'
+  bound_by: kimi.agent
+- slot_id: slot.vo.par.kirara_k03
+  asset_id: asset.vo.par.kirara_k03
+  status: approved
+  bound_at: '2026-07-17T12:00:00Z'
+  bound_by: kimi.agent
+- slot_id: slot.vo.par.kirara_k04
+  asset_id: asset.vo.par.kirara_k04
+  status: approved
+  bound_at: '2026-07-17T12:00:00Z'
+  bound_by: kimi.agent
+- slot_id: slot.vo.par.kirara_k05
+  asset_id: asset.vo.par.kirara_k05
+  status: approved
+  bound_at: '2026-07-17T12:00:00Z'
+  bound_by: kimi.agent
+- slot_id: slot.vo.par.kirara_k06
+  asset_id: asset.vo.par.kirara_k06
+  status: approved
+  bound_at: '2026-07-17T12:00:00Z'
+  bound_by: kimi.agent
+- slot_id: slot.vo.par.kirara_k07
+  asset_id: asset.vo.par.kirara_k07
+  status: approved
+  bound_at: '2026-07-17T12:00:00Z'
+  bound_by: kimi.agent
+- slot_id: slot.vo.par.kirara_k08
+  asset_id: asset.vo.par.kirara_k08
+  status: approved
+  bound_at: '2026-07-17T12:00:00Z'
+  bound_by: kimi.agent
+- slot_id: slot.vo.par.kirara_k09
+  asset_id: asset.vo.par.kirara_k09
+  status: approved
+  bound_at: '2026-07-17T12:00:00Z'
+  bound_by: kimi.agent
+- slot_id: slot.vo.par.kirara_k10
+  asset_id: asset.vo.par.kirara_k10
+  status: approved
+  bound_at: '2026-07-17T12:00:00Z'
+  bound_by: kimi.agent
+- slot_id: slot.vo.par.kirara_k11
+  asset_id: asset.vo.par.kirara_k11
+  status: approved
+  bound_at: '2026-07-17T12:00:00Z'
+  bound_by: kimi.agent
+- slot_id: slot.vo.par.kirara_k12
+  asset_id: asset.vo.par.kirara_k12
+  status: approved
+  bound_at: '2026-07-17T12:00:00Z'
+  bound_by: kimi.agent
+- slot_id: slot.vo.par.kirara_k13
+  asset_id: asset.vo.par.kirara_k13
+  status: approved
+  bound_at: '2026-07-17T12:00:00Z'
+  bound_by: kimi.agent
+- slot_id: slot.vo.par.kirara_k14
+  asset_id: asset.vo.par.kirara_k14
+  status: approved
+  bound_at: '2026-07-17T12:00:00Z'
+  bound_by: kimi.agent
+- slot_id: slot.vo.par.kirara_k15
+  asset_id: asset.vo.par.kirara_k15
+  status: approved
+  bound_at: '2026-07-17T12:00:00Z'
+  bound_by: kimi.agent
+- slot_id: slot.vo.par.kirara_k16
+  asset_id: asset.vo.par.kirara_k16
+  status: approved
+  bound_at: '2026-07-17T12:00:00Z'
+  bound_by: kimi.agent
+- slot_id: slot.vo.par.kirara_k17
+  asset_id: asset.vo.par.kirara_k17
+  status: approved
+  bound_at: '2026-07-17T12:00:00Z'
+  bound_by: kimi.agent
+- slot_id: slot.vo.par.kirara_k18
+  asset_id: asset.vo.par.kirara_k18
+  status: approved
+  bound_at: '2026-07-17T12:00:00Z'
+  bound_by: kimi.agent
+- slot_id: slot.sprite.par.anim_hana_walk4
+  asset_id: asset.sprite.par.anim_hana_walk4
+  status: approved
+  bound_at: '2026-07-19T08:11:40Z'
+  bound_by: studio.video_walk
+  notes: video-first walk cycle
+- slot_id: slot.sprite.par.anim_hana_walk5
+  asset_id: asset.sprite.par.anim_hana_walk5
+  status: approved
+  bound_at: '2026-07-19T08:11:40Z'
+  bound_by: studio.video_walk
+  notes: video-first walk cycle
+- slot_id: slot.sprite.par.anim_hana_walk6
+  asset_id: asset.sprite.par.anim_hana_walk6
+  status: approved
+  bound_at: '2026-07-19T08:11:40Z'
+  bound_by: studio.video_walk
+  notes: video-first walk cycle
+- slot_id: slot.sprite.par.anim_hana_walk7
+  asset_id: asset.sprite.par.anim_hana_walk7
+  status: approved
+  bound_at: '2026-07-19T08:11:40Z'
+  bound_by: studio.video_walk
+  notes: video-first walk cycle
+- slot_id: slot.sprite.par.anim_hana_walk8
+  asset_id: asset.sprite.par.anim_hana_walk8
+  status: approved
+  bound_at: '2026-07-19T08:11:40Z'
+  bound_by: studio.video_walk
+  notes: video-first walk cycle

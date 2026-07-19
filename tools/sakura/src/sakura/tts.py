@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from sakura.dialogue_edit import load_dialogue
-from sakura.elevenlabs_client import text_to_speech
+from sakura.elevenlabs_client import DEFAULT_MODEL, text_to_speech
 from sakura.voice_map import (
     game_audio_rel,
     line_audio_path,
@@ -20,6 +20,74 @@ def _slug(s: str) -> str:
     s = s.lower().strip()
     s = re.sub(r"[^a-z0-9]+", "_", s)
     return s.strip("_")
+
+
+# Square-bracket audio tags for Eleven v3, e.g. [whispers] [sad] [coughs]
+_AUDIO_TAG_RE = re.compile(r"\[([^\]]*)\]")
+# Parenthetical stage direction that should become a v3 audio tag (not spoken)
+# e.g. (whispers) (softly) — but never affinity notes
+_STAGE_PAREN_RE = re.compile(
+    r"(?<!_)\(([a-zA-Z][a-zA-Z0-9_\-\s]{0,32})\)(?!_)"
+)
+
+
+def prepare_tts_text(text: str) -> str:
+    """
+    Clean dialogue text for ElevenLabs v3 while preserving [audio tags].
+
+    Eleven v3 treats bracket tags as performance/style cues, not spoken words:
+      "[whispers] Hello." → whisper delivery of "Hello."
+    We must keep those brackets intact and not let cleanup strip or mangle them.
+    """
+    if not text:
+        return ""
+
+    t = str(text)
+    # YAML soft line breaks → single spaces (tags must not split across newlines)
+    t = re.sub(r"\s*\n\s*", " ", t)
+
+    # Protect existing [tags] while we clean the rest
+    protected: list[str] = []
+
+    def _stash_tag(m: re.Match[str]) -> str:
+        inner = re.sub(r"\s+", " ", (m.group(1) or "").strip())
+        if not inner:
+            return ""
+        # Normalize common variants so the model recognizes them as style tags
+        # e.g. [WHISPERS] / [whispering] stay as written but trimmed
+        protected.append(f"[{inner}]")
+        return f"\x00TAG{len(protected) - 1}\x00"
+
+    t = _AUDIO_TAG_RE.sub(_stash_tag, t)
+
+    # Strip markdown bold **…**
+    t = re.sub(r"\*\*(.+?)\*\*", r"\1", t)
+    # Strip affinity / game notes written as italic underscore-parens: _(affinity: ren+2)_
+    t = re.sub(r"_\([^)]*\)_", "", t)
+    # Convert short stage parentheticals into audio tags (v3 style), not speech
+    def _paren_to_tag(m: re.Match[str]) -> str:
+        inner = re.sub(r"\s+", " ", m.group(1).strip())
+        low = inner.lower()
+        if low.startswith("affinity") or low.startswith("flag") or "+" in inner:
+            return ""  # game meta — drop
+        protected.append(f"[{inner}]")
+        return f"\x00TAG{len(protected) - 1}\x00"
+
+    t = _STAGE_PAREN_RE.sub(_paren_to_tag, t)
+
+    # Collapse leftover whitespace
+    t = re.sub(r"[ \t]{2,}", " ", t).strip()
+
+    # Restore tags
+    for i, tag in enumerate(protected):
+        t = t.replace(f"\x00TAG{i}\x00", tag)
+
+    # Ensure a space between tag and following word: ]Hello → ] Hello
+    t = re.sub(r"\](\S)", r"] \1", t)
+    # Space before a mid-sentence tag after a word: word[sad] → word [sad]
+    t = re.sub(r"(\S)\[", r"\1 [", t)
+    t = re.sub(r"[ \t]{2,}", " ", t).strip()
+    return t
 
 
 def find_line(
@@ -69,9 +137,8 @@ def generate_line_audio(
         raise ValueError(f"Node kind {node.get('kind')!r} is not a speakable line")
 
     text = (node.get("text") or "").strip()
-    # strip markdown / affinity notes for cleaner TTS
-    text_tts = re.sub(r"\*\*(.+?)\*\*", r"\1", text)
-    text_tts = re.sub(r"_\([^)]*\)_", "", text_tts).strip()
+    # Preserve [audio tags] for v3 stylization; strip markdown / affinity only
+    text_tts = prepare_tts_text(text)
     if not text_tts:
         raise ValueError("Line text is empty after cleanup")
 
@@ -84,7 +151,7 @@ def generate_line_audio(
         )
 
     vmap = load_voice_map(title_dir)
-    model_id = vmap.get("model_id") or "eleven_multilingual_v2"
+    model_id = vmap.get("model_id") or DEFAULT_MODEL
 
     title_id = vmap.get("title_id")
     if not title_id:
@@ -124,6 +191,7 @@ def generate_line_audio(
         "speaker": speaker,
         "voice_id": voice.get("voice_id"),
         "voice_name": voice.get("voice_name"),
+        "model_id": model_id,
         "cached": cached,
         "bytes": len(audio),
         "catalog_path": line_audio_rel(scene_id, node_id, title_id),
@@ -131,5 +199,6 @@ def generate_line_audio(
         "game_path": game_path,
         "game_rel": game_rel,
         "text": text_tts,
+        "text_source": text,
         "scene_label": scene.get("label"),
     }

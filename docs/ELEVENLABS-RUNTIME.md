@@ -15,9 +15,41 @@ ELEVENLABS_API_KEY=your_key_here
 ```
 
 3. **Dialogue** tab:
-   - Assign ElevenLabs voices to `ren` / `mizu` / `akira` / `you` / `narrator`
+   - Assign ElevenLabs voices to speakers (use **▶ Preview** to audition)
    - Open a scene → edit line text → **Save text**
    - **Generate VO** → writes MP3 under catalog + optional game path
+
+## Model: Eleven v3
+
+Studio uses **`eleven_v3`** by default (set in each title’s `voices.yaml` as `model_id`, and as the client default).
+
+v3 is the expressive model that understands **audio tags** in square brackets as *performance / style cues*, not words to speak.
+
+### Audio tags (`[…]`)
+
+Write stage direction in **square brackets** so v3 stylizes delivery:
+
+```text
+[whispers] We've been dating for half a year now.
+[whispers] Looks like Tsukimori Greens. [concerned] This place is kinda creepy.
+[sad] Then it happened.
+```
+
+| Keep | Drop / rewrite |
+|------|----------------|
+| `[whispers]` `[whispering]` `[concerned]` `[sad]` `[laughs]` … | Markdown bold `**…**` (stripped) |
+| Multiple tags mid-line | Game notes `_(affinity: ren+2)_` (stripped) |
+| Short stage parens `(softly)` → converted to `[softly]` | Affinity-style parens |
+
+Pipeline (`prepare_tts_text`):
+
+1. Collapse YAML line-breaks  
+2. **Protect** existing `[tags]`  
+3. Strip markdown / affinity notes  
+4. Optionally convert short `(stage)` directions into `[stage]` tags  
+5. Restore tags; ensure spacing so `]Word` → `] Word`  
+
+Do **not** put spoken dialogue inside brackets — only style/direction.
 
 ## Where audio lives
 

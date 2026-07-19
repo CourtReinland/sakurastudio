@@ -1,5 +1,5 @@
-id: asset.sprite.par.anim_hana_walk3
-label: Anim — Hana walk 3
+id: asset.sprite.par.anim_hana_walk6
+label: Anim — Hana walk 6
 status: approved
 brand_id: brand.sakura_soft
 kind: sprite
@@ -13,7 +13,7 @@ characters:
 - chr.par.hana
 files:
 - role: master
-  path: assets/files/midnight_par/img/cut/hana_walk3.png
+  path: assets/files/midnight_par/img/cut/hana_walk6.png
   mime: image/png
   width: 864
   height: 1152

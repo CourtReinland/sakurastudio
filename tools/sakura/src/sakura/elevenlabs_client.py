@@ -7,8 +7,8 @@ from typing import Any
 import httpx
 
 DEFAULT_BASE = "https://api.elevenlabs.io/v1"
-# Multilingual model works well for soft otome delivery
-DEFAULT_MODEL = "eleven_multilingual_v2"
+# Eleven v3 — expressive delivery; understands [audio tags] as style, not spoken text
+DEFAULT_MODEL = "eleven_v3"
 
 
 def resolve_api_key(explicit: str | None = None) -> str | None:
@@ -91,12 +91,19 @@ def text_to_speech(
     if not voice_id:
         raise ElevenLabsError("voice_id required")
 
+    # Prefer v3 for expressiveness + [audio tag] stylization unless caller overrides.
+    mid = (model_id or DEFAULT_MODEL).strip() or DEFAULT_MODEL
+
     url = f"{DEFAULT_BASE}/text-to-speech/{voice_id}"
     params = {"output_format": output_format}
-    body = {
+    body: dict[str, Any] = {
         "text": text.strip(),
-        "model_id": model_id,
+        "model_id": mid,
     }
+    # v3: keep text mostly as written so [whispers]/[sad]/etc. stay performance tags
+    if mid == "eleven_v3" or mid.startswith("eleven_v3"):
+        body["apply_text_normalization"] = "off"
+
     headers = {
         "xi-api-key": key,
         "Content-Type": "application/json",

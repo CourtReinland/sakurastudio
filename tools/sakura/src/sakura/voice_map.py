@@ -32,13 +32,24 @@ def load_voice_map(title_dir: Path) -> dict[str, Any]:
         return {
             "title_id": None,
             "provider": "elevenlabs",
-            "model_id": "eleven_multilingual_v2",
+            "model_id": "eleven_v3",
             "by_speaker": {},
             "by_character": {},
         }
     data = load_yaml(path) or {}
     data.setdefault("provider", "elevenlabs")
-    data.setdefault("model_id", "eleven_multilingual_v2")
+    # Prefer Eleven v3 (audio tags like [whispers] are performance cues)
+    mid = data.get("model_id") or "eleven_v3"
+    if mid in {
+        "eleven_multilingual_v2",
+        "eleven_multilingual_v1",
+        "eleven_flash_v2",
+        "eleven_flash_v2_5",
+        "eleven_turbo_v2",
+        "eleven_turbo_v2_5",
+    }:
+        mid = "eleven_v3"
+    data["model_id"] = mid
     data.setdefault("by_speaker", {})
     data.setdefault("by_character", {})
     return data

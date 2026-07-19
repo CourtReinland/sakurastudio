@@ -1,338 +1,368 @@
 title_id: title.midnight_par
 slots:
-  - id: slot.bg.par.title_splash
-    label: "Title splash"
-    kind: bg
-    required: true
-    used_by:
-      - node.system.runtime
-  - id: slot.cg.par.intro_cg
-    label: "Intro CG — keep out"
-    kind: cg
-    required: true
-    used_by:
-      - node.system.runtime
-  - id: slot.cg.par.cg_kaito_end
-    label: "Ending CG — True Love Par"
-    kind: cg
-    required: true
-    used_by:
-      - node.system.runtime
-  - id: slot.cg.par.cg_kirara_end
-    label: "Ending CG — Eternal Tee Time"
-    kind: cg
-    required: true
-    used_by:
-      - node.system.runtime
-  - id: slot.cg.par.cg_bad_end
-    label: "Ending CG — Hole in None"
-    kind: cg
-    required: true
-    used_by:
-      - node.system.runtime
-  - id: slot.bg.par.sky_night
-    label: "Night sky panorama"
-    kind: bg
-    required: true
-    used_by:
-      - node.system.runtime
-  - id: slot.texture.par.turf
-    label: "Haunted turf (tileable)"
-    kind: texture
-    required: true
-    used_by:
-      - node.system.runtime
-  - id: slot.portrait.par.portrait_hana
-    label: "Portrait — Hana"
-    kind: portrait
-    required: true
-    used_by:
-      - node.system.runtime
-  - id: slot.portrait.par.portrait_kaito
-    label: "Portrait — Kaito"
-    kind: portrait
-    required: true
-    used_by:
-      - node.system.runtime
-  - id: slot.portrait.par.portrait_kirara
-    label: "Portrait — Kirara (smug)"
-    kind: portrait
-    required: true
-    used_by:
-      - node.system.runtime
-  - id: slot.portrait.par.portrait_kirara_soft
-    label: "Portrait — Kirara (soft)"
-    kind: portrait
-    required: true
-    used_by:
-      - node.system.runtime
-  - id: slot.sprite.par.sprite_hana_full
-    label: "Full body — Hana (address)"
-    kind: sprite
-    required: true
-    used_by:
-      - node.system.runtime
-  - id: slot.sprite.par.sprite_kaito_full
-    label: "Full body — Kaito"
-    kind: sprite
-    required: true
-    used_by:
-      - node.system.runtime
-  - id: slot.sprite.par.sprite_kirara_ghosttail
-    label: "Full body — Kirara (ghost tail)"
-    kind: sprite
-    required: true
-    used_by:
-      - node.system.runtime
-  - id: slot.sprite.par.sprite_kirara_legs
-    label: "Full body — Kirara (legs)"
-    kind: sprite
-    required: true
-    used_by:
-      - node.system.runtime
-  - id: slot.sprite.par.anim_hana_walk1
-    label: "Anim — Hana walk 1"
-    kind: sprite
-    required: true
-    used_by:
-      - node.system.runtime
-  - id: slot.sprite.par.anim_hana_walk2
-    label: "Anim — Hana walk 2"
-    kind: sprite
-    required: true
-    used_by:
-      - node.system.runtime
-  - id: slot.sprite.par.anim_hana_walk3
-    label: "Anim — Hana walk 3"
-    kind: sprite
-    required: true
-    used_by:
-      - node.system.runtime
-  - id: slot.sprite.par.anim_hana_swing1
-    label: "Anim — Hana backswing"
-    kind: sprite
-    required: true
-    used_by:
-      - node.system.runtime
-  - id: slot.sprite.par.anim_hana_swing2
-    label: "Anim — Hana follow-through"
-    kind: sprite
-    required: true
-    used_by:
-      - node.system.runtime
-  - id: slot.bgm.par.title
-    label: "Title theme — music box waltz"
-    kind: audio_bgm
-    required: true
-    used_by:
-      - node.system.runtime
-  - id: slot.bgm.par.game
-    label: "Gameplay theme — mischievous waltz"
-    kind: audio_bgm
-    required: true
-    used_by:
-      - node.system.runtime
-  - id: slot.bgm.par.romance
-    label: "Romance theme — piano & music box"
-    kind: audio_bgm
-    required: true
-    used_by:
-      - node.system.runtime
-  - id: slot.bgm.par.badend
-    label: "Bad end drone"
-    kind: audio_bgm
-    required: true
-    used_by:
-      - node.system.runtime
-  - id: slot.sfx.par.putt
-    label: "SFX — putt"
-    kind: audio_sfx
-    required: true
-    used_by:
-      - node.system.runtime
-  - id: slot.sfx.par.bounce
-    label: "SFX — bounce"
-    kind: audio_sfx
-    required: true
-    used_by:
-      - node.system.runtime
-  - id: slot.sfx.par.hole
-    label: "SFX — hole"
-    kind: audio_sfx
-    required: true
-    used_by:
-      - node.system.runtime
-  - id: slot.sfx.par.thunder
-    label: "SFX — thunder"
-    kind: audio_sfx
-    required: true
-    used_by:
-      - node.system.runtime
-  - id: slot.sfx.par.giggle
-    label: "SFX — giggle"
-    kind: audio_sfx
-    required: true
-    used_by:
-      - node.system.runtime
-  - id: slot.sfx.par.whoosh
-    label: "SFX — whoosh"
-    kind: audio_sfx
-    required: true
-    used_by:
-      - node.system.runtime
-  - id: slot.sfx.par.spikes
-    label: "SFX — spikes"
-    kind: audio_sfx
-    required: true
-    used_by:
-      - node.system.runtime
-  - id: slot.sfx.par.lightning
-    label: "SFX — lightning"
-    kind: audio_sfx
-    required: true
-    used_by:
-      - node.system.runtime
-  - id: slot.sfx.par.wisp
-    label: "SFX — wisp"
-    kind: audio_sfx
-    required: true
-    used_by:
-      - node.system.runtime
-  - id: slot.sfx.par.scare
-    label: "SFX — scare"
-    kind: audio_sfx
-    required: true
-    used_by:
-      - node.system.runtime
-  - id: slot.sfx.par.ui
-    label: "SFX — ui"
-    kind: audio_sfx
-    required: true
-    used_by:
-      - node.system.runtime
-  - id: slot.sfx.par.heartbeat
-    label: "SFX — heartbeat"
-    kind: audio_sfx
-    required: true
-    used_by:
-      - node.system.runtime
-  - id: slot.sfx.par.splash
-    label: "SFX — splash"
-    kind: audio_sfx
-    required: true
-    used_by:
-      - node.system.runtime
-  - id: slot.sfx.par.crow
-    label: "SFX — crow"
-    kind: audio_sfx
-    required: true
-    used_by:
-      - node.system.runtime
-  - id: slot.vo.par.kirara_k01
-    label: "Kirara line 01"
-    kind: audio_voice
-    required: true
-    used_by:
-      - node.system.runtime
-  - id: slot.vo.par.kirara_k02
-    label: "Kirara line 02"
-    kind: audio_voice
-    required: true
-    used_by:
-      - node.system.runtime
-  - id: slot.vo.par.kirara_k03
-    label: "Kirara line 03"
-    kind: audio_voice
-    required: true
-    used_by:
-      - node.system.runtime
-  - id: slot.vo.par.kirara_k04
-    label: "Kirara line 04"
-    kind: audio_voice
-    required: true
-    used_by:
-      - node.system.runtime
-  - id: slot.vo.par.kirara_k05
-    label: "Kirara line 05"
-    kind: audio_voice
-    required: true
-    used_by:
-      - node.system.runtime
-  - id: slot.vo.par.kirara_k06
-    label: "Kirara line 06"
-    kind: audio_voice
-    required: true
-    used_by:
-      - node.system.runtime
-  - id: slot.vo.par.kirara_k07
-    label: "Kirara line 07"
-    kind: audio_voice
-    required: true
-    used_by:
-      - node.system.runtime
-  - id: slot.vo.par.kirara_k08
-    label: "Kirara line 08"
-    kind: audio_voice
-    required: true
-    used_by:
-      - node.system.runtime
-  - id: slot.vo.par.kirara_k09
-    label: "Kirara line 09"
-    kind: audio_voice
-    required: true
-    used_by:
-      - node.system.runtime
-  - id: slot.vo.par.kirara_k10
-    label: "Kirara line 10"
-    kind: audio_voice
-    required: true
-    used_by:
-      - node.system.runtime
-  - id: slot.vo.par.kirara_k11
-    label: "Kirara line 11"
-    kind: audio_voice
-    required: true
-    used_by:
-      - node.system.runtime
-  - id: slot.vo.par.kirara_k12
-    label: "Kirara line 12"
-    kind: audio_voice
-    required: true
-    used_by:
-      - node.system.runtime
-  - id: slot.vo.par.kirara_k13
-    label: "Kirara line 13"
-    kind: audio_voice
-    required: true
-    used_by:
-      - node.system.runtime
-  - id: slot.vo.par.kirara_k14
-    label: "Kirara line 14"
-    kind: audio_voice
-    required: true
-    used_by:
-      - node.system.runtime
-  - id: slot.vo.par.kirara_k15
-    label: "Kirara line 15"
-    kind: audio_voice
-    required: true
-    used_by:
-      - node.system.runtime
-  - id: slot.vo.par.kirara_k16
-    label: "Kirara line 16"
-    kind: audio_voice
-    required: true
-    used_by:
-      - node.system.runtime
-  - id: slot.vo.par.kirara_k17
-    label: "Kirara line 17"
-    kind: audio_voice
-    required: true
-    used_by:
-      - node.system.runtime
-  - id: slot.vo.par.kirara_k18
-    label: "Kirara line 18"
-    kind: audio_voice
-    required: true
-    used_by:
-      - node.system.runtime
+- id: slot.bg.par.title_splash
+  label: Title splash
+  kind: bg
+  required: true
+  used_by:
+  - node.system.runtime
+- id: slot.cg.par.intro_cg
+  label: Intro CG — keep out
+  kind: cg
+  required: true
+  used_by:
+  - node.system.runtime
+- id: slot.cg.par.cg_kaito_end
+  label: Ending CG — True Love Par
+  kind: cg
+  required: true
+  used_by:
+  - node.system.runtime
+- id: slot.cg.par.cg_kirara_end
+  label: Ending CG — Eternal Tee Time
+  kind: cg
+  required: true
+  used_by:
+  - node.system.runtime
+- id: slot.cg.par.cg_bad_end
+  label: Ending CG — Hole in None
+  kind: cg
+  required: true
+  used_by:
+  - node.system.runtime
+- id: slot.bg.par.sky_night
+  label: Night sky panorama
+  kind: bg
+  required: true
+  used_by:
+  - node.system.runtime
+- id: slot.texture.par.turf
+  label: Haunted turf (tileable)
+  kind: texture
+  required: true
+  used_by:
+  - node.system.runtime
+- id: slot.portrait.par.portrait_hana
+  label: Portrait — Hana
+  kind: portrait
+  required: true
+  used_by:
+  - node.system.runtime
+- id: slot.portrait.par.portrait_kaito
+  label: Portrait — Kaito
+  kind: portrait
+  required: true
+  used_by:
+  - node.system.runtime
+- id: slot.portrait.par.portrait_kirara
+  label: Portrait — Kirara (smug)
+  kind: portrait
+  required: true
+  used_by:
+  - node.system.runtime
+- id: slot.portrait.par.portrait_kirara_soft
+  label: Portrait — Kirara (soft)
+  kind: portrait
+  required: true
+  used_by:
+  - node.system.runtime
+- id: slot.sprite.par.sprite_hana_full
+  label: Full body — Hana (address)
+  kind: sprite
+  required: true
+  used_by:
+  - node.system.runtime
+- id: slot.sprite.par.sprite_kaito_full
+  label: Full body — Kaito
+  kind: sprite
+  required: true
+  used_by:
+  - node.system.runtime
+- id: slot.sprite.par.sprite_kirara_ghosttail
+  label: Full body — Kirara (ghost tail)
+  kind: sprite
+  required: true
+  used_by:
+  - node.system.runtime
+- id: slot.sprite.par.sprite_kirara_legs
+  label: Full body — Kirara (legs)
+  kind: sprite
+  required: true
+  used_by:
+  - node.system.runtime
+- id: slot.sprite.par.anim_hana_walk1
+  label: Anim — Hana walk 1
+  kind: sprite
+  required: true
+  used_by:
+  - node.system.runtime
+- id: slot.sprite.par.anim_hana_walk2
+  label: Anim — Hana walk 2
+  kind: sprite
+  required: true
+  used_by:
+  - node.system.runtime
+- id: slot.sprite.par.anim_hana_walk3
+  label: Anim — Hana walk 3
+  kind: sprite
+  required: true
+  used_by:
+  - node.system.runtime
+- id: slot.sprite.par.anim_hana_swing1
+  label: Anim — Hana backswing
+  kind: sprite
+  required: true
+  used_by:
+  - node.system.runtime
+- id: slot.sprite.par.anim_hana_swing2
+  label: Anim — Hana follow-through
+  kind: sprite
+  required: true
+  used_by:
+  - node.system.runtime
+- id: slot.bgm.par.title
+  label: Title theme — music box waltz
+  kind: audio_bgm
+  required: true
+  used_by:
+  - node.system.runtime
+- id: slot.bgm.par.game
+  label: Gameplay theme — mischievous waltz
+  kind: audio_bgm
+  required: true
+  used_by:
+  - node.system.runtime
+- id: slot.bgm.par.romance
+  label: Romance theme — piano & music box
+  kind: audio_bgm
+  required: true
+  used_by:
+  - node.system.runtime
+- id: slot.bgm.par.badend
+  label: Bad end drone
+  kind: audio_bgm
+  required: true
+  used_by:
+  - node.system.runtime
+- id: slot.sfx.par.putt
+  label: SFX — putt
+  kind: audio_sfx
+  required: true
+  used_by:
+  - node.system.runtime
+- id: slot.sfx.par.bounce
+  label: SFX — bounce
+  kind: audio_sfx
+  required: true
+  used_by:
+  - node.system.runtime
+- id: slot.sfx.par.hole
+  label: SFX — hole
+  kind: audio_sfx
+  required: true
+  used_by:
+  - node.system.runtime
+- id: slot.sfx.par.thunder
+  label: SFX — thunder
+  kind: audio_sfx
+  required: true
+  used_by:
+  - node.system.runtime
+- id: slot.sfx.par.giggle
+  label: SFX — giggle
+  kind: audio_sfx
+  required: true
+  used_by:
+  - node.system.runtime
+- id: slot.sfx.par.whoosh
+  label: SFX — whoosh
+  kind: audio_sfx
+  required: true
+  used_by:
+  - node.system.runtime
+- id: slot.sfx.par.spikes
+  label: SFX — spikes
+  kind: audio_sfx
+  required: true
+  used_by:
+  - node.system.runtime
+- id: slot.sfx.par.lightning
+  label: SFX — lightning
+  kind: audio_sfx
+  required: true
+  used_by:
+  - node.system.runtime
+- id: slot.sfx.par.wisp
+  label: SFX — wisp
+  kind: audio_sfx
+  required: true
+  used_by:
+  - node.system.runtime
+- id: slot.sfx.par.scare
+  label: SFX — scare
+  kind: audio_sfx
+  required: true
+  used_by:
+  - node.system.runtime
+- id: slot.sfx.par.ui
+  label: SFX — ui
+  kind: audio_sfx
+  required: true
+  used_by:
+  - node.system.runtime
+- id: slot.sfx.par.heartbeat
+  label: SFX — heartbeat
+  kind: audio_sfx
+  required: true
+  used_by:
+  - node.system.runtime
+- id: slot.sfx.par.splash
+  label: SFX — splash
+  kind: audio_sfx
+  required: true
+  used_by:
+  - node.system.runtime
+- id: slot.sfx.par.crow
+  label: SFX — crow
+  kind: audio_sfx
+  required: true
+  used_by:
+  - node.system.runtime
+- id: slot.vo.par.kirara_k01
+  label: Kirara line 01
+  kind: audio_voice
+  required: true
+  used_by:
+  - node.system.runtime
+- id: slot.vo.par.kirara_k02
+  label: Kirara line 02
+  kind: audio_voice
+  required: true
+  used_by:
+  - node.system.runtime
+- id: slot.vo.par.kirara_k03
+  label: Kirara line 03
+  kind: audio_voice
+  required: true
+  used_by:
+  - node.system.runtime
+- id: slot.vo.par.kirara_k04
+  label: Kirara line 04
+  kind: audio_voice
+  required: true
+  used_by:
+  - node.system.runtime
+- id: slot.vo.par.kirara_k05
+  label: Kirara line 05
+  kind: audio_voice
+  required: true
+  used_by:
+  - node.system.runtime
+- id: slot.vo.par.kirara_k06
+  label: Kirara line 06
+  kind: audio_voice
+  required: true
+  used_by:
+  - node.system.runtime
+- id: slot.vo.par.kirara_k07
+  label: Kirara line 07
+  kind: audio_voice
+  required: true
+  used_by:
+  - node.system.runtime
+- id: slot.vo.par.kirara_k08
+  label: Kirara line 08
+  kind: audio_voice
+  required: true
+  used_by:
+  - node.system.runtime
+- id: slot.vo.par.kirara_k09
+  label: Kirara line 09
+  kind: audio_voice
+  required: true
+  used_by:
+  - node.system.runtime
+- id: slot.vo.par.kirara_k10
+  label: Kirara line 10
+  kind: audio_voice
+  required: true
+  used_by:
+  - node.system.runtime
+- id: slot.vo.par.kirara_k11
+  label: Kirara line 11
+  kind: audio_voice
+  required: true
+  used_by:
+  - node.system.runtime
+- id: slot.vo.par.kirara_k12
+  label: Kirara line 12
+  kind: audio_voice
+  required: true
+  used_by:
+  - node.system.runtime
+- id: slot.vo.par.kirara_k13
+  label: Kirara line 13
+  kind: audio_voice
+  required: true
+  used_by:
+  - node.system.runtime
+- id: slot.vo.par.kirara_k14
+  label: Kirara line 14
+  kind: audio_voice
+  required: true
+  used_by:
+  - node.system.runtime
+- id: slot.vo.par.kirara_k15
+  label: Kirara line 15
+  kind: audio_voice
+  required: true
+  used_by:
+  - node.system.runtime
+- id: slot.vo.par.kirara_k16
+  label: Kirara line 16
+  kind: audio_voice
+  required: true
+  used_by:
+  - node.system.runtime
+- id: slot.vo.par.kirara_k17
+  label: Kirara line 17
+  kind: audio_voice
+  required: true
+  used_by:
+  - node.system.runtime
+- id: slot.vo.par.kirara_k18
+  label: Kirara line 18
+  kind: audio_voice
+  required: true
+  used_by:
+  - node.system.runtime
+- id: slot.sprite.par.anim_hana_walk4
+  label: Anim — Hana walk 4
+  kind: sprite
+  required: true
+  used_by:
+  - node.system.runtime
+- id: slot.sprite.par.anim_hana_walk5
+  label: Anim — Hana walk 5
+  kind: sprite
+  required: true
+  used_by:
+  - node.system.runtime
+- id: slot.sprite.par.anim_hana_walk6
+  label: Anim — Hana walk 6
+  kind: sprite
+  required: true
+  used_by:
+  - node.system.runtime
+- id: slot.sprite.par.anim_hana_walk7
+  label: Anim — Hana walk 7
+  kind: sprite
+  required: true
+  used_by:
+  - node.system.runtime
+- id: slot.sprite.par.anim_hana_walk8
+  label: Anim — Hana walk 8
+  kind: sprite
+  required: true
+  used_by:
+  - node.system.runtime
