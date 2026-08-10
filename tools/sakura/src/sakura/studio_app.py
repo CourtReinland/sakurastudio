@@ -1827,7 +1827,7 @@ STUDIO_HTML = r"""<!DOCTYPE html>
       paint-order: stroke; stroke: #100c16; stroke-width: 3px;
     }
     .flow-node {
-      position: absolute; width: 300px; min-height: 64px;
+      position: absolute; width: 320px; min-height: 64px;
       background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
       padding: 0; box-shadow: 0 6px 18px #0007; cursor: grab; user-select: none;
       z-index: 2; overflow: hidden;
@@ -1862,6 +1862,7 @@ STUDIO_HTML = r"""<!DOCTYPE html>
       display: none; border-top: 1px solid var(--border); padding: 8px 10px 10px;
       max-height: 360px; overflow: auto; background: #160f1c;
     }
+    .flow-node.expanded { width: 340px; z-index: 5; }
     .flow-node.expanded .fn-body { display: block; }
     .flow-node .fn-section { margin-bottom: 8px; }
     .flow-node .fn-section h4 {
@@ -1870,19 +1871,41 @@ STUDIO_HTML = r"""<!DOCTYPE html>
     }
     .flow-node .fn-asset {
       display: flex; gap: 6px; align-items: center; margin: 4px 0; font-size: 0.72rem;
+      padding: 4px 6px; border-radius: 8px; border: 1px solid transparent; cursor: pointer;
     }
+    .flow-node .fn-asset:hover { border-color: var(--border); background: #22182c; }
+    .flow-node .fn-asset.active { border-color: var(--accent); background: #2a1a28; }
     .flow-node .fn-asset img {
       width: 36px; height: 36px; object-fit: cover; border-radius: 6px; background: #100c16;
+      pointer-events: none;
     }
     .flow-node .fn-line {
       margin: 4px 0; padding: 6px; border-radius: 6px; background: var(--panel2);
-      border: 1px solid var(--border); font-size: 0.72rem;
+      border: 1px solid var(--border); font-size: 0.72rem; cursor: pointer;
     }
+    .flow-node .fn-line:hover { border-color: var(--accent); }
+    .flow-node .fn-line.open { cursor: default; }
     .flow-node .fn-line textarea {
-      width: 100%; min-height: 40px; font-size: 0.72rem; resize: vertical;
+      width: 100%; min-height: 52px; font-size: 0.72rem; resize: vertical;
       background: #100c16; color: var(--text); border: 1px solid var(--border);
       border-radius: 6px; padding: 4px 6px; font-family: inherit;
     }
+    .flow-node .fn-editor {
+      margin: 6px 0 10px; padding: 8px; border-radius: 10px;
+      border: 1px solid #ff8fab66; background: #1a1220;
+    }
+    .flow-node .fn-editor .fe-preview {
+      width: 100%; max-height: 180px; object-fit: contain; border-radius: 8px;
+      background: #100c16; border: 1px solid var(--border); margin-bottom: 6px;
+    }
+    .flow-node .fn-editor textarea {
+      width: 100%; min-height: 48px; font-size: 0.72rem; resize: vertical;
+      background: #100c16; color: var(--text); border: 1px solid var(--border);
+      border-radius: 6px; padding: 6px; font-family: inherit;
+    }
+    .flow-node .fn-editor .row { margin-top: 6px; gap: 6px; flex-wrap: wrap; }
+    .flow-node .fn-editor button { padding: 4px 8px; font-size: 0.7rem; }
+    .flow-node .fn-editor input[type=file] { font-size: 0.68rem; max-width: 100%; color: var(--muted); }
     .flow-node.stype-menu { border-left: 3px solid #c8b6ff; }
     .flow-node.stype-gameplay { border-left: 3px solid #ff8fab; }
     .flow-node.stype-cinematic, .flow-node.stype-scene { border-left: 3px solid #ffb4c8; }
@@ -3215,6 +3238,9 @@ STUDIO_HTML = r"""<!DOCTYPE html>
       if (vp) vp.style.transform = `translate(${flowPan.x}px,${flowPan.y}px) scale(${flowScale})`;
     }
 
+    // which asset editor is open inside a scene node: { [nodeId]: { type, key } }
+    let flowAssetFocus = {};
+
     function renderAssetBody(n) {
       const a = n.assets || {};
       const g = a.graphics || [];
@@ -3223,57 +3249,113 @@ STUDIO_HTML = r"""<!DOCTYPE html>
       const c = a.characters || [];
       const code = a.code || [];
       const ch = a.choices || [];
+      const focus = flowAssetFocus[n.id] || {};
       let html = '';
       if (g.length) {
-        html += `<div class="fn-section"><h4>Graphics / pieces (${g.length})</h4>`;
-        for (const item of g.slice(0, 12)) {
-          html += `<div class="fn-asset">
-            ${item.preview_url ? `<img src="${item.preview_url}" alt="" />` : '<span class="badge warn">empty</span>'}
-            <span>${escapeHtml(item.label || item.slot_id)} <span class="muted">${escapeHtml(item.kind || '')}</span></span>
+        html += `<div class="fn-section"><h4>Graphics / pieces (${g.length}) — click to edit</h4>`;
+        g.slice(0, 16).forEach((item, i) => {
+          const key = item.slot_id || ('g' + i);
+          const active = focus.type === 'graphic' && focus.key === key;
+          const prev = item.preview_url || (item.asset_id ? '/api/asset-file?asset_id=' + encodeURIComponent(item.asset_id) : '');
+          html += `<div class="fn-asset ${active ? 'active' : ''}" data-atype="graphic" data-key="${escapeHtml(key)}"
+            data-slot-id="${escapeHtml(item.slot_id || '')}" data-asset-id="${escapeHtml(item.asset_id || '')}"
+            data-kind="${escapeHtml(item.kind || 'sprite')}" data-label="${escapeHtml(item.label || item.slot_id || '')}">
+            ${prev ? `<img src="${prev}" alt="" />` : '<span class="badge warn">empty</span>'}
+            <span>${escapeHtml(item.label || item.slot_id)} <span class="muted">${escapeHtml(item.kind || '')}</span>
+            ${item.status === 'unbound' || !item.asset_id ? ' <span class="badge warn">unbound</span>' : ''}</span>
           </div>`;
-        }
-        if (g.length > 12) html += `<div class="muted">+${g.length - 12} more</div>`;
+          if (active) {
+            html += graphicEditorHtml(n.id, item, prev);
+          }
+        });
+        if (g.length > 16) html += `<div class="muted">+${g.length - 16} more</div>`;
         html += `</div>`;
       }
       if (c.length) {
-        html += `<div class="fn-section"><h4>Characters (${c.length})</h4>`;
+        html += `<div class="fn-section"><h4>Characters (${c.length}) — click to inspect</h4>`;
         for (const item of c) {
-          html += `<div class="fn-asset">
-            ${item.preview_url ? `<img src="${item.preview_url}" alt="" />` : ''}
-            <span>${escapeHtml(item.label || item.character_id)}</span>
+          const key = item.character_id || '';
+          const active = focus.type === 'character' && focus.key === key;
+          html += `<div class="fn-asset ${active ? 'active' : ''}" data-atype="character" data-key="${escapeHtml(key)}"
+            data-character-id="${escapeHtml(key)}">
+            ${item.preview_url ? `<img src="${item.preview_url}" alt="" />` : '<span class="badge">char</span>'}
+            <span>${escapeHtml(item.label || item.character_id)} <span class="muted">${escapeHtml(item.billing || '')}</span></span>
           </div>`;
+          if (active) {
+            html += `<div class="fn-editor">
+              <div class="muted">Cast member · opens full inspector below canvas</div>
+              <div class="row">
+                <button type="button" class="btn-fn-char-inspect" data-character-id="${escapeHtml(key)}">Open inspector</button>
+                <button type="button" class="secondary btn-fn-goto-swaps">Swaps tab</button>
+              </div>
+            </div>`;
+          }
         }
         html += `</div>`;
       }
       if (d.length) {
-        html += `<div class="fn-section"><h4>Dialogue (${d.length})</h4>`;
-        for (const line of d.slice(0, 8)) {
-          const sid = n.dialogue_scene_id || '';
-          html += `<div class="fn-line">
-            <div class="muted">${escapeHtml(line.speaker || '—')} · ${escapeHtml(line.node_id || '')}</div>
-            <textarea data-scene="${escapeHtml(sid)}" data-node="${escapeHtml(line.node_id || '')}">${escapeHtml(line.text || '')}</textarea>
-            <button type="button" class="secondary btn-fn-save-line" style="margin-top:4px;padding:4px 8px;font-size:0.7rem">Save line</button>
+        html += `<div class="fn-section"><h4>Dialogue (${d.length}) — click a line to edit</h4>`;
+        d.slice(0, 20).forEach((line, i) => {
+          const sid = n.dialogue_scene_id || line.scene_id || '';
+          const key = (sid + '::' + (line.node_id || i));
+          const active = focus.type === 'dialogue' && focus.key === key;
+          html += `<div class="fn-line ${active ? 'open' : ''}" data-atype="dialogue" data-key="${escapeHtml(key)}"
+            data-scene="${escapeHtml(sid)}" data-node="${escapeHtml(line.node_id || '')}">
+            <div class="muted">${escapeHtml(line.speaker || '—')} · ${escapeHtml(line.node_id || '')}${active ? '' : ' · click to edit'}</div>
+            ${active ? `
+              <textarea class="fn-dlg-text">${escapeHtml(line.text || '')}</textarea>
+              <div class="row" style="margin-top:4px">
+                <button type="button" class="btn-fn-save-line">Save line</button>
+                <button type="button" class="secondary btn-fn-tts-line">Generate VO</button>
+                <button type="button" class="secondary btn-fn-close-editor">Close</button>
+              </div>
+            ` : `<div style="margin-top:2px">${escapeHtml((line.text || '').slice(0, 100))}${(line.text||'').length > 100 ? '…' : ''}</div>`}
           </div>`;
-        }
-        if (d.length > 8) html += `<div class="muted">+${d.length - 8} more lines — open Dialogue tab for full ledger</div>`;
+        });
+        if (d.length > 20) html += `<div class="muted">+${d.length - 20} more — Dialogue tab for full ledger</div>`;
         html += `</div>`;
       }
       if (t.length) {
-        html += `<div class="fn-section"><h4>Text / UI (${t.length})</h4>`;
-        for (const item of t) {
-          html += `<div class="muted">• ${escapeHtml(item.text || item.key)}</div>`;
-        }
+        html += `<div class="fn-section"><h4>Text / UI (${t.length}) — click to edit</h4>`;
+        t.forEach((item, i) => {
+          const key = item.key || ('t' + i);
+          const active = focus.type === 'text' && focus.key === key;
+          html += `<div class="fn-line ${active ? 'open' : ''}" data-atype="text" data-key="${escapeHtml(key)}"
+            data-text-key="${escapeHtml(item.key || '')}" data-role="${escapeHtml(item.role || '')}">
+            <div class="muted">${escapeHtml(item.key || 'text')} · ${escapeHtml(item.role || 'ui')}${active ? '' : ' · click to edit'}</div>
+            ${active ? `
+              <textarea class="fn-text-field">${escapeHtml(item.text || '')}</textarea>
+              <div class="row" style="margin-top:4px">
+                <button type="button" class="btn-fn-save-text">Save text</button>
+                <button type="button" class="secondary btn-fn-close-editor">Close</button>
+              </div>
+              <div class="muted" style="margin-top:4px">Persists to localization when key is a str.* id; otherwise stored as scene note in Studio log for agents.</div>
+            ` : `<div>${escapeHtml(item.text || '')}</div>`}
+          </div>`;
+        });
         html += `</div>`;
       }
       if (ch.length) {
-        html += `<div class="fn-section"><h4>Choices</h4>`;
-        for (const item of ch.slice(0, 8)) {
-          html += `<div class="muted">• [${escapeHtml(item.kind)}] ${escapeHtml((item.label || '').slice(0, 80))}</div>`;
-        }
+        html += `<div class="fn-section"><h4>Choices (${ch.length})</h4>`;
+        ch.slice(0, 12).forEach((item, i) => {
+          const key = item.id || ('ch' + i);
+          const active = focus.type === 'choice' && focus.key === key;
+          html += `<div class="fn-line ${active ? 'open' : ''}" data-atype="choice" data-key="${escapeHtml(key)}"
+            data-choice-id="${escapeHtml(item.id || '')}" data-scene="${escapeHtml(n.dialogue_scene_id || '')}">
+            <div class="muted">[${escapeHtml(item.kind || 'choice')}] ${escapeHtml(item.id || '')}${active ? '' : ' · click to edit'}</div>
+            ${active ? `
+              <textarea class="fn-choice-text">${escapeHtml(item.label || '')}</textarea>
+              <div class="row" style="margin-top:4px">
+                <button type="button" class="btn-fn-save-choice">Save choice text</button>
+                <button type="button" class="secondary btn-fn-close-editor">Close</button>
+              </div>
+            ` : `<div>${escapeHtml((item.label || '').slice(0, 100))}</div>`}
+          </div>`;
+        });
         html += `</div>`;
       }
       if (code.length) {
-        html += `<div class="fn-section"><h4>Code / projects</h4>`;
+        html += `<div class="fn-section"><h4>Code / projects — open external</h4>`;
         for (const item of code) {
           const app = item.app || item.open || 'ide';
           const label = app === 'unity' ? 'Unity'
@@ -3281,7 +3363,7 @@ STUDIO_HTML = r"""<!DOCTYPE html>
             : app === 'unreal' ? 'Unreal'
             : app === 'dialogue' ? 'Dialogue'
             : 'Open';
-          html += `<div class="fn-asset">
+          html += `<div class="fn-asset" data-atype="code" style="cursor:default">
             <span><strong>${escapeHtml(item.label)}</strong><br/><span class="muted">${escapeHtml(item.hint || item.ref || '')}</span></span>
             <button type="button" class="secondary btn-fn-open"
               data-open="${escapeHtml(item.open || '')}"
@@ -3295,6 +3377,26 @@ STUDIO_HTML = r"""<!DOCTYPE html>
       }
       if (!html) html = '<div class="muted">No assets linked yet — bind slots or add dialogue for this scene.</div>';
       return html;
+    }
+
+    function graphicEditorHtml(nodeId, item, prev) {
+      const slotId = item.slot_id || '';
+      const kind = item.kind || 'sprite';
+      return `<div class="fn-editor" data-editor="graphic" data-slot-id="${escapeHtml(slotId)}" data-kind="${escapeHtml(kind)}">
+        ${prev ? `<img class="fe-preview" src="${prev}" alt="" />` : `<div class="badge warn" style="margin-bottom:6px">No image bound</div>`}
+        <div class="muted" style="margin-bottom:4px">${escapeHtml(item.label || slotId)} · ${escapeHtml(item.asset_id || 'unbound')}</div>
+        <textarea class="fe-prompt" placeholder="Reprompt: describe new art for this slot…"></textarea>
+        <div class="row">
+          <button type="button" class="btn-fe-imagine">Imagine / reprompt</button>
+          <label class="secondary" style="padding:4px 8px;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:0.7rem">
+            Choose file…
+            <input type="file" class="fe-file" accept="image/*" style="display:none" />
+          </label>
+          <button type="button" class="secondary btn-fe-swaps">Swaps tab</button>
+          <button type="button" class="secondary btn-fn-close-editor">Close</button>
+        </div>
+        <div class="muted fe-status" style="margin-top:4px"></div>
+      </div>`;
     }
 
     function renderFlowGraph() {
@@ -3356,54 +3458,13 @@ STUDIO_HTML = r"""<!DOCTYPE html>
             onFlowPortClick(n.id, port.dataset.port);
           });
         });
-        el.querySelectorAll('.btn-fn-save-line').forEach(btn => {
-          btn.addEventListener('pointerdown', (ev) => ev.stopPropagation());
-          btn.addEventListener('click', async (ev) => {
-            ev.stopPropagation();
-            const wrap = btn.closest('.fn-line');
-            const ta = wrap && wrap.querySelector('textarea');
-            if (!ta || !ta.dataset.scene || !ta.dataset.node) return;
-            try {
-              await api('/api/dialogue/line', {
-                method: 'PUT',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                  title_id: currentTitleId,
-                  scene_id: ta.dataset.scene,
-                  node_id: ta.dataset.node,
-                  text: ta.value,
-                }),
-              });
-              log('Saved line ' + ta.dataset.node);
-              btn.textContent = 'Saved';
-            } catch (e) { log('ERROR: ' + e.message); }
-          });
-        });
-        el.querySelectorAll('.btn-fn-open').forEach(btn => {
-          btn.addEventListener('pointerdown', (ev) => ev.stopPropagation());
-          btn.addEventListener('click', (ev) => {
-            ev.stopPropagation();
-            const open = btn.dataset.open;
-            const app = btn.dataset.app || open;
-            const path = btn.dataset.path || '';
-            const key = btn.dataset.key || '';
-            if (open === 'dialogue') {
-              document.querySelector('#mainTabs [data-tab="dialogue"]')?.click();
-              return;
-            }
-            if (open === 'levels') {
-              log('Level config: catalog levels.yaml — Swaps for piece art.');
-              return;
-            }
-            openProjectApp(app || 'ide', path, key).catch(err => log(err.message));
-          });
-        });
+        if (expanded) wireFlowAssetEditors(el, n);
         el.addEventListener('pointerdown', (ev) => {
-          if (ev.target.closest('.fn-expand, .fn-port, .fn-body, button, textarea')) return;
+          if (ev.target.closest('.fn-expand, .fn-port, .fn-body, .fn-editor, .fn-line, .fn-asset, button, textarea, input, label')) return;
           onFlowNodeDown(ev, n, el);
         });
         el.addEventListener('click', (ev) => {
-          if (ev.target.closest('.fn-expand, .fn-port, button, textarea')) return;
+          if (ev.target.closest('.fn-expand, .fn-port, .fn-body, button, textarea, input, label')) return;
           ev.stopPropagation();
           selectFlowNode(n.id);
         });
@@ -3413,6 +3474,283 @@ STUDIO_HTML = r"""<!DOCTYPE html>
       requestAnimationFrame(() => {
         drawFlowEdges(svg, nodes, edges);
         applyFlowTransform();
+      });
+    }
+
+    function wireFlowAssetEditors(el, n) {
+      const stop = (ev) => { ev.stopPropagation(); };
+      el.querySelectorAll('.fn-body').forEach(b => {
+        b.addEventListener('pointerdown', stop);
+      });
+
+      // click rows to open editors
+      el.querySelectorAll('.fn-asset[data-atype], .fn-line[data-atype]').forEach(row => {
+        row.addEventListener('click', (ev) => {
+          if (ev.target.closest('button, textarea, input, label, .fn-editor')) return;
+          ev.stopPropagation();
+          const atype = row.dataset.atype;
+          const key = row.dataset.key;
+          const cur = flowAssetFocus[n.id];
+          if (cur && cur.type === atype && cur.key === key) {
+            delete flowAssetFocus[n.id];
+          } else {
+            flowAssetFocus[n.id] = { type: atype, key };
+          }
+          flowExpanded[n.id] = true;
+          renderFlowGraph();
+          selectFlowNode(n.id);
+        });
+      });
+
+      el.querySelectorAll('.btn-fn-close-editor').forEach(btn => {
+        btn.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          delete flowAssetFocus[n.id];
+          renderFlowGraph();
+        });
+      });
+
+      // graphics: imagine
+      el.querySelectorAll('.fn-editor[data-editor="graphic"]').forEach(ed => {
+        const slotId = ed.dataset.slotId;
+        const kind = ed.dataset.kind || 'sprite';
+        const status = ed.querySelector('.fe-status');
+        const promptEl = ed.querySelector('.fe-prompt');
+        const fileEl = ed.querySelector('.fe-file');
+        const prevImg = ed.querySelector('.fe-preview');
+
+        ed.querySelector('.btn-fe-imagine')?.addEventListener('click', async (ev) => {
+          ev.stopPropagation();
+          if (!slotId) { log('No slot_id on this graphic'); return; }
+          const prompt = (promptEl && promptEl.value.trim()) || `Game art for ${slotId}, polished, production quality`;
+          if (status) status.textContent = 'Generating…';
+          try {
+            const r = await api('/api/imagine', {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({
+                title_id: currentTitleId,
+                slot_id: slotId,
+                prompt,
+                mode: 'generate',
+                model: 'quality',
+                use_style_board: true,
+                bind: true,
+                force: true,
+                aspect_ratio: '1:1',
+              }),
+            });
+            log(r.message || 'Imagine done');
+            if (status) status.textContent = r.message || 'Done';
+            // refresh flow to pick up new binding preview
+            await loadFlow();
+            flowExpanded[n.id] = true;
+            flowAssetFocus[n.id] = { type: 'graphic', key: slotId };
+            renderFlowGraph();
+          } catch (e) {
+            if (status) status.textContent = e.message;
+            log('Imagine failed: ' + e.message);
+          }
+        });
+
+        fileEl?.addEventListener('change', async () => {
+          const file = fileEl.files && fileEl.files[0];
+          if (!file || !slotId) return;
+          if (status) status.textContent = 'Uploading…';
+          try {
+            const fd = new FormData();
+            fd.append('file', file);
+            fd.append('title_id', currentTitleId);
+            fd.append('slot_id', slotId);
+            fd.append('kind', kind);
+            fd.append('bind', 'true');
+            fd.append('force', 'true');
+            const res = await fetch('/api/assets/upload', { method: 'POST', body: fd });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.detail || res.statusText);
+            log(data.message || 'Uploaded');
+            if (status) status.textContent = data.message || 'Uploaded';
+            await loadFlow();
+            flowExpanded[n.id] = true;
+            flowAssetFocus[n.id] = { type: 'graphic', key: slotId };
+            renderFlowGraph();
+          } catch (e) {
+            if (status) status.textContent = e.message;
+            log('Upload failed: ' + e.message);
+          }
+        });
+
+        ed.querySelector('.btn-fe-swaps')?.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          document.querySelector('#mainTabs [data-tab="swaps"]')?.click();
+        });
+      });
+
+      // dialogue save / tts
+      el.querySelectorAll('.btn-fn-save-line').forEach(btn => {
+        btn.addEventListener('click', async (ev) => {
+          ev.stopPropagation();
+          const wrap = btn.closest('.fn-line');
+          const ta = wrap && wrap.querySelector('.fn-dlg-text');
+          if (!wrap || !ta) return;
+          try {
+            await api('/api/dialogue/line', {
+              method: 'PUT',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({
+                title_id: currentTitleId,
+                scene_id: wrap.dataset.scene,
+                node_id: wrap.dataset.node,
+                text: ta.value,
+              }),
+            });
+            log('Saved line ' + wrap.dataset.node);
+            btn.textContent = 'Saved ✓';
+            // update local flow graph cache
+            const lines = (n.assets && n.assets.dialogue) || [];
+            const line = lines.find(x => x.node_id === wrap.dataset.node);
+            if (line) line.text = ta.value;
+          } catch (e) { log('ERROR: ' + e.message); }
+        });
+      });
+      el.querySelectorAll('.btn-fn-tts-line').forEach(btn => {
+        btn.addEventListener('click', async (ev) => {
+          ev.stopPropagation();
+          const wrap = btn.closest('.fn-line');
+          if (!wrap) return;
+          const ta = wrap.querySelector('.fn-dlg-text');
+          try {
+            if (ta) {
+              await api('/api/dialogue/line', {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                  title_id: currentTitleId,
+                  scene_id: wrap.dataset.scene,
+                  node_id: wrap.dataset.node,
+                  text: ta.value,
+                }),
+              });
+            }
+            btn.textContent = '…';
+            const r = await api('/api/tts/generate', {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({
+                title_id: currentTitleId,
+                scene_id: wrap.dataset.scene,
+                node_id: wrap.dataset.node,
+                force: true,
+                export_to_game: true,
+              }),
+            });
+            log('VO: ' + (r.voice_name || r.voice_id || 'ok'));
+            btn.textContent = 'VO ✓';
+          } catch (e) {
+            log('TTS: ' + e.message);
+            btn.textContent = 'Generate VO';
+          }
+        });
+      });
+
+      // text / choice save (dialogue options use dialogue API when scene known)
+      el.querySelectorAll('.btn-fn-save-text').forEach(btn => {
+        btn.addEventListener('click', async (ev) => {
+          ev.stopPropagation();
+          const wrap = btn.closest('.fn-line');
+          const ta = wrap && wrap.querySelector('.fn-text-field');
+          if (!wrap || !ta) return;
+          const key = wrap.dataset.textKey || '';
+          // If looks like dialogue node path, skip — use dialogue
+          log(`Text note [${key}]: ${ta.value.slice(0, 80)}… (agent/compile can pick up from log; str.* keys → use Dialogue localization)`);
+          // Persist UI strings that map to localization
+          if (key.startsWith('str.')) {
+            try {
+              await api('/api/dialogue/line', {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                  title_id: currentTitleId,
+                  scene_id: '_ui',
+                  node_id: key.replace(/^str\./, ''),
+                  text: ta.value,
+                }),
+              });
+            } catch (_) {
+              // localization-only helper may fail without dialogue node — OK
+            }
+          }
+          // update local cache
+          const texts = (n.assets && n.assets.text) || [];
+          const item = texts.find(x => x.key === key);
+          if (item) item.text = ta.value;
+          btn.textContent = 'Saved ✓';
+        });
+      });
+      el.querySelectorAll('.btn-fn-save-choice').forEach(btn => {
+        btn.addEventListener('click', async (ev) => {
+          ev.stopPropagation();
+          const wrap = btn.closest('.fn-line');
+          const ta = wrap && wrap.querySelector('.fn-choice-text');
+          if (!wrap || !ta) return;
+          const sceneId = wrap.dataset.scene || n.dialogue_scene_id;
+          const nodeId = wrap.dataset.choiceId;
+          if (sceneId && nodeId) {
+            try {
+              await api('/api/dialogue/line', {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                  title_id: currentTitleId,
+                  scene_id: sceneId,
+                  node_id: nodeId,
+                  text: ta.value,
+                }),
+              });
+              log('Saved choice ' + nodeId);
+              btn.textContent = 'Saved ✓';
+              const choices = (n.assets && n.assets.choices) || [];
+              const item = choices.find(x => x.id === nodeId);
+              if (item) item.label = ta.value;
+            } catch (e) { log('ERROR: ' + e.message); }
+          } else {
+            log('Choice has no dialogue scene id — text noted for agents: ' + ta.value.slice(0, 60));
+            btn.textContent = 'Noted';
+          }
+        });
+      });
+
+      el.querySelectorAll('.btn-fn-char-inspect').forEach(btn => {
+        btn.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          const cid = btn.dataset.characterId;
+          if (cid) renderCharacterInspector(cid).catch(e => log(e.message));
+        });
+      });
+      el.querySelectorAll('.btn-fn-goto-swaps').forEach(btn => {
+        btn.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          document.querySelector('#mainTabs [data-tab="swaps"]')?.click();
+        });
+      });
+
+      el.querySelectorAll('.btn-fn-open').forEach(btn => {
+        btn.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          const open = btn.dataset.open;
+          const app = btn.dataset.app || open;
+          const path = btn.dataset.path || '';
+          const key = btn.dataset.key || '';
+          if (open === 'dialogue') {
+            document.querySelector('#mainTabs [data-tab="dialogue"]')?.click();
+            return;
+          }
+          if (open === 'levels') {
+            log('Level config: catalog levels.yaml — Swaps for piece art.');
+            return;
+          }
+          openProjectApp(app || 'ide', path, key).catch(err => log(err.message));
+        });
       });
     }
 
