@@ -1,7 +1,13 @@
-"""Build a rearrangeable story/art/engine flow graph for Studio."""
+"""Scene-centric flow graph for Sakura Studio.
+
+Canvas nodes = playable screens (menu / level / cinematic / ending).
+Assets hang *inside* each scene (expand/collapse), not as separate graph noise.
+Edges = player progression between scenes only.
+"""
 
 from __future__ import annotations
 
+import json
 import re
 from collections import defaultdict
 from pathlib import Path
@@ -10,79 +16,34 @@ from typing import Any
 from sakura.loader import load_catalog
 from sakura.yaml_io import dump_yaml, load_yaml
 
-# Human-readable connector copy (Nuke-style: edge says what happens)
+# Progression edges only (scene ↔ scene)
+SCENE_EDGE_KINDS = frozenset(
+    {"leads_to", "unlocks", "after_level", "choice", "option", "contains"}
+)
+
 EDGE_PHRASE: dict[str, str] = {
-    "leads_to": "then opens",
+    "leads_to": "then",
     "unlocks": "unlocks",
+    "after_level": "clears →",
+    "choice": "choice",
+    "option": "if chosen",
     "contains": "contains",
-    "uses_slot": "uses art slot",
-    "requires": "requires",
-    "modifies": "modifies",
-    "references": "references",
-    "binds": "shows asset",
-    "has_dialogue": "plays dialogue",
-    "runs": "runs in engine",
-    "choice": "player chooses",
-    "option": "choice leads to",
-    "after_level": "level completes →",
-    "has_portrait": "hero portrait",
-    "has_body": "full body",
-    "has_anim": "anim clip frame",
-    "has_voice": "speaks with",
-    "plays_on": "plays on course",
 }
 
-LAYER_FOR_KIND: dict[str, str] = {
-    "route": "story",
-    "level": "story",
-    "scene": "story",
-    "ending": "story",
-    "choice": "dialogue",
-    "option": "dialogue",
-    "dialogue": "dialogue",
-    "system": "engine",
-    "engine": "engine",
-    "slot": "art",
-    "asset": "art",
-    "character": "cast",
-    "anim_clip": "cast",
-    "world": "engine",
-    "gate": "story",
-    "beat": "story",
-    "cg_moment": "art",
-    "minigame": "story",
-    "flag": "story",
-    "other": "story",
-}
+# GGD kinds that appear as primary canvas nodes
+SCENE_KINDS = frozenset(
+    {"scene", "level", "ending", "ui_screen", "minigame", "cg_moment", "system"}
+)
 
-NODE_W = 180
-NODE_H = 64
-COL_GAP = 240
-ROW_GAP = 88
+NODE_W = 280
+NODE_H_COLLAPSED = 72
+COL_GAP = 320
+ROW_GAP = 160
 
 
 def _slug(text: str) -> str:
     s = re.sub(r"[^a-z0-9]+", "-", (text or "").lower()).strip("-")
-    return s
-
-
-def _match_dialogue_scene(ggd_scene: dict[str, Any], dlg_scenes: list[dict[str, Any]]) -> dict[str, Any] | None:
-    label = (ggd_scene.get("label") or "").strip().lower()
-    sid = str(ggd_scene.get("id") or "")
-    # node.scene.visitor_dusk → visitor-dusk-ish
-    tail = sid.split("scene.", 1)[-1].replace("_", "-")
-    for sc in dlg_scenes:
-        if not isinstance(sc, dict):
-            continue
-        if (sc.get("label") or "").strip().lower() == label:
-            return sc
-        did = str(sc.get("id") or "")
-        if did == tail or did.replace("-", "_") == tail.replace("-", "_"):
-            return sc
-        # fuzzy: token overlap
-        if label and label in (sc.get("label") or "").lower():
-            return sc
-    return None
+    return s or "x"
 
 
 def _title_dir(catalog: Path, title_id: str) -> Path | None:
@@ -122,7 +83,6 @@ def save_flow_positions(
     if not td:
         raise ValueError(f"Unknown title: {title_id}")
     path = td / "studio.yaml"
-    doc: dict[str, Any]
     if path.is_file():
         raw = load_yaml(path)
         doc = raw if isinstance(raw, dict) else {"title_id": title_id}
@@ -140,7 +100,6 @@ def save_flow_positions(
             continue
     flow["positions"] = clean
     doc["flow"] = flow
-    # preserve style if missing
     if "style" not in doc:
         doc["style"] = {
             "enabled": False,
@@ -151,49 +110,73 @@ def save_flow_positions(
     return path
 
 
+def _match_dialogue_scene(
+    ggd_scene: dict[str, Any], dlg_scenes: list[dict[str, Any]]
+) -> dict[str, Any] | None:
+    label = (ggd_scene.get("label") or "").strip().lower()
+    sid = str(ggd_scene.get("id") or "")
+    tail = sid.split("scene.", 1)[-1].replace("_", "-")
+    for sc in dlg_scenes:
+        if not isinstance(sc, dict):
+            continue
+        if (sc.get("label") or "").strip().lower() == label:
+            return sc
+        did = str(sc.get("id") or "")
+        if did == tail or did.replace("-", "_") == tail.replace("-", "_"):
+            return sc
+        if label and label in (sc.get("label") or "").lower():
+            return sc
+    return None
+
+
+def _scene_type(kind: str, data: dict[str, Any] | None = None) -> str:
+    data = data or {}
+    if data.get("splash") or data.get("is_menu") or kind == "ui_screen":
+        return "menu"
+    if kind in ("level", "minigame"):
+        return "gameplay"
+    if kind == "system":
+        # e.g. match-3 board hub — gameplay surface, not a title menu
+        return "gameplay"
+    if kind == "ending":
+        return "ending"
+    if kind in ("scene", "cg_moment"):
+        return "cinematic"
+    return "scene"
+
+
 def auto_layout(nodes: list[dict[str, Any]]) -> dict[str, dict[str, float]]:
-    """Column layout by narrative role; stable sort within columns."""
-    columns: dict[str, int] = {
-        "route": 0,
-        "character": 0,
-        "level": 1,
-        "minigame": 1,
-        "world": 1,
+    """Left-to-right by story order; stack vertically within column."""
+    # columns by type
+    col_for = {
+        "menu": 0,
+        "gameplay": 1,
+        "cinematic": 2,
         "scene": 2,
-        "dialogue": 3,
-        "choice": 3,
-        "option": 4,
-        "ending": 5,
-        "anim_clip": 5,
-        "system": 6,
-        "engine": 6,
-        "slot": 7,
-        "asset": 8,
-        "gate": 2,
-        "cg_moment": 7,
-        "flag": 4,
-        "other": 4,
+        "ending": 3,
     }
     buckets: dict[int, list[dict[str, Any]]] = defaultdict(list)
     for n in nodes:
-        kind = str(n.get("kind") or "other")
-        buckets[columns.get(kind, 4)].append(n)
+        st = str(n.get("scene_type") or "scene")
+        buckets[col_for.get(st, 2)].append(n)
 
     def sort_key(n: dict[str, Any]) -> tuple:
         data = n.get("data") if isinstance(n.get("data"), dict) else {}
         idx = data.get("index")
         if isinstance(idx, int):
-            return (0, idx, n.get("label") or n.get("id") or "")
+            return (0, idx, n.get("label") or "")
+        # splash / menu first
+        if n.get("scene_type") == "menu":
+            return (-1, 0, n.get("label") or "")
         return (1, n.get("label") or n.get("id") or "")
 
     positions: dict[str, dict[str, float]] = {}
     for col, items in buckets.items():
         items_sorted = sorted(items, key=sort_key)
         for row, n in enumerate(items_sorted):
-            nid = str(n["id"])
-            positions[nid] = {
-                "x": 40 + col * COL_GAP,
-                "y": 40 + row * ROW_GAP,
+            positions[str(n["id"])] = {
+                "x": 48.0 + col * COL_GAP,
+                "y": 48.0 + row * ROW_GAP,
             }
     return positions
 
@@ -203,7 +186,7 @@ def build_character_bundle(
     title_id: str,
     character_id: str,
 ) -> dict[str, Any]:
-    """Everything Studio needs to edit a cast member from Flow double-click."""
+    """Cast member inspector (kept for deep-link from scene assets)."""
     root = catalog.resolve()
     index = load_catalog(root, include_examples=True)
     if title_id not in index.titles:
@@ -250,12 +233,13 @@ def build_character_bundle(
         if s.get("kind") == "portrait" or "portrait" in sid:
             portrait.append(pack)
         elif "walk" in sid:
-            walk.append(pack)
+            walk.append(sid and pack)
         elif "swing" in sid:
             swing.append(pack)
         elif s.get("kind") == "sprite" or "sprite" in sid or "full" in sid:
             body.append(pack)
 
+    walk = [x for x in walk if isinstance(x, dict)]
     walk.sort(key=lambda x: x["slot_id"])
     swing.sort(key=lambda x: x["slot_id"])
 
@@ -266,19 +250,7 @@ def build_character_bundle(
         vmap = load_yaml(vpath) or {}
         voice = (vmap.get("by_character") or {}).get(character_id)
         if not voice:
-            # try by speaker short name
             voice = (vmap.get("by_speaker") or {}).get(short)
-
-    # Runtime path hints for nightmare-golf style games
-    runtime_hints = {
-        "idle": f"assets/img/cut/{short}_full.png" if short != "kirara" else "assets/img/cut/kirara_full2.png",
-        "walk_pattern": f"assets/img/cut/{short}_walk{{n}}.png",
-        "swing_pattern": f"assets/img/cut/{short}_swing{{n}}.png",
-        "engine_note": (
-            "Game currently hardcodes cutout paths in engine.js — "
-            "Swaps rebinds update the catalog; re-export/copy binaries into the game to see them live."
-        ),
-    }
 
     return {
         "title_id": title_id,
@@ -291,50 +263,10 @@ def build_character_bundle(
         "portrait": portrait,
         "body": body,
         "clips": {
-            "walk": {
-                "frames": walk,
-                "count": len(walk),
-                "pipeline_skill": "game-animation-frames",
-                "recommended": "video-first: base → image_to_video → harvest → flip-test loop",
-            },
-            "swing": {
-                "frames": swing,
-                "count": len(swing),
-                "pipeline_skill": "game-animation-frames",
-                "recommended": "key poses from base via image_edit with freeze-list (not independent gens)",
-            },
+            "walk": {"frames": walk, "count": len(walk)},
+            "swing": {"frames": swing, "count": len(swing)},
         },
-        "runtime_hints": runtime_hints,
-        "diagnosis": _anim_diagnosis(walk, swing, body),
     }
-
-
-def _anim_diagnosis(
-    walk: list[dict[str, Any]],
-    swing: list[dict[str, Any]],
-    body: list[dict[str, Any]],
-) -> list[str]:
-    notes: list[str] = []
-    if len(walk) < 4:
-        notes.append(
-            f"Walk has only {len(walk)} catalog frames (ideal 6–12 from a video cycle for smooth gait)."
-        )
-    if len(walk) >= 2:
-        notes.append(
-            "Walk frames were likely generated as independent stills (not video-harvested). "
-            "Regenerate with game-animation-frames skill: base → video → extract → flip-test."
-        )
-    if not body:
-        notes.append("No full-body / idle sprite slot matched this character.")
-    if len(swing) < 3:
-        notes.append(
-            f"Swing has {len(swing)} frames — a golf swing usually wants anticipation, impact, follow-through (3–6)."
-        )
-    notes.append(
-        "Runtime faces cutouts using scale.x flip; art must share a consistent facing "
-        "(Midnight Par Hana art is right-facing). Mixed facing between frames = ganky turns."
-    )
-    return notes
 
 
 def build_flow_graph(
@@ -342,12 +274,14 @@ def build_flow_graph(
     title_id: str,
     *,
     include_dialogue_detail: bool = True,
-    include_all_slots: bool = False,
+    include_all_slots: bool = False,  # kept for API compat; ignored in scene mode
 ) -> dict[str, Any]:
     """
-    Aggregate GGD + dialogue + bindings + engine into a flow graph.
+    Scene-centric flow graph.
 
-    Node ids stay stable (node.*, slot.*, synth.*).
+    Canvas nodes = screens the player experiences.
+    Nested `assets` = graphics, text, dialogue, characters, code refs for that screen.
+    Edges = progression between scenes only.
     """
     root = catalog.resolve()
     index = load_catalog(root, include_examples=True)
@@ -357,6 +291,7 @@ def build_flow_graph(
     files = index.title_files.get(title_id, {})
     title_ent = index.titles[title_id]
     title_data = title_ent.data
+    title_dir = title_ent.path.parent
 
     ggd_ent = files.get("ggd")
     ggd_nodes = (
@@ -390,455 +325,579 @@ def build_flow_graph(
 
     # dialogue
     dlg_scenes: list[dict[str, Any]] = []
-    title_dir = title_ent.path.parent
     for name in ("dialogue.yaml", "dialogue.json"):
         p = title_dir / name
-        if p.is_file():
-            raw = load_yaml(p) if p.suffix == ".yaml" else None
-            if raw is None and p.suffix == ".json":
-                import json
-
-                raw = json.loads(p.read_text(encoding="utf-8"))
-            if isinstance(raw, dict):
-                dlg_scenes = [
-                    s for s in (raw.get("scenes") or []) if isinstance(s, dict)
-                ]
-            break
-
-    nodes: list[dict[str, Any]] = []
-    edges: list[dict[str, Any]] = []
-    seen_nodes: set[str] = set()
-    seen_edges: set[tuple[str, str, str]] = set()
-
-    def add_node(
-        nid: str,
-        *,
-        kind: str,
-        label: str,
-        status: str | None = None,
-        data: dict[str, Any] | None = None,
-        subtitle: str | None = None,
-        preview_url: str | None = None,
-        source: str = "ggd",
-    ) -> None:
-        if nid in seen_nodes:
-            return
-        seen_nodes.add(nid)
-        layer = LAYER_FOR_KIND.get(kind, "story")
-        nodes.append(
-            {
-                "id": nid,
-                "kind": kind,
-                "layer": layer,
-                "label": label,
-                "subtitle": subtitle,
-                "status": status,
-                "data": data or {},
-                "preview_url": preview_url,
-                "source": source,
-            }
-        )
-
-    def add_edge(
-        ekind: str,
-        frm: str,
-        to: str,
-        *,
-        label: str | None = None,
-        eid: str | None = None,
-        data: dict[str, Any] | None = None,
-    ) -> None:
-        key = (ekind, frm, to)
-        if key in seen_edges:
-            return
-        if frm not in seen_nodes or to not in seen_nodes:
-            return
-        seen_edges.add(key)
-        phrase = label or EDGE_PHRASE.get(ekind, ekind.replace("_", " "))
-        edges.append(
-            {
-                "id": eid or f"edge.{_slug(ekind)}.{_slug(frm)}.{_slug(to)}",
-                "kind": ekind,
-                "from": frm,
-                "to": to,
-                "label": phrase,
-                "data": data or {},
-            }
-        )
-
-    # --- GGD nodes ---
-    for n in ggd_nodes:
-        nid = n.get("id")
-        if not isinstance(nid, str):
+        if not p.is_file():
             continue
-        add_node(
-            nid,
-            kind=str(n.get("kind") or "other"),
-            label=str(n.get("label") or nid),
-            status=n.get("status"),
-            data=n.get("data") if isinstance(n.get("data"), dict) else {},
-            source="ggd",
-        )
+        if p.suffix == ".json":
+            raw = json.loads(p.read_text(encoding="utf-8"))
+        else:
+            raw = load_yaml(p)
+        if isinstance(raw, dict):
+            dlg_scenes = [s for s in (raw.get("scenes") or []) if isinstance(s, dict)]
+        break
 
-    # --- Engine node ---
-    engine_id = title_data.get("engine_id")
-    engine_node_id = None
-    if isinstance(engine_id, str) and engine_id in index.engines:
-        eng = index.engines[engine_id].data
-        engine_node_id = f"synth.engine.{engine_id.replace('engine.', '')}"
-        add_node(
-            engine_node_id,
-            kind="engine",
-            label=str(eng.get("label") or engine_id),
-            subtitle=str(eng.get("runtime") or ""),
-            status=eng.get("status"),
-            data={"engine_id": engine_id, "runtime": eng.get("runtime")},
-            source="title",
-        )
-
-    # --- Cast → first-class character nodes (+ anim clips) ---
+    # cast lookup
     cast_ent = files.get("cast")
     cast_entries = (
         [e for e in (cast_ent.data.get("entries") or []) if isinstance(e, dict)]
         if cast_ent
         else []
     )
-    # Character → slots to wire after slot nodes exist
-    pending_char_edges: list[tuple[str, str, str, str]] = []  # (kind, from, to, label)
-    char_nodes: dict[str, str] = {}  # character_id → node id
+    cast_by_id = {
+        e["character_id"]: e
+        for e in cast_entries
+        if isinstance(e.get("character_id"), str)
+    }
 
-    for entry in cast_entries:
-        cid = entry.get("character_id")
-        if not isinstance(cid, str) or cid not in index.characters:
-            continue
-        ch = index.characters[cid].data
-        short = cid.split(".")[-1]
-        cnode = f"synth.character.{cid.replace('chr.', '').replace('.', '_')}"
-        char_nodes[cid] = cnode
-        portrait_preview = None
-        walk_slots: list[str] = []
-        swing_slots: list[str] = []
-        body_slots: list[str] = []
-        portrait_slots: list[str] = []
-        for sid, slot in slot_by_id.items():
-            if short not in sid:
-                continue
-            sk = str(slot.get("kind") or "")
-            if sk == "portrait" or "portrait" in sid:
-                portrait_slots.append(sid)
-                b = bind_by_slot.get(sid)
-                if b and b.get("asset_id") and not portrait_preview:
-                    portrait_preview = f"/api/asset-file?asset_id={b['asset_id']}"
-            elif "walk" in sid:
-                walk_slots.append(sid)
-            elif "swing" in sid:
-                swing_slots.append(sid)
-            elif sk == "sprite" or "sprite" in sid or "full" in sid:
-                body_slots.append(sid)
+    # engine (once, as metadata — not a canvas node)
+    engine_meta = None
+    engine_id = title_data.get("engine_id")
+    if isinstance(engine_id, str) and engine_id in index.engines:
+        eng = index.engines[engine_id].data
+        engine_meta = {
+            "id": engine_id,
+            "label": eng.get("label"),
+            "runtime": eng.get("runtime"),
+        }
 
-        add_node(
-            cnode,
-            kind="character",
-            label=str(ch.get("label") or cid),
-            subtitle=str(entry.get("billing") or ",".join(ch.get("role_tags") or [])),
-            status=ch.get("status"),
-            preview_url=portrait_preview,
-            data={
-                "character_id": cid,
-                "billing": entry.get("billing"),
-                "role_tags": ch.get("role_tags") or [],
-                "open": "character",
-                "portrait_slots": portrait_slots,
-                "body_slots": body_slots,
-                "walk_slots": sorted(walk_slots),
-                "swing_slots": sorted(swing_slots),
-            },
-            source="cast",
-        )
-        for sid in portrait_slots:
-            pending_char_edges.append(("has_portrait", cnode, sid, "hero portrait"))
-        for sid in body_slots:
-            pending_char_edges.append(("has_body", cnode, sid, "full body"))
-        if walk_slots:
-            clip_id = f"synth.anim.{short}_walk"
-            add_node(
-                clip_id,
-                kind="anim_clip",
-                label=f"{ch.get('label') or short} · walk cycle",
-                subtitle=f"{len(walk_slots)} frames · catalog slots",
-                data={
-                    "character_id": cid,
-                    "clip": "walk",
-                    "frame_slots": sorted(walk_slots),
-                    "open": "character",
-                    "fps_hint": 7,
-                },
-                source="slots",
-            )
-            pending_char_edges.append(("has_anim", cnode, clip_id, "walk cycle"))
-            for sid in walk_slots:
-                pending_char_edges.append(("has_anim", clip_id, sid, "frame"))
-        if swing_slots:
-            clip_id = f"synth.anim.{short}_swing"
-            add_node(
-                clip_id,
-                kind="anim_clip",
-                label=f"{ch.get('label') or short} · swing",
-                subtitle=f"{len(swing_slots)} frames · catalog slots",
-                data={
-                    "character_id": cid,
-                    "clip": "swing",
-                    "frame_slots": sorted(swing_slots),
-                    "open": "character",
-                },
-                source="slots",
-            )
-            pending_char_edges.append(("has_anim", cnode, clip_id, "swing clip"))
-            for sid in swing_slots:
-                pending_char_edges.append(("has_anim", clip_id, sid, "frame"))
-
-    # World / course node for minigame titles
-    world_id = None
-    hole_nodes = [n for n in ggd_nodes if n.get("kind") in ("minigame", "level")]
-    if hole_nodes:
-        world_id = "synth.world.course"
-        add_node(
-            world_id,
-            kind="world",
-            label="Golf course / world",
-            subtitle=f"{len(hole_nodes)} holes · turf · lighting",
-            data={
-                "open": "world",
-                "holes": [n.get("id") for n in hole_nodes if n.get("id")],
-            },
-            source="ggd",
-        )
-
-    # --- GGD edges ---
-    slot_ids_needed: set[str] = set()
-    # Include every slot referenced by characters so art shows in Flow
-    for _kind, _frm, to, _lab in pending_char_edges:
-        if to.startswith("slot."):
-            slot_ids_needed.add(to)
-    for e in ggd_edges:
-        frm = e.get("from")
-        to = e.get("to")
-        kind = str(e.get("kind") or "leads_to")
-        if not isinstance(frm, str) or not isinstance(to, str):
-            continue
-        if kind == "uses_slot" and to.startswith("slot."):
-            slot_ids_needed.add(to)
-        if to.startswith("slot."):
-            slot_ids_needed.add(to)
-
-    if include_all_slots or cast_entries:
-        for sid in slot_by_id:
-            slot_ids_needed.add(sid)
-
-    # From uses_slot edges collect slots
-    for e in ggd_edges:
-        if e.get("kind") == "uses_slot" and isinstance(e.get("to"), str):
-            slot_ids_needed.add(e["to"])
-
-    # --- Slot + asset nodes ---
-    for sid in sorted(slot_ids_needed):
-        if not sid or not sid.startswith("slot."):
-            continue
-        slot = slot_by_id.get(sid) or {"id": sid, "label": sid, "kind": "other"}
-        add_node(
-            sid,
-            kind="slot",
-            label=str(slot.get("label") or sid),
-            subtitle=str(slot.get("kind") or "slot"),
-            status=slot.get("status"),
-            data={"slot_kind": slot.get("kind")},
-            source="slots",
-        )
-        b = bind_by_slot.get(sid)
-        if b and isinstance(b.get("asset_id"), str):
-            aid = b["asset_id"]
-            ad = index.assets.get(aid)
-            label = aid
-            preview = f"/api/asset-file?asset_id={aid}"
-            if ad:
-                label = str(ad.data.get("label") or aid)
-            add_node(
-                aid,
-                kind="asset",
-                label=label,
-                subtitle=aid.replace("asset.", "")[:40],
-                status=(ad.data.get("status") if ad else None),
-                preview_url=preview,
-                data={"asset_id": aid},
-                source="bindings",
-            )
-            add_edge("binds", sid, aid, label="shows asset")
-
-    # GGD edges (after slots exist)
-    for e in ggd_edges:
-        frm = e.get("from")
-        to = e.get("to")
-        kind = str(e.get("kind") or "leads_to")
-        if not isinstance(frm, str) or not isinstance(to, str):
-            continue
-        # create dangling slot targets already handled
-        if to.startswith("slot.") and to not in seen_nodes:
-            continue
-        if frm.startswith("slot.") and frm not in seen_nodes:
-            continue
-        add_edge(
-            kind,
-            frm,
-            to,
-            label=e.get("label") or EDGE_PHRASE.get(kind),
-            eid=e.get("id"),
-            data=e.get("data") if isinstance(e.get("data"), dict) else {},
-        )
-
-    # Engine runs board system / world
-    if engine_node_id:
-        for n in ggd_nodes:
-            if n.get("kind") == "system" and isinstance(n.get("id"), str):
-                add_edge("runs", engine_node_id, n["id"], label="runs system")
-        if world_id:
-            add_edge("runs", engine_node_id, world_id, label="renders world")
-            for hn in hole_nodes:
-                hid = hn.get("id")
-                if isinstance(hid, str):
-                    add_edge("contains", world_id, hid, label="contains hole")
-
-    # Character → portrait/body/anim edges (slots must exist)
-    for ekind, frm, to, lab in pending_char_edges:
-        add_edge(ekind, frm, to, label=lab)
-
-    # Voice edges from voices.yaml by_character
-    try:
-        vmap = load_yaml(title_dir / "voices.yaml") if (title_dir / "voices.yaml").is_file() else {}
-        by_ch = (vmap or {}).get("by_character") or {}
-        for cid, cnode in char_nodes.items():
-            entry = by_ch.get(cid)
-            if not isinstance(entry, dict):
-                continue
-            vname = entry.get("voice_name") or entry.get("voice_id") or "voice"
-            # virtual voice node
-            vnode = f"synth.voice.{cid.replace('chr.', '').replace('.', '_')}"
-            add_node(
-                vnode,
-                kind="other",
-                label=f"Voice · {vname}",
-                subtitle=str(entry.get("voice_id") or "")[:16],
-                data={
-                    "open": "character",
-                    "character_id": cid,
-                    "voice_id": entry.get("voice_id"),
-                    "voice_name": entry.get("voice_name"),
-                },
-                source="voices",
-            )
-            add_edge("has_voice", cnode, vnode, label="speaks with")
-    except Exception:
-        pass
-
-    # --- Dialogue hubs + optional detail ---
+    # --- Primary scene nodes ---
+    scene_nodes_raw: list[dict[str, Any]] = []
     for n in ggd_nodes:
-        if n.get("kind") != "scene" or not isinstance(n.get("id"), str):
+        kind = str(n.get("kind") or "")
+        if kind not in SCENE_KINDS:
             continue
-        sc = _match_dialogue_scene(n, dlg_scenes)
-        if not sc:
-            continue
-        dlg_id = f"synth.dialogue.{sc.get('id') or _slug(str(sc.get('label')))}"
-        lines = [x for x in (sc.get("nodes") or []) if isinstance(x, dict)]
-        n_lines = sum(1 for x in lines if x.get("kind") == "line")
-        n_choices = sum(1 for x in lines if x.get("kind") == "choice")
-        add_node(
-            dlg_id,
-            kind="dialogue",
-            label=f"Dialogue · {sc.get('label') or sc.get('id')}",
-            subtitle=f"{n_lines} lines · {n_choices} choices",
-            data={
-                "dialogue_scene_id": sc.get("id"),
-                "line_count": n_lines,
-                "choice_count": n_choices,
+        # Skip pure engine systems that aren't player screens (keep board hub)
+        if kind == "system":
+            lid = str(n.get("id") or "").lower()
+            lab = str(n.get("label") or "").lower()
+            if "board" not in lid and "menu" not in lab and "title" not in lab:
+                continue
+        scene_nodes_raw.append(n)
+
+    # Ensure a splash / start if none exists
+    has_menu = any(
+        _scene_type(str(n.get("kind")), n.get("data") if isinstance(n.get("data"), dict) else {})
+        == "menu"
+        for n in scene_nodes_raw
+    )
+    synthetic_splash = False
+    if not has_menu:
+        synthetic_splash = True
+        scene_nodes_raw.insert(
+            0,
+            {
+                "id": "node.ui_screen.title",
+                "kind": "ui_screen",
+                "label": "Title / Splash",
+                "status": "draft",
+                "data": {"splash": True, "is_menu": True, "synthetic": True},
+                "tags": ["menu", "start"],
             },
-            source="dialogue",
         )
-        add_edge("has_dialogue", n["id"], dlg_id, label="plays dialogue")
 
-        if not include_dialogue_detail:
+    scene_ids = {str(n["id"]) for n in scene_nodes_raw if n.get("id")}
+
+    # Map uses_slot / related edges onto scenes
+    slots_used_by_scene: dict[str, list[str]] = defaultdict(list)
+    for e in ggd_edges:
+        ek = str(e.get("kind") or "")
+        frm, to = e.get("from"), e.get("to")
+        if ek == "uses_slot" and isinstance(frm, str) and isinstance(to, str):
+            if frm in scene_ids and to.startswith("slot."):
+                slots_used_by_scene[frm].append(to)
+        # also slot used_by field
+    for sid, slot in slot_by_id.items():
+        for used in slot.get("used_by") or []:
+            if isinstance(used, str) and used in scene_ids:
+                if sid not in slots_used_by_scene[used]:
+                    slots_used_by_scene[used].append(sid)
+
+    def pack_slot(sid: str) -> dict[str, Any] | None:
+        slot = slot_by_id.get(sid)
+        if not slot:
+            # still show unbound reference
+            slot = {"id": sid, "label": sid, "kind": "?"}
+        b = bind_by_slot.get(sid) or {}
+        aid = b.get("asset_id")
+        kind = str(slot.get("kind") or "other")
+        return {
+            "slot_id": sid,
+            "label": slot.get("label") or sid,
+            "kind": kind,
+            "asset_id": aid,
+            "preview_url": f"/api/asset-file?asset_id={aid}" if aid else None,
+            "status": b.get("status") or ("unbound" if not aid else "draft"),
+            "category": _asset_category(kind, sid),
+        }
+
+    def code_refs_for(kind: str, nid: str, data: dict[str, Any]) -> list[dict[str, Any]]:
+        refs: list[dict[str, Any]] = []
+        if kind == "level":
+            refs.append(
+                {
+                    "ref": "levels.yaml",
+                    "label": "Level config",
+                    "hint": "Match-3 goals, moves, tile pool",
+                    "open": "levels",
+                }
+            )
+            refs.append(
+                {
+                    "ref": "engine.match3",
+                    "label": "Match-3 systems (shared engine)",
+                    "hint": "Not duplicated per level — edit engine pack once",
+                    "open": "engine",
+                }
+            )
+        elif kind in ("scene", "cg_moment"):
+            refs.append(
+                {
+                    "ref": f"dialogue:{nid}",
+                    "label": "Dialogue ledger scene",
+                    "hint": "Edit lines in node expand or Dialogue tab",
+                    "open": "dialogue",
+                }
+            )
+            refs.append(
+                {
+                    "ref": "engine.vn",
+                    "label": "VN / cinematic shell (shared)",
+                    "hint": "Speaker UI, skip, save — engine layer",
+                    "open": "engine",
+                }
+            )
+        elif kind in ("ui_screen",) or data.get("splash"):
+            refs.append(
+                {
+                    "ref": "ui.title",
+                    "label": "Title screen UI controller",
+                    "hint": "Buttons, continue/new journey — open IDE / game project",
+                    "open": "ide",
+                }
+            )
+        return refs
+
+    nodes: list[dict[str, Any]] = []
+    for n in scene_nodes_raw:
+        nid = str(n["id"])
+        kind = str(n.get("kind") or "scene")
+        data = n.get("data") if isinstance(n.get("data"), dict) else {}
+        stype = _scene_type(kind, data)
+
+        graphics: list[dict[str, Any]] = []
+        text_assets: list[dict[str, Any]] = []
+        characters: list[dict[str, Any]] = []
+        dialogue_lines: list[dict[str, Any]] = []
+        choices: list[dict[str, Any]] = []
+
+        for sid in slots_used_by_scene.get(nid, []):
+            pack = pack_slot(sid)
+            if not pack:
+                continue
+            cat = pack["category"]
+            if cat == "graphic":
+                graphics.append(pack)
+            elif cat == "piece":
+                graphics.append({**pack, "category": "piece"})
+            else:
+                graphics.append(pack)
+
+        # dialogue attach
+        dlg = _match_dialogue_scene(n, dlg_scenes) if include_dialogue_detail else None
+        if dlg:
+            for dn in dlg.get("nodes") or []:
+                if not isinstance(dn, dict):
+                    continue
+                dkind = str(dn.get("kind") or "")
+                if dkind == "line":
+                    dialogue_lines.append(
+                        {
+                            "node_id": dn.get("id"),
+                            "speaker": dn.get("speaker"),
+                            "text": dn.get("text") or "",
+                            "kind": "line",
+                            "scene_id": dlg.get("id"),
+                        }
+                    )
+                    sp = (dn.get("speaker") or "").lower()
+                    # resolve character
+                    for cid, cent in cast_by_id.items():
+                        short = cid.split(".")[-1]
+                        if sp and (sp == short or sp in cid):
+                            if not any(c["character_id"] == cid for c in characters):
+                                ch = index.characters.get(cid)
+                                label = (
+                                    ch.data.get("label")
+                                    if ch
+                                    else cent.get("character_id")
+                                )
+                                preview = None
+                                for s in slots:
+                                    ss = s.get("id") or ""
+                                    if short in ss and (
+                                        s.get("kind") == "portrait" or "portrait" in ss
+                                    ):
+                                        b = bind_by_slot.get(ss) or {}
+                                        if b.get("asset_id"):
+                                            preview = f"/api/asset-file?asset_id={b['asset_id']}"
+                                            break
+                                characters.append(
+                                    {
+                                        "character_id": cid,
+                                        "label": label,
+                                        "billing": cent.get("billing"),
+                                        "preview_url": preview,
+                                    }
+                                )
+                elif dkind == "choice":
+                    choices.append(
+                        {
+                            "id": dn.get("id"),
+                            "label": dn.get("text") or dn.get("id"),
+                            "kind": "choice",
+                        }
+                    )
+                elif dkind == "option":
+                    choices.append(
+                        {
+                            "id": dn.get("id"),
+                            "label": dn.get("text") or dn.get("id"),
+                            "kind": "option",
+                        }
+                    )
+
+        # level goals as text
+        if kind == "level":
+            levels_ent = files.get("levels")
+            if levels_ent:
+                for lv in levels_ent.data.get("levels") or []:
+                    if isinstance(lv, dict) and lv.get("id") == nid:
+                        for g in lv.get("goals") or []:
+                            if isinstance(g, dict):
+                                text_assets.append(
+                                    {
+                                        "key": f"goal.{g.get('type')}",
+                                        "text": f"{g.get('type')}: {g.get('value')}"
+                                        + (
+                                            f" ({g.get('slot_id')})"
+                                            if g.get("slot_id")
+                                            else ""
+                                        ),
+                                        "role": "gameplay",
+                                    }
+                                )
+                        if lv.get("moves"):
+                            text_assets.append(
+                                {
+                                    "key": "moves",
+                                    "text": f"Moves: {lv.get('moves')}",
+                                    "role": "gameplay",
+                                }
+                            )
+                        # tile pool as piece graphics
+                        for ts in lv.get("tile_pool") or []:
+                            if isinstance(ts, str) and ts not in [
+                                g.get("slot_id") for g in graphics
+                            ]:
+                                pack = pack_slot(ts)
+                                if pack:
+                                    graphics.append(pack)
+                        break
+
+        # UI screen default text
+        if stype == "menu":
+            text_assets.append(
+                {
+                    "key": "ui.play",
+                    "text": "Play / New journey",
+                    "role": "ui",
+                }
+            )
+            text_assets.append(
+                {
+                    "key": "ui.continue",
+                    "text": "Continue",
+                    "role": "ui",
+                }
+            )
+
+        asset_counts = {
+            "graphics": len(graphics),
+            "text": len(text_assets),
+            "dialogue": len(dialogue_lines),
+            "characters": len(characters),
+            "choices": len(choices),
+            "code": len(code_refs_for(kind, nid, data)),
+        }
+
+        preview = None
+        for g in graphics:
+            if g.get("preview_url") and g.get("kind") in (
+                "cg",
+                "bg",
+                "portrait",
+                "ui",
+                "sprite",
+            ):
+                preview = g["preview_url"]
+                break
+
+        nodes.append(
+            {
+                "id": nid,
+                "kind": kind,
+                "scene_type": stype,
+                "layer": "scene",  # single layer for canvas
+                "label": str(n.get("label") or nid),
+                "subtitle": f"{stype} · {sum(asset_counts.values())} assets",
+                "status": n.get("status"),
+                "data": {**data, "open": "scene"},
+                "preview_url": preview,
+                "source": "synthetic" if data.get("synthetic") else "ggd",
+                "assets": {
+                    "graphics": graphics,
+                    "text": text_assets,
+                    "dialogue": dialogue_lines[:80],  # cap for payload
+                    "characters": characters,
+                    "choices": choices,
+                    "code": code_refs_for(kind, nid, data),
+                },
+                "asset_counts": asset_counts,
+                "dialogue_scene_id": (dlg or {}).get("id") if dlg else None,
+            }
+        )
+
+    # --- Edges between scenes only ---
+    edges: list[dict[str, Any]] = []
+    seen_e: set[tuple[str, str, str]] = set()
+    node_id_set = {n["id"] for n in nodes}
+
+    def add_edge(ekind: str, frm: str, to: str, label: str | None = None, data: dict | None = None) -> None:
+        if frm not in node_id_set or to not in node_id_set:
+            return
+        key = (ekind, frm, to)
+        if key in seen_e:
+            return
+        seen_e.add(key)
+        edges.append(
+            {
+                "id": f"edge.{_slug(ekind)}.{_slug(frm)}.{_slug(to)}",
+                "kind": ekind,
+                "from": frm,
+                "to": to,
+                "label": label or EDGE_PHRASE.get(ekind, ekind),
+                "data": data or {},
+            }
+        )
+
+    for e in ggd_edges:
+        ek = str(e.get("kind") or "")
+        frm, to = e.get("from"), e.get("to")
+        if not isinstance(frm, str) or not isinstance(to, str):
             continue
+        # promote level→scene and scene→scene
+        if ek in ("leads_to", "unlocks", "contains") and frm in node_id_set and to in node_id_set:
+            phrase = None
+            if isinstance(e.get("data"), dict) and e["data"].get("choice"):
+                phrase = str(e["data"]["choice"])
+            elif e.get("label"):
+                phrase = str(e["label"])
+            add_edge(ek if ek != "contains" else "leads_to", frm, to, phrase, e.get("data") if isinstance(e.get("data"), dict) else {})
+        # after_level style: level leads_to scene already covered
 
-        # choice / option fan-out (compact)
-        for dn in lines:
-            dkind = dn.get("kind")
-            did = dn.get("id")
-            if not isinstance(did, str):
+    # synthetic splash → first level or first scene
+    if synthetic_splash and "node.ui_screen.title" in node_id_set:
+        first = None
+        for n in nodes:
+            if n["id"] == "node.ui_screen.title":
                 continue
-            if dkind == "choice":
-                cid = f"synth.choice.{sc.get('id')}.{did}"
-                add_node(
-                    cid,
-                    kind="choice",
-                    label=str(dn.get("text") or did)[:80],
-                    subtitle="player choice",
-                    data={"dialogue_node": did, "scene": sc.get("id")},
-                    source="dialogue",
-                )
-                add_edge("choice", dlg_id, cid, label="player chooses")
-            elif dkind == "option":
-                oid = f"synth.option.{sc.get('id')}.{did}"
-                add_node(
-                    oid,
-                    kind="option",
-                    label=str(dn.get("text") or did)[:80],
-                    subtitle=str(dn.get("speaker") or "option"),
-                    data={"dialogue_node": did, "scene": sc.get("id")},
-                    source="dialogue",
-                )
-                # link from last choice in same scene if any — heuristic: previous choice
-                # attach to dialogue hub with option phrase if no parent
-                # Prefer: any choice node already added gets option edges via terminal_paths later
-                add_edge("option", dlg_id, oid, label="option")
-
-        # terminal_paths: choice option ids
-        for tp in sc.get("terminal_paths") or []:
-            if not isinstance(tp, str):
-                continue
-            oid = f"synth.option.{sc.get('id')}.{tp}"
-            # find a choice in scene to link
-            for dn in lines:
-                if dn.get("kind") == "choice" and isinstance(dn.get("id"), str):
-                    cid = f"synth.choice.{sc.get('id')}.{dn['id']}"
-                    if cid in seen_nodes and oid in seen_nodes:
-                        add_edge("option", cid, oid, label="player picks")
+            if n.get("scene_type") == "gameplay" and (n.get("data") or {}).get("index") == 1:
+                first = n["id"]
+                break
+        if not first:
+            for n in nodes:
+                if n["id"] != "node.ui_screen.title" and n.get("kind") == "scene":
+                    first = n["id"]
                     break
+        if first:
+            add_edge("leads_to", "node.ui_screen.title", first, "Play")
 
-    # Positions
+    # positions
     saved = load_flow_positions(root, title_id)
     auto = auto_layout(nodes)
+    layout_saved = bool(saved)
     for n in nodes:
         nid = n["id"]
-        pos = saved.get(nid) or auto.get(nid) or {"x": 40.0, "y": 40.0}
+        pos = saved.get(nid) or auto.get(nid) or {"x": 40, "y": 40}
         n["x"] = pos["x"]
         n["y"] = pos["y"]
 
-    layers = sorted({str(n.get("layer")) for n in nodes})
-    kinds = sorted({str(n.get("kind")) for n in nodes})
-
     return {
         "title_id": title_id,
+        "mode": "scenes",
+        "engine": engine_meta,
         "nodes": nodes,
         "edges": edges,
-        "layers": layers,
-        "kinds": kinds,
+        "layers": ["scene"],
         "legend": [
-            {"kind": k, "phrase": EDGE_PHRASE.get(k, k)}
-            for k in sorted({e["kind"] for e in edges})
+            {"kind": "leads_to", "phrase": "then"},
+            {"kind": "unlocks", "phrase": "unlocks"},
+            {"kind": "menu", "phrase": "menu / splash"},
+            {"kind": "gameplay", "phrase": "gameplay level"},
+            {"kind": "cinematic", "phrase": "story scene"},
+            {"kind": "ending", "phrase": "ending"},
         ],
+        "layout_saved": layout_saved,
         "stats": {
             "nodes": len(nodes),
             "edges": len(edges),
-            "ggd_nodes": len(ggd_nodes),
-            "dialogue_scenes": len(dlg_scenes),
+            "scenes": sum(1 for n in nodes if n.get("scene_type") == "cinematic"),
+            "levels": sum(1 for n in nodes if n.get("scene_type") == "gameplay"),
+            "menus": sum(1 for n in nodes if n.get("scene_type") == "menu"),
+            "endings": sum(1 for n in nodes if n.get("scene_type") == "ending"),
         },
-        "layout_saved": bool(saved),
     }
+
+
+def _asset_category(kind: str, slot_id: str) -> str:
+    if kind in ("cg", "bg", "portrait", "ui", "texture", "icon") or "cg." in slot_id or "bg." in slot_id:
+        return "graphic"
+    if kind == "sprite" or "piece." in slot_id or "tile." in slot_id:
+        return "piece"
+    if "line." in slot_id or kind == "other":
+        return "text"
+    return "graphic"
+
+
+def create_scene_node(
+    catalog: Path,
+    title_id: str,
+    *,
+    label: str,
+    kind: str = "scene",
+    scene_type: str | None = None,
+    after_id: str | None = None,
+) -> dict[str, Any]:
+    """Append a scene to GGD and optional edge from after_id."""
+    root = catalog.resolve()
+    index = load_catalog(root, include_examples=True)
+    if title_id not in index.titles:
+        raise ValueError(f"Unknown title: {title_id}")
+    files = index.title_files.get(title_id, {})
+    ggd_ent = files.get("ggd")
+    if not ggd_ent:
+        raise ValueError("Title has no ggd.yaml")
+    path = ggd_ent.path
+    doc = load_yaml(path) if path.is_file() else {"title_id": title_id, "nodes": [], "edges": []}
+    if not isinstance(doc, dict):
+        doc = {"title_id": title_id, "nodes": [], "edges": []}
+    nodes = list(doc.get("nodes") or [])
+    edges = list(doc.get("edges") or [])
+
+    base = _slug(label)
+    nid = f"node.{kind}.{base.replace('-', '_')}"
+    # unique
+    existing = {n.get("id") for n in nodes if isinstance(n, dict)}
+    i = 2
+    orig = nid
+    while nid in existing:
+        nid = f"{orig}_{i}"
+        i += 1
+
+    st = scene_type or _scene_type(kind, {})
+    node = {
+        "id": nid,
+        "kind": kind if kind in SCENE_KINDS else "scene",
+        "label": label,
+        "status": "draft",
+        "data": {"scene_type": st, "created_in": "studio_flow"},
+        "tags": ["flow", st],
+    }
+    nodes.append(node)
+    if after_id and after_id in existing:
+        edges.append(
+            {
+                "id": f"edge.leads_to.{_slug(after_id)}.{_slug(nid)}",
+                "kind": "leads_to",
+                "from": after_id,
+                "to": nid,
+                "label": "then",
+            }
+        )
+    doc["nodes"] = nodes
+    doc["edges"] = edges
+    doc["title_id"] = title_id
+    dump_yaml(path, doc)
+    return {"ok": True, "node": node, "path": str(path)}
+
+
+def connect_scenes(
+    catalog: Path,
+    title_id: str,
+    *,
+    from_id: str,
+    to_id: str,
+    kind: str = "leads_to",
+    label: str | None = None,
+) -> dict[str, Any]:
+    root = catalog.resolve()
+    index = load_catalog(root, include_examples=True)
+    if title_id not in index.titles:
+        raise ValueError(f"Unknown title: {title_id}")
+    ggd_ent = index.title_files.get(title_id, {}).get("ggd")
+    if not ggd_ent:
+        raise ValueError("Title has no ggd.yaml")
+    path = ggd_ent.path
+    doc = load_yaml(path) or {"title_id": title_id, "nodes": [], "edges": []}
+    edges = list(doc.get("edges") or [])
+    # dedupe
+    for e in edges:
+        if (
+            isinstance(e, dict)
+            and e.get("from") == from_id
+            and e.get("to") == to_id
+            and e.get("kind") == kind
+        ):
+            return {"ok": True, "edge": e, "message": "already connected"}
+    edge = {
+        "id": f"edge.{_slug(kind)}.{_slug(from_id)}.{_slug(to_id)}",
+        "kind": kind,
+        "from": from_id,
+        "to": to_id,
+        "label": label or EDGE_PHRASE.get(kind, kind),
+    }
+    edges.append(edge)
+    doc["edges"] = edges
+    dump_yaml(path, doc)
+    return {"ok": True, "edge": edge, "path": str(path)}
+
+
+def disconnect_scenes(
+    catalog: Path,
+    title_id: str,
+    *,
+    from_id: str,
+    to_id: str,
+) -> dict[str, Any]:
+    root = catalog.resolve()
+    index = load_catalog(root, include_examples=True)
+    ggd_ent = index.title_files.get(title_id, {}).get("ggd")
+    if not ggd_ent:
+        raise ValueError("Title has no ggd.yaml")
+    path = ggd_ent.path
+    doc = load_yaml(path) or {}
+    edges = [
+        e
+        for e in (doc.get("edges") or [])
+        if not (
+            isinstance(e, dict)
+            and e.get("from") == from_id
+            and e.get("to") == to_id
+            and str(e.get("kind")) in SCENE_EDGE_KINDS | {"leads_to", "unlocks"}
+        )
+    ]
+    removed = len(doc.get("edges") or []) - len(edges)
+    doc["edges"] = edges
+    dump_yaml(path, doc)
+    return {"ok": True, "removed": removed}

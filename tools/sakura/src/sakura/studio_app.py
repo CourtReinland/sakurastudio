@@ -36,6 +36,9 @@ from sakura.flow_graph import (
     auto_layout,
     build_character_bundle,
     build_flow_graph,
+    connect_scenes,
+    create_scene_node,
+    disconnect_scenes,
     save_flow_positions,
 )
 from sakura.export_game import export_title_to_game
@@ -52,7 +55,7 @@ from sakura.voice_map import (
 )
 from sakura.yaml_io import load_yaml
 
-app = FastAPI(title="Sakura Studio", version="0.8.0")
+app = FastAPI(title="Sakura Studio", version="0.9.0")
 
 # Swap categories for dashboard filters
 SWAP_CATEGORIES = {
@@ -212,7 +215,7 @@ def health(catalog: str | None = None) -> dict[str, Any]:
     return {
         "ok": True,
         "catalog": str(root),
-        "version": "0.8.0",
+        "version": "0.9.0",
         "elevenlabs_configured": bool(resolve_api_key()),
         "xai_configured": bool(resolve_xai_api_key()),
         "game_asset_tools": [t["id"] for t in game_asset_tool_catalog()],
@@ -307,6 +310,28 @@ class FlowLayoutBody(BaseModel):
     positions: dict[str, dict[str, float]]
 
 
+class FlowSceneCreateBody(BaseModel):
+    title_id: str
+    label: str
+    kind: str = "scene"
+    scene_type: str | None = None
+    after_id: str | None = None
+
+
+class FlowConnectBody(BaseModel):
+    title_id: str
+    from_id: str
+    to_id: str
+    kind: str = "leads_to"
+    label: str | None = None
+
+
+class FlowDisconnectBody(BaseModel):
+    title_id: str
+    from_id: str
+    to_id: str
+
+
 @app.get("/api/flow")
 def api_flow(
     title: str | None = None,
@@ -399,6 +424,52 @@ def api_flow_auto_layout(
         "edges": graph["edges"],
         "message": "Auto-layout applied" + (" and saved" if persist else ""),
     }
+
+
+@app.post("/api/flow/scene")
+def api_flow_scene_create(body: FlowSceneCreateBody, catalog: str | None = None) -> dict[str, Any]:
+    """Add a new scene node to the GGD (picked up on next flow compile)."""
+    root = _catalog(catalog)
+    try:
+        return create_scene_node(
+            root,
+            body.title_id,
+            label=body.label,
+            kind=body.kind,
+            scene_type=body.scene_type,
+            after_id=body.after_id,
+        )
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
+
+
+@app.post("/api/flow/connect")
+def api_flow_connect(body: FlowConnectBody, catalog: str | None = None) -> dict[str, Any]:
+    """Connect two scene nodes (progression edge)."""
+    root = _catalog(catalog)
+    try:
+        return connect_scenes(
+            root,
+            body.title_id,
+            from_id=body.from_id,
+            to_id=body.to_id,
+            kind=body.kind,
+            label=body.label,
+        )
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
+
+
+@app.post("/api/flow/disconnect")
+def api_flow_disconnect(body: FlowDisconnectBody, catalog: str | None = None) -> dict[str, Any]:
+    """Remove progression edge between two scenes."""
+    root = _catalog(catalog)
+    try:
+        return disconnect_scenes(
+            root, body.title_id, from_id=body.from_id, to_id=body.to_id
+        )
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
 
 
 @app.get("/api/studio-style")
@@ -1716,34 +1787,75 @@ STUDIO_HTML = r"""<!DOCTYPE html>
       paint-order: stroke; stroke: #100c16; stroke-width: 3px;
     }
     .flow-node {
-      position: absolute; width: 176px; min-height: 56px;
-      background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
-      padding: 8px 10px; box-shadow: 0 4px 16px #0006; cursor: grab; user-select: none;
-      z-index: 2;
+      position: absolute; width: 300px; min-height: 64px;
+      background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+      padding: 0; box-shadow: 0 6px 18px #0007; cursor: grab; user-select: none;
+      z-index: 2; overflow: hidden;
     }
     .flow-node:active { cursor: grabbing; }
-    .flow-node.selected { border-color: var(--accent); box-shadow: 0 0 0 2px #ff8fab55; }
+    .flow-node.selected { border-color: var(--accent); box-shadow: 0 0 0 2px #ff8fab66; }
+    .flow-node .fn-head { display: flex; gap: 8px; align-items: flex-start; padding: 10px 10px 6px; }
+    .flow-node .fn-expand {
+      flex: 0 0 auto; width: 26px; height: 26px; border-radius: 6px;
+      border: 1px solid var(--border); background: var(--panel2); color: var(--text);
+      cursor: pointer; font-size: 1rem; line-height: 1; padding: 0;
+    }
     .flow-node .fn-kind {
       font-size: 0.62rem; text-transform: uppercase; letter-spacing: .06em;
       color: var(--muted); margin-bottom: 2px;
     }
     .flow-node .fn-label {
-      font-size: 0.82rem; font-weight: 600; line-height: 1.25;
+      font-size: 0.88rem; font-weight: 600; line-height: 1.25;
       word-break: break-word;
     }
     .flow-node .fn-sub { font-size: 0.68rem; color: var(--muted); margin-top: 3px; }
-    .flow-node.kind-route { border-left: 3px solid #c8b6ff; }
+    .flow-node .fn-ports {
+      display: flex; justify-content: space-between; padding: 0 8px 8px; gap: 6px;
+    }
+    .flow-node .fn-port {
+      font-size: 0.65rem; padding: 3px 8px; border-radius: 999px;
+      border: 1px solid var(--border); background: var(--panel2); color: var(--muted); cursor: crosshair;
+    }
+    .flow-node .fn-port.out { color: var(--accent); border-color: #ff8fab66; }
+    .flow-node .fn-port.connecting { outline: 2px solid var(--accent2); }
+    .flow-node .fn-body {
+      display: none; border-top: 1px solid var(--border); padding: 8px 10px 10px;
+      max-height: 360px; overflow: auto; background: #160f1c;
+    }
+    .flow-node.expanded .fn-body { display: block; }
+    .flow-node .fn-section { margin-bottom: 8px; }
+    .flow-node .fn-section h4 {
+      margin: 0 0 4px; font-size: 0.68rem; text-transform: uppercase;
+      letter-spacing: 0.05em; color: var(--muted);
+    }
+    .flow-node .fn-asset {
+      display: flex; gap: 6px; align-items: center; margin: 4px 0; font-size: 0.72rem;
+    }
+    .flow-node .fn-asset img {
+      width: 36px; height: 36px; object-fit: cover; border-radius: 6px; background: #100c16;
+    }
+    .flow-node .fn-line {
+      margin: 4px 0; padding: 6px; border-radius: 6px; background: var(--panel2);
+      border: 1px solid var(--border); font-size: 0.72rem;
+    }
+    .flow-node .fn-line textarea {
+      width: 100%; min-height: 40px; font-size: 0.72rem; resize: vertical;
+      background: #100c16; color: var(--text); border: 1px solid var(--border);
+      border-radius: 6px; padding: 4px 6px; font-family: inherit;
+    }
+    .flow-node.stype-menu { border-left: 3px solid #c8b6ff; }
+    .flow-node.stype-gameplay { border-left: 3px solid #ff8fab; }
+    .flow-node.stype-cinematic, .flow-node.stype-scene { border-left: 3px solid #ffb4c8; }
+    .flow-node.stype-ending { border-left: 3px solid #7dffa0; }
     .flow-node.kind-level { border-left: 3px solid #ff8fab; }
     .flow-node.kind-scene { border-left: 3px solid #ffb4c8; }
     .flow-node.kind-ending { border-left: 3px solid #7dffa0; }
-    .flow-node.kind-dialogue { border-left: 3px solid #ffe66b; }
-    .flow-node.kind-choice, .flow-node.kind-option { border-left: 3px solid #e9c46a; }
-    .flow-node.kind-system, .flow-node.kind-engine { border-left: 3px solid #8ecae6; }
-    .flow-node.kind-slot, .flow-node.kind-asset { border-left: 3px solid #bdb2ff; }
-    .flow-node.kind-character { border-left: 3px solid #ff8fab; min-height: 72px; }
-    .flow-node.kind-anim_clip { border-left: 3px solid #f4a261; }
-    .flow-node.kind-world { border-left: 3px solid #2a9d8f; }
-    .flow-node.kind-minigame { border-left: 3px solid #e9c46a; }
+    .flow-node.kind-ui_screen, .flow-node.kind-system { border-left: 3px solid #c8b6ff; }
+    .flow-connect-banner {
+      display: none; padding: 8px 12px; margin-bottom: 8px; border-radius: 8px;
+      background: #c8b6ff22; border: 1px solid #c8b6ff66; font-size: 0.85rem;
+    }
+    .flow-connect-banner.on { display: block; }
     .char-film {
       display: flex; gap: 6px; overflow-x: auto; padding: 6px 0;
     }
@@ -1842,8 +1954,8 @@ STUDIO_HTML = r"""<!DOCTYPE html>
 <body>
   <header>
     <div>
-      <h1>🌸 <span>Sakura</span> Studio <span class="ver" id="buildVer">v0.8.0</span></h1>
-      <div class="muted">Flow · Assets · Export · Swaps · Dialogue</div>
+      <h1>🌸 <span>Sakura</span> Studio <span class="ver" id="buildVer">v0.9.0</span></h1>
+      <div class="muted">Flow workstation · scenes + in-node assets</div>
     </div>
     <div class="row">
       <div class="field">
@@ -1859,17 +1971,16 @@ STUDIO_HTML = r"""<!DOCTYPE html>
   <div id="contextBar"></div>
   <main>
     <div class="tabs" id="mainTabs">
-      <button type="button" data-tab="overview" class="active">Overview</button>
-      <button type="button" data-tab="flow">Flow ★</button>
+      <button type="button" data-tab="flow" class="active">Flow ★</button>
       <button type="button" data-tab="assets">Assets ✦</button>
       <button type="button" data-tab="swaps">Swaps</button>
-      <button type="button" data-tab="story">Story</button>
       <button type="button" data-tab="dialogue">Dialogue</button>
+      <button type="button" data-tab="overview">Overview</button>
       <button type="button" data-tab="cast">Cast</button>
       <button type="button" data-tab="code">Code map</button>
     </div>
 
-    <section id="panel-overview" class="panel active"></section>
+    <section id="panel-overview" class="panel"></section>
     <section id="panel-assets" class="panel">
       <div class="card" style="margin-bottom:12px">
         <h3 style="margin:0 0 6px">Game asset tools</h3>
@@ -1900,24 +2011,26 @@ STUDIO_HTML = r"""<!DOCTYPE html>
         </div>
       </div>
     </section>
-    <section id="panel-flow" class="panel">
+    <section id="panel-flow" class="panel active">
       <div class="flow-toolbar" id="flowToolbar">
-        <strong style="font-size:0.9rem">Story · art · engine flow</strong>
+        <strong style="font-size:0.9rem">Scene flow</strong>
+        <button type="button" id="btnFlowAdd" title="N">+ Scene</button>
+        <button type="button" class="secondary" id="btnFlowConnect" title="C">Connect</button>
         <button type="button" class="secondary" id="btnFlowReload">Reload</button>
         <button type="button" class="secondary" id="btnFlowAuto">Auto-layout</button>
-        <button type="button" id="btnFlowSave">Save layout</button>
-        <label class="toggle" style="margin:0"><input type="checkbox" id="flowDlgDetail" checked /> Dialogue detail</label>
-        <span class="muted" style="font-size:0.75rem">Drag nodes · scroll zoom · space/middle-drag pan</span>
+        <button type="button" class="secondary" id="btnFlowSave">Save layout</button>
+        <span class="muted" style="font-size:0.75rem">+/- expand assets · drag · scroll zoom · pan empty canvas · N add · C connect</span>
         <div class="legend" id="flowLegend"></div>
       </div>
-      <div class="row" style="margin-bottom:8px;gap:10px" id="flowLayers"></div>
+      <div class="flow-connect-banner" id="flowConnectBanner">Connect mode: click <strong>out</strong> on source, then <strong>in</strong> on target (Esc cancel)</div>
+      <div id="flowEngineBar" class="muted" style="margin-bottom:8px;font-size:0.8rem"></div>
       <div class="flow-wrap" id="flowWrap">
         <div class="flow-viewport" id="flowViewport">
           <svg class="flow-edges" id="flowEdges"></svg>
           <div id="flowNodes"></div>
         </div>
       </div>
-      <div class="flow-detail" id="flowDetail">Select a node to inspect connections.</div>
+      <div class="flow-detail" id="flowDetail">Select a scene node. Expand (+) to edit assets in place. Connect scenes for player progression.</div>
     </section>
     <section id="panel-swaps" class="panel">
       <div class="style-board" id="styleBoard">
@@ -3006,22 +3119,23 @@ STUDIO_HTML = r"""<!DOCTYPE html>
       }
     });
 
-    /* ---- Flow node graph ---- */
-    let flowGraph = { nodes: [], edges: [], legend: [] };
+    /* ---- Flow node graph (scene-centric) ---- */
+    let flowGraph = { nodes: [], edges: [], legend: [], engine: null };
     let flowPos = {};
-    let flowLayersOn = {};
+    let flowExpanded = {};
     let flowScale = 1;
     let flowPan = { x: 20, y: 20 };
     let flowDrag = null;
     let flowPanDrag = null;
     let flowSelected = null;
+    let flowConnectMode = false;
+    let flowConnectFrom = null;
 
     async function loadFlow() {
       if (!currentTitleId) return;
-      const detail = document.getElementById('flowDlgDetail')?.checked !== false;
       const q = new URLSearchParams({
         title: currentTitleId,
-        dialogue_detail: detail ? 'true' : 'false',
+        dialogue_detail: 'true',
       });
       const g = await api('/api/flow?' + q.toString());
       flowGraph = g;
@@ -3029,33 +3143,19 @@ STUDIO_HTML = r"""<!DOCTYPE html>
       for (const n of g.nodes || []) {
         flowPos[n.id] = { x: n.x || 0, y: n.y || 0 };
       }
-      const layers = g.layers || [];
-      if (!Object.keys(flowLayersOn).length) {
-        for (const L of layers) flowLayersOn[L] = true;
-      } else {
-        for (const L of layers) if (flowLayersOn[L] === undefined) flowLayersOn[L] = true;
+      const eng = g.engine;
+      const bar = document.getElementById('flowEngineBar');
+      if (bar) {
+        bar.innerHTML = eng
+          ? `Engine (shared, not per-node): <strong>${escapeHtml(eng.label || eng.id)}</strong>
+             <span class="muted">· ${escapeHtml(eng.runtime || '')}</span>
+             · ${g.stats?.nodes || 0} scenes · ${g.stats?.edges || 0} links`
+          : `${g.stats?.nodes || 0} scenes · ${g.stats?.edges || 0} links`;
       }
-      renderFlowLayers();
       renderFlowLegend(g.legend || []);
       renderFlowGraph();
-      log(`Flow: ${g.stats?.nodes || 0} nodes · ${g.stats?.edges || 0} edges` +
+      log(`Flow: ${g.stats?.nodes || 0} scenes · ${g.stats?.edges || 0} links` +
         (g.layout_saved ? ' (saved layout)' : ' (auto layout)'));
-    }
-
-    function renderFlowLayers() {
-      const host = document.getElementById('flowLayers');
-      if (!host) return;
-      const layers = flowGraph.layers || Object.keys(flowLayersOn);
-      host.innerHTML = '<span class="muted">Layers:</span>' + layers.map(L => `
-        <label class="toggle" style="margin:0">
-          <input type="checkbox" data-layer="${L}" ${flowLayersOn[L] !== false ? 'checked' : ''}/> ${L}
-        </label>`).join('');
-      host.querySelectorAll('input[data-layer]').forEach(inp => {
-        inp.onchange = () => {
-          flowLayersOn[inp.dataset.layer] = inp.checked;
-          renderFlowGraph();
-        };
-      });
     }
 
     function renderFlowLegend(legend) {
@@ -3066,58 +3166,265 @@ STUDIO_HTML = r"""<!DOCTYPE html>
       ).join('');
     }
 
-    function nodeVisible(n) {
-      return flowLayersOn[n.layer] !== false;
-    }
+    function nodeVisible(n) { return true; }
 
     function applyFlowTransform() {
       const vp = document.getElementById('flowViewport');
       if (vp) vp.style.transform = `translate(${flowPan.x}px,${flowPan.y}px) scale(${flowScale})`;
     }
 
+    function renderAssetBody(n) {
+      const a = n.assets || {};
+      const g = a.graphics || [];
+      const t = a.text || [];
+      const d = a.dialogue || [];
+      const c = a.characters || [];
+      const code = a.code || [];
+      const ch = a.choices || [];
+      let html = '';
+      if (g.length) {
+        html += `<div class="fn-section"><h4>Graphics / pieces (${g.length})</h4>`;
+        for (const item of g.slice(0, 12)) {
+          html += `<div class="fn-asset">
+            ${item.preview_url ? `<img src="${item.preview_url}" alt="" />` : '<span class="badge warn">empty</span>'}
+            <span>${escapeHtml(item.label || item.slot_id)} <span class="muted">${escapeHtml(item.kind || '')}</span></span>
+          </div>`;
+        }
+        if (g.length > 12) html += `<div class="muted">+${g.length - 12} more</div>`;
+        html += `</div>`;
+      }
+      if (c.length) {
+        html += `<div class="fn-section"><h4>Characters (${c.length})</h4>`;
+        for (const item of c) {
+          html += `<div class="fn-asset">
+            ${item.preview_url ? `<img src="${item.preview_url}" alt="" />` : ''}
+            <span>${escapeHtml(item.label || item.character_id)}</span>
+          </div>`;
+        }
+        html += `</div>`;
+      }
+      if (d.length) {
+        html += `<div class="fn-section"><h4>Dialogue (${d.length})</h4>`;
+        for (const line of d.slice(0, 8)) {
+          const sid = n.dialogue_scene_id || '';
+          html += `<div class="fn-line">
+            <div class="muted">${escapeHtml(line.speaker || '—')} · ${escapeHtml(line.node_id || '')}</div>
+            <textarea data-scene="${escapeHtml(sid)}" data-node="${escapeHtml(line.node_id || '')}">${escapeHtml(line.text || '')}</textarea>
+            <button type="button" class="secondary btn-fn-save-line" style="margin-top:4px;padding:4px 8px;font-size:0.7rem">Save line</button>
+          </div>`;
+        }
+        if (d.length > 8) html += `<div class="muted">+${d.length - 8} more lines — open Dialogue tab for full ledger</div>`;
+        html += `</div>`;
+      }
+      if (t.length) {
+        html += `<div class="fn-section"><h4>Text / UI (${t.length})</h4>`;
+        for (const item of t) {
+          html += `<div class="muted">• ${escapeHtml(item.text || item.key)}</div>`;
+        }
+        html += `</div>`;
+      }
+      if (ch.length) {
+        html += `<div class="fn-section"><h4>Choices</h4>`;
+        for (const item of ch.slice(0, 8)) {
+          html += `<div class="muted">• [${escapeHtml(item.kind)}] ${escapeHtml((item.label || '').slice(0, 80))}</div>`;
+        }
+        html += `</div>`;
+      }
+      if (code.length) {
+        html += `<div class="fn-section"><h4>Code / projects</h4>`;
+        for (const item of code) {
+          html += `<div class="fn-asset">
+            <span><strong>${escapeHtml(item.label)}</strong><br/><span class="muted">${escapeHtml(item.hint || item.ref || '')}</span></span>
+            <button type="button" class="secondary btn-fn-open" data-open="${escapeHtml(item.open || '')}" style="padding:4px 8px;font-size:0.68rem">Open</button>
+          </div>`;
+        }
+        html += `</div>`;
+      }
+      if (!html) html = '<div class="muted">No assets linked yet — bind slots or add dialogue for this scene.</div>';
+      return html;
+    }
+
     function renderFlowGraph() {
       const nodesHost = document.getElementById('flowNodes');
       const svg = document.getElementById('flowEdges');
       if (!nodesHost || !svg) return;
-      const nodes = (flowGraph.nodes || []).filter(nodeVisible);
-      const ids = new Set(nodes.map(n => n.id));
-      const edges = (flowGraph.edges || []).filter(e => ids.has(e.from) && ids.has(e.to));
+      const nodes = flowGraph.nodes || [];
+      const edges = flowGraph.edges || [];
 
-      // nodes
       nodesHost.innerHTML = '';
       for (const n of nodes) {
         const pos = flowPos[n.id] || { x: n.x || 0, y: n.y || 0 };
+        const expanded = !!flowExpanded[n.id];
         const el = document.createElement('div');
-        el.className = 'flow-node kind-' + (n.kind || 'other') + (flowSelected === n.id ? ' selected' : '');
+        el.className = 'flow-node kind-' + (n.kind || 'other')
+          + ' stype-' + (n.scene_type || 'scene')
+          + (flowSelected === n.id ? ' selected' : '')
+          + (expanded ? ' expanded' : '');
         el.dataset.id = n.id;
         el.style.left = pos.x + 'px';
         el.style.top = pos.y + 'px';
-        const thumb = n.preview_url
-          ? `<img class="fn-thumb" src="${n.preview_url}" alt="" draggable="false" />`
-          : '';
+        const counts = n.asset_counts || {};
+        const countStr = ['graphics','dialogue','characters','code']
+          .filter(k => counts[k])
+          .map(k => `${counts[k]} ${k.slice(0,4)}`)
+          .join(' · ') || 'empty';
         el.innerHTML = `
-          <div class="fn-kind">${n.kind || '?'}</div>
-          <div class="fn-label">${escapeHtml(n.label || n.id)}</div>
-          ${n.subtitle ? `<div class="fn-sub">${escapeHtml(n.subtitle)}</div>` : ''}
-          ${thumb}
+          <div class="fn-head">
+            <button type="button" class="fn-expand" title="Expand assets">${expanded ? '−' : '+'}</button>
+            <div style="flex:1;min-width:0">
+              <div class="fn-kind">${escapeHtml(n.scene_type || n.kind || '?')}</div>
+              <div class="fn-label">${escapeHtml(n.label || n.id)}</div>
+              <div class="fn-sub">${escapeHtml(countStr)}</div>
+            </div>
+            ${n.preview_url ? `<img src="${n.preview_url}" alt="" draggable="false" style="width:48px;height:48px;object-fit:cover;border-radius:8px" />` : ''}
+          </div>
+          <div class="fn-ports">
+            <span class="fn-port in" data-port="in" title="Connect here">in</span>
+            <span class="fn-port out" data-port="out" title="Connect from here">out →</span>
+          </div>
+          <div class="fn-body">${expanded ? renderAssetBody(n) : ''}</div>
         `;
-        el.addEventListener('pointerdown', (ev) => onFlowNodeDown(ev, n, el));
-        el.addEventListener('click', (ev) => {
+        el.querySelector('.fn-expand').addEventListener('pointerdown', (ev) => ev.stopPropagation());
+        el.querySelector('.fn-expand').addEventListener('click', (ev) => {
           ev.stopPropagation();
+          flowExpanded[n.id] = !flowExpanded[n.id];
+          renderFlowGraph();
           selectFlowNode(n.id);
         });
-        el.addEventListener('dblclick', (ev) => {
+        el.querySelectorAll('.fn-port').forEach(port => {
+          port.addEventListener('pointerdown', (ev) => ev.stopPropagation());
+          port.addEventListener('click', (ev) => {
+            ev.stopPropagation();
+            onFlowPortClick(n.id, port.dataset.port);
+          });
+        });
+        el.querySelectorAll('.btn-fn-save-line').forEach(btn => {
+          btn.addEventListener('pointerdown', (ev) => ev.stopPropagation());
+          btn.addEventListener('click', async (ev) => {
+            ev.stopPropagation();
+            const wrap = btn.closest('.fn-line');
+            const ta = wrap && wrap.querySelector('textarea');
+            if (!ta || !ta.dataset.scene || !ta.dataset.node) return;
+            try {
+              await api('/api/dialogue/line', {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                  title_id: currentTitleId,
+                  scene_id: ta.dataset.scene,
+                  node_id: ta.dataset.node,
+                  text: ta.value,
+                }),
+              });
+              log('Saved line ' + ta.dataset.node);
+              btn.textContent = 'Saved';
+            } catch (e) { log('ERROR: ' + e.message); }
+          });
+        });
+        el.querySelectorAll('.btn-fn-open').forEach(btn => {
+          btn.addEventListener('pointerdown', (ev) => ev.stopPropagation());
+          btn.addEventListener('click', (ev) => {
+            ev.stopPropagation();
+            const open = btn.dataset.open;
+            if (open === 'dialogue') document.querySelector('#mainTabs [data-tab="dialogue"]')?.click();
+            else if (open === 'ide' || open === 'engine') {
+              log('Open linked project: use your IDE / Unity / Blender for engine code. Ref noted on node.');
+            } else if (open === 'levels') {
+              log('Level config lives in catalog levels.yaml — edit via agent or Swaps for piece art.');
+            }
+          });
+        });
+        el.addEventListener('pointerdown', (ev) => {
+          if (ev.target.closest('.fn-expand, .fn-port, .fn-body, button, textarea')) return;
+          onFlowNodeDown(ev, n, el);
+        });
+        el.addEventListener('click', (ev) => {
+          if (ev.target.closest('.fn-expand, .fn-port, button, textarea')) return;
           ev.stopPropagation();
-          openFlowNodeDeep(n).catch(err => log(err.message));
+          selectFlowNode(n.id);
         });
         nodesHost.appendChild(el);
       }
 
-      // edges (after nodes so we can measure)
       requestAnimationFrame(() => {
         drawFlowEdges(svg, nodes, edges);
         applyFlowTransform();
       });
+    }
+
+    function onFlowPortClick(nodeId, port) {
+      if (!flowConnectMode && port === 'out') {
+        flowConnectMode = true;
+        flowConnectFrom = nodeId;
+        updateConnectBanner();
+        return;
+      }
+      if (flowConnectMode) {
+        if (port === 'out') {
+          flowConnectFrom = nodeId;
+          updateConnectBanner();
+          return;
+        }
+        if (port === 'in' && flowConnectFrom && flowConnectFrom !== nodeId) {
+          connectFlowScenes(flowConnectFrom, nodeId);
+        }
+      }
+    }
+
+    function updateConnectBanner() {
+      const b = document.getElementById('flowConnectBanner');
+      if (!b) return;
+      b.classList.toggle('on', flowConnectMode);
+      if (flowConnectMode) {
+        b.innerHTML = flowConnectFrom
+          ? `Connect from <code>${escapeHtml(flowConnectFrom)}</code> — click <strong>in</strong> on target (Esc cancel)`
+          : 'Connect mode: click <strong>out</strong> on source scene';
+      }
+    }
+
+    async function connectFlowScenes(fromId, toId) {
+      try {
+        const r = await api('/api/flow/connect', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            title_id: currentTitleId,
+            from_id: fromId,
+            to_id: toId,
+            kind: 'leads_to',
+          }),
+        });
+        log(r.message || `Connected ${fromId} → ${toId}`);
+        flowConnectMode = false;
+        flowConnectFrom = null;
+        updateConnectBanner();
+        await loadFlow();
+      } catch (e) {
+        log('Connect failed: ' + e.message);
+      }
+    }
+
+    async function addFlowScene() {
+      const label = prompt('New scene name', 'New scene');
+      if (!label) return;
+      const kind = prompt('Kind: scene | level | ui_screen | ending', 'scene') || 'scene';
+      try {
+        const r = await api('/api/flow/scene', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            title_id: currentTitleId,
+            label,
+            kind,
+            after_id: flowSelected || null,
+          }),
+        });
+        log('Added scene ' + (r.node && r.node.id));
+        await loadFlow();
+        if (r.node) selectFlowNode(r.node.id);
+      } catch (e) {
+        log('Add scene failed: ' + e.message);
+      }
     }
 
     function escapeHtml(s) {
@@ -3191,55 +3498,75 @@ STUDIO_HTML = r"""<!DOCTYPE html>
       if (!n || !detail) return;
       const outs = (flowGraph.edges || []).filter(e => e.from === id);
       const ins = (flowGraph.edges || []).filter(e => e.to === id);
-      const deepHint = (n.data && n.data.open)
-        ? `<p class="muted" style="margin:8px 0 0">Double-click to open <strong>${escapeHtml(n.data.open)}</strong> inspector</p>`
-        : '';
+      const ac = n.asset_counts || {};
       detail.innerHTML = `
         <div class="row" style="justify-content:space-between">
           <div>
             <strong>${escapeHtml(n.label || n.id)}</strong>
-            <span class="badge cat">${escapeHtml(n.kind)}</span>
-            <span class="badge">${escapeHtml(n.layer || '')}</span>
+            <span class="badge cat">${escapeHtml(n.scene_type || n.kind)}</span>
           </div>
           <span class="muted" style="font-size:0.72rem">${escapeHtml(n.id)}</span>
         </div>
-        ${n.subtitle ? `<p class="muted" style="margin:6px 0 0">${escapeHtml(n.subtitle)}</p>` : ''}
-        ${n.preview_url ? `<div class="hero-row"><img src="${n.preview_url}" alt="" /></div>` : ''}
-        ${deepHint}
+        <p class="muted" style="margin:6px 0 0">
+          Expand (+) on the node to edit dialogue / see graphics.
+          Assets: ${ac.graphics || 0} gfx · ${ac.dialogue || 0} lines · ${ac.characters || 0} cast · ${ac.code || 0} code refs
+        </p>
         <div class="two-col" style="margin-top:8px">
           <div>
-            <div class="muted" style="margin-bottom:4px">Inbound</div>
+            <div class="muted" style="margin-bottom:4px">← From</div>
             ${ins.length ? ins.map(e =>
-              `<div>• <em>${escapeHtml(e.label)}</em> ← ${escapeHtml(e.from)}</div>`
-            ).join('') : '<div class="muted">—</div>'}
+              `<div>• <em>${escapeHtml(e.label)}</em> ← <a href="#" data-jump="${escapeHtml(e.from)}">${escapeHtml(e.from)}</a></div>`
+            ).join('') : '<div class="muted">— (start or unlinked)</div>'}
           </div>
           <div>
-            <div class="muted" style="margin-bottom:4px">Outbound</div>
+            <div class="muted" style="margin-bottom:4px">→ Then</div>
             ${outs.length ? outs.map(e =>
-              `<div>• <em>${escapeHtml(e.label)}</em> → ${escapeHtml(e.to)}</div>`
-            ).join('') : '<div class="muted">—</div>'}
+              `<div>• <em>${escapeHtml(e.label)}</em> → <a href="#" data-jump="${escapeHtml(e.to)}">${escapeHtml(e.to)}</a>
+               <button type="button" class="secondary btn-disc" data-from="${escapeHtml(id)}" data-to="${escapeHtml(e.to)}" style="padding:2px 6px;font-size:0.65rem">×</button></div>`
+            ).join('') : '<div class="muted">— use Connect or out→in ports</div>'}
           </div>
         </div>
+        <div class="row" style="margin-top:10px">
+          <button type="button" class="secondary" id="btnFlowExpandSel">Expand assets</button>
+          <button type="button" class="secondary" id="btnFlowConnectFrom">Connect from here</button>
+          <button type="button" class="secondary" id="btnFlowOpenDlg">Dialogue tab</button>
+          <button type="button" class="secondary" id="btnFlowOpenSwaps">Swaps tab</button>
+        </div>
       `;
-    }
-
-    async function openFlowNodeDeep(n) {
-      selectFlowNode(n.id);
-      const open = n.data && n.data.open;
-      if (open === 'character' || n.kind === 'character' || n.kind === 'anim_clip') {
-        const cid = n.data && n.data.character_id;
-        if (!cid || !currentTitleId) {
-          log('No character_id on this node');
-          return;
-        }
-        await renderCharacterInspector(cid);
-        return;
-      }
-      if (open === 'world' || n.kind === 'world') {
-        renderWorldInspector(n);
-        return;
-      }
-      log('No deep inspector for ' + (n.kind || n.id));
+      detail.querySelectorAll('[data-jump]').forEach(a => {
+        a.onclick = (ev) => { ev.preventDefault(); selectFlowNode(a.dataset.jump); };
+      });
+      detail.querySelectorAll('.btn-disc').forEach(btn => {
+        btn.onclick = async () => {
+          try {
+            await api('/api/flow/disconnect', {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({
+                title_id: currentTitleId,
+                from_id: btn.dataset.from,
+                to_id: btn.dataset.to,
+              }),
+            });
+            await loadFlow();
+            selectFlowNode(id);
+          } catch (e) { log(e.message); }
+        };
+      });
+      document.getElementById('btnFlowExpandSel').onclick = () => {
+        flowExpanded[id] = true;
+        renderFlowGraph();
+        selectFlowNode(id);
+      };
+      document.getElementById('btnFlowConnectFrom').onclick = () => {
+        flowConnectMode = true;
+        flowConnectFrom = id;
+        updateConnectBanner();
+      };
+      document.getElementById('btnFlowOpenDlg').onclick = () =>
+        document.querySelector('#mainTabs [data-tab="dialogue"]')?.click();
+      document.getElementById('btnFlowOpenSwaps').onclick = () =>
+        document.querySelector('#mainTabs [data-tab="swaps"]')?.click();
     }
 
     async function renderCharacterInspector(characterId) {
@@ -3436,6 +3763,34 @@ STUDIO_HTML = r"""<!DOCTYPE html>
 
       document.getElementById('btnFlowReload')?.addEventListener('click', () =>
         loadFlow().catch(e => log(e.message)));
+      document.getElementById('btnFlowAdd')?.addEventListener('click', () =>
+        addFlowScene().catch(e => log(e.message)));
+      document.getElementById('btnFlowConnect')?.addEventListener('click', () => {
+        flowConnectMode = !flowConnectMode;
+        if (!flowConnectMode) flowConnectFrom = null;
+        updateConnectBanner();
+      });
+      document.addEventListener('keydown', (ev) => {
+        if (ev.target.matches('input, textarea, select')) return;
+        if (ev.key === 'n' || ev.key === 'N') {
+          if (document.getElementById('panel-flow')?.classList.contains('active')) {
+            ev.preventDefault();
+            addFlowScene().catch(e => log(e.message));
+          }
+        }
+        if (ev.key === 'c' || ev.key === 'C') {
+          if (document.getElementById('panel-flow')?.classList.contains('active')) {
+            flowConnectMode = !flowConnectMode;
+            if (!flowConnectMode) flowConnectFrom = null;
+            updateConnectBanner();
+          }
+        }
+        if (ev.key === 'Escape') {
+          flowConnectMode = false;
+          flowConnectFrom = null;
+          updateConnectBanner();
+        }
+      });
       document.getElementById('flowDlgDetail')?.addEventListener('change', () =>
         loadFlow().catch(e => log(e.message)));
       document.getElementById('btnFlowSave')?.addEventListener('click', async () => {
