@@ -1641,3 +1641,75 @@ slots:
   - narrator
   - the_moonlit_door
   notes: string_id=str.tea.the_moonlit_door.petals_fall
+- id: slot.ui.splash.background
+  label: Splash · background
+  kind: bg
+  required: false
+  status: draft
+  tags:
+  - splash
+  - menu
+  - graphic
+  - swap
+  used_by:
+  - node.ui_screen.title
+- id: slot.ui.splash.logo
+  label: Splash · logo
+  kind: ui
+  required: false
+  status: draft
+  tags:
+  - splash
+  - menu
+  - logo
+  - swap
+  used_by:
+  - node.ui_screen.title
+- id: slot.ui.splash.btn_play
+  label: Splash · Play button
+  kind: ui
+  required: false
+  status: draft
+  tags:
+  - splash
+  - menu
+  - button
+  - swap
+  used_by:
+  - node.ui_screen.title
+- id: slot.ui.splash.btn_continue
+  label: Splash · Continue button
+  kind: ui
+  required: false
+  status: draft
+  tags:
+  - splash
+  - menu
+  - button
+  - swap
+  used_by:
+  - node.ui_screen.title
+- id: slot.ui.splash.btn_settings
+  label: Splash · Settings button
+  kind: ui
+  required: false
+  status: draft
+  tags:
+  - splash
+  - menu
+  - button
+  - swap
+  used_by:
+  - node.ui_screen.title
+- id: slot.ui.splash.title_wordmark
+  label: Splash · title wordmark
+  kind: ui
+  required: false
+  status: draft
+  tags:
+  - splash
+  - menu
+  - text-art
+  - swap
+  used_by:
+  - node.ui_screen.title

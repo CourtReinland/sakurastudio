@@ -25,6 +25,13 @@ gates:
   require_approved_player_facing_nodes: false
 notes: Maps to GitHub CourtReinland/sakura-match. Dialogue ledger imported from GDD §13; public/assets wired as catalog library.
 exports:
-  # Absolute path to game repo root OR public/ folder — VO files export here as audio/vo/<scene>/<node>.mp3
-  # game_audio_root: /path/to/sakura-match
-  # Or set env SAKURA_GAME_AUDIO_ROOT / SAKURA_GAME_PUBLIC
+  # Paths relative to SakuraSoft/ monorepo root, or absolute
+  # game_repo: ../sakura-match
+  # game_audio_root: ../sakura-match
+  # unity_project: projects/sakura-match
+  # blender_file: art/tea_house.blend
+  # unreal_project: /path/to/TeaHouse
+  # code_paths:
+  #   vn: ../sakura-match/src/ui
+  #   title_ui: ../sakura-match/src/app
+  #   levels: catalog/titles/sakura-tea-house/levels.yaml

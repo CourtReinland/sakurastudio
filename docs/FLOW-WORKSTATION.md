@@ -29,12 +29,28 @@ Flow is the **main surface** of Sakura Studio: one node = one player-facing **sc
 | Expand / collapse assets | **+ / −** on node |
 | Move node | Drag body |
 | Pan / zoom | Drag empty canvas · scroll |
-| Connect A → B | **Connect** (or **C**) · **out** on A · **in** on B |
+| Connect A → B | **Drag from out →** onto target node (rubber-band), or **C** then out/in |
 | Disconnect | × on outbound link in detail panel |
 | Add scene | **+ Scene** or **N** |
+| Splash slots | **Ensure splash slots** (bg, logo, buttons) auto-created |
 | Save positions | **Save layout** → `studio.yaml` |
 | Edit line | Expand → Save line |
-| Deeper tools | Swaps / Assets / Dialogue / IDE notes |
+| Open Unity / Blender / IDE | Expand → Code section → **Open** / **Unity** / **Blender** |
+
+### Deep links (`title.yaml` → `exports`)
+
+```yaml
+exports:
+  game_repo: ../sakura-match          # IDE / folder
+  unity_project: projects/sakura-match
+  blender_file: art/tea_house.blend
+  unreal_project: /abs/path/MyGame
+  code_paths:
+    vn: ../sakura-match/src/ui
+    title_ui: ../sakura-match/src/app
+```
+
+`POST /api/open` with `{ title_id, app: "unity"|"blender"|"ide"|"folder", key?, path? }`.
 
 ## APIs
 

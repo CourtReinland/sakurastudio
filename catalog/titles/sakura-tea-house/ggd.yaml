@@ -1,5 +1,16 @@
 title_id: title.sakura_tea_house
 nodes:
+- id: node.ui_screen.title
+  kind: ui_screen
+  label: Title / Splash
+  status: draft
+  data:
+    splash: true
+    is_menu: true
+  tags:
+  - menu
+  - start
+  - splash
 - id: node.route.common
   kind: route
   label: Common route (Ch.1 inheritance)
@@ -340,3 +351,8 @@ edges:
   kind: uses_slot
   from: node.scene.moonlit_door
   to: slot.cg.tea.scene_11_three_hearts
+- id: edge.leads_to.node-ui-screen-title.node-level-1
+  kind: leads_to
+  from: node.ui_screen.title
+  to: node.level.1
+  label: Play

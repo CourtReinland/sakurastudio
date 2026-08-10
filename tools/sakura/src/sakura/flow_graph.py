@@ -375,7 +375,39 @@ def build_flow_graph(
                 continue
         scene_nodes_raw.append(n)
 
-    # Ensure a splash / start if none exists
+    # Ensure splash node + default splash slots exist (idempotent catalog write)
+    try:
+        ensure_splash_scene_and_slots(root, title_id, node_id="node.ui_screen.title")
+        # reload ggd after ensure (slots/nodes may have been added)
+        if ggd_ent and ggd_ent.path.is_file():
+            ggd_reload = load_yaml(ggd_ent.path) or {}
+            ggd_nodes = [
+                n for n in (ggd_reload.get("nodes") or []) if isinstance(n, dict)
+            ]
+            ggd_edges = [
+                e for e in (ggd_reload.get("edges") or []) if isinstance(e, dict)
+            ]
+            scene_nodes_raw = []
+            for n in ggd_nodes:
+                kind = str(n.get("kind") or "")
+                if kind not in SCENE_KINDS:
+                    continue
+                if kind == "system":
+                    lid = str(n.get("id") or "").lower()
+                    lab = str(n.get("label") or "").lower()
+                    if "board" not in lid and "menu" not in lab and "title" not in lab:
+                        continue
+                scene_nodes_raw.append(n)
+        # reload slots used_by map
+        if slots_ent and slots_ent.path.is_file():
+            slots_reload = load_yaml(slots_ent.path) or {}
+            slots = [
+                s for s in (slots_reload.get("slots") or []) if isinstance(s, dict)
+            ]
+            slot_by_id = {s["id"]: s for s in slots if s.get("id")}
+    except Exception:
+        pass
+
     has_menu = any(
         _scene_type(str(n.get("kind")), n.get("data") if isinstance(n.get("data"), dict) else {})
         == "menu"
@@ -431,6 +463,9 @@ def build_flow_graph(
             "category": _asset_category(kind, sid),
         }
 
+    exports = title_data.get("exports") if isinstance(title_data.get("exports"), dict) else {}
+    code_paths = exports.get("code_paths") if isinstance(exports.get("code_paths"), dict) else {}
+
     def code_refs_for(kind: str, nid: str, data: dict[str, Any]) -> list[dict[str, Any]]:
         refs: list[dict[str, Any]] = []
         if kind == "level":
@@ -440,14 +475,20 @@ def build_flow_graph(
                     "label": "Level config",
                     "hint": "Match-3 goals, moves, tile pool",
                     "open": "levels",
+                    "app": "ide",
+                    "key": "game_repo",
+                    "path": code_paths.get("levels") or "catalog/titles",
                 }
             )
             refs.append(
                 {
                     "ref": "engine.match3",
                     "label": "Match-3 systems (shared engine)",
-                    "hint": "Not duplicated per level — edit engine pack once",
+                    "hint": "Open game / Unity project — not duplicated per level",
                     "open": "engine",
+                    "app": "unity" if exports.get("unity_project") else "ide",
+                    "key": "unity_project" if exports.get("unity_project") else "game_repo",
+                    "path": exports.get("unity_project") or exports.get("game_repo"),
                 }
             )
         elif kind in ("scene", "cg_moment"):
@@ -463,19 +504,61 @@ def build_flow_graph(
                 {
                     "ref": "engine.vn",
                     "label": "VN / cinematic shell (shared)",
-                    "hint": "Speaker UI, skip, save — engine layer",
+                    "hint": "Speaker UI, skip, save — open IDE project",
                     "open": "engine",
+                    "app": "ide",
+                    "key": "game_repo",
+                    "path": code_paths.get("vn") or exports.get("game_repo"),
                 }
             )
+            if exports.get("blender_file"):
+                refs.append(
+                    {
+                        "ref": "art.blender",
+                        "label": "Blender scene (linked)",
+                        "hint": str(exports.get("blender_file")),
+                        "open": "blender",
+                        "app": "blender",
+                        "key": "blender_file",
+                        "path": exports.get("blender_file"),
+                    }
+                )
         elif kind in ("ui_screen",) or data.get("splash"):
             refs.append(
                 {
                     "ref": "ui.title",
                     "label": "Title screen UI controller",
-                    "hint": "Buttons, continue/new journey — open IDE / game project",
+                    "hint": "Buttons, continue/new journey",
                     "open": "ide",
+                    "app": "ide",
+                    "key": "game_repo",
+                    "path": code_paths.get("title_ui") or exports.get("game_repo"),
                 }
             )
+            if exports.get("unity_project"):
+                refs.append(
+                    {
+                        "ref": "unity.title",
+                        "label": "Open Unity project",
+                        "hint": str(exports.get("unity_project")),
+                        "open": "unity",
+                        "app": "unity",
+                        "key": "unity_project",
+                        "path": exports.get("unity_project"),
+                    }
+                )
+            if exports.get("unreal_project"):
+                refs.append(
+                    {
+                        "ref": "unreal.title",
+                        "label": "Open Unreal project",
+                        "hint": str(exports.get("unreal_project")),
+                        "open": "unreal",
+                        "app": "unreal",
+                        "key": "unreal_project",
+                        "path": exports.get("unreal_project"),
+                    }
+                )
         return refs
 
     nodes: list[dict[str, Any]] = []
@@ -770,6 +853,170 @@ def _asset_category(kind: str, slot_id: str) -> str:
     return "graphic"
 
 
+# Default splash / title-screen slots (auto-created for new menus)
+SPLASH_SLOT_SPECS: list[dict[str, Any]] = [
+    {
+        "id": "slot.ui.splash.background",
+        "label": "Splash · background",
+        "kind": "bg",
+        "tags": ["splash", "menu", "graphic", "swap"],
+    },
+    {
+        "id": "slot.ui.splash.logo",
+        "label": "Splash · logo",
+        "kind": "ui",
+        "tags": ["splash", "menu", "logo", "swap"],
+    },
+    {
+        "id": "slot.ui.splash.btn_play",
+        "label": "Splash · Play button",
+        "kind": "ui",
+        "tags": ["splash", "menu", "button", "swap"],
+    },
+    {
+        "id": "slot.ui.splash.btn_continue",
+        "label": "Splash · Continue button",
+        "kind": "ui",
+        "tags": ["splash", "menu", "button", "swap"],
+    },
+    {
+        "id": "slot.ui.splash.btn_settings",
+        "label": "Splash · Settings button",
+        "kind": "ui",
+        "tags": ["splash", "menu", "button", "swap"],
+    },
+    {
+        "id": "slot.ui.splash.title_wordmark",
+        "label": "Splash · title wordmark",
+        "kind": "ui",
+        "tags": ["splash", "menu", "text-art", "swap"],
+    },
+]
+
+
+def ensure_splash_scene_and_slots(
+    catalog: Path,
+    title_id: str,
+    *,
+    node_id: str = "node.ui_screen.title",
+) -> dict[str, Any]:
+    """
+    Ensure a title/splash GGD node exists and standard splash slots are in slots.yaml
+    with used_by → splash node. Safe to call repeatedly (idempotent).
+    """
+    root = catalog.resolve()
+    index = load_catalog(root, include_examples=True)
+    if title_id not in index.titles:
+        raise ValueError(f"Unknown title: {title_id}")
+    files = index.title_files.get(title_id, {})
+    title_dir = index.titles[title_id].path.parent
+
+    # --- GGD node ---
+    ggd_path = title_dir / "ggd.yaml"
+    if files.get("ggd"):
+        ggd_path = files["ggd"].path
+    ggd = load_yaml(ggd_path) if ggd_path.is_file() else {"title_id": title_id, "nodes": [], "edges": []}
+    if not isinstance(ggd, dict):
+        ggd = {"title_id": title_id, "nodes": [], "edges": []}
+    nodes = list(ggd.get("nodes") or [])
+    edges = list(ggd.get("edges") or [])
+    existing_ids = {n.get("id") for n in nodes if isinstance(n, dict)}
+    created_node = False
+    if node_id not in existing_ids:
+        nodes.insert(
+            0,
+            {
+                "id": node_id,
+                "kind": "ui_screen",
+                "label": "Title / Splash",
+                "status": "draft",
+                "data": {"splash": True, "is_menu": True},
+                "tags": ["menu", "start", "splash"],
+            },
+        )
+        created_node = True
+        # link to first level if any
+        first_level = next(
+            (
+                n.get("id")
+                for n in nodes
+                if isinstance(n, dict)
+                and n.get("kind") == "level"
+                and (n.get("data") or {}).get("index") == 1
+            ),
+            None,
+        )
+        if not first_level:
+            first_level = next(
+                (
+                    n.get("id")
+                    for n in nodes
+                    if isinstance(n, dict) and n.get("kind") in ("level", "scene")
+                    and n.get("id") != node_id
+                ),
+                None,
+            )
+        if first_level:
+            edges.append(
+                {
+                    "id": f"edge.leads_to.{_slug(node_id)}.{_slug(str(first_level))}",
+                    "kind": "leads_to",
+                    "from": node_id,
+                    "to": first_level,
+                    "label": "Play",
+                }
+            )
+    ggd["nodes"] = nodes
+    ggd["edges"] = edges
+    ggd["title_id"] = title_id
+    dump_yaml(ggd_path, ggd)
+
+    # --- slots ---
+    slots_path = title_dir / "slots.yaml"
+    if files.get("slots"):
+        slots_path = files["slots"].path
+    slots_doc = (
+        load_yaml(slots_path)
+        if slots_path.is_file()
+        else {"title_id": title_id, "slots": []}
+    )
+    if not isinstance(slots_doc, dict):
+        slots_doc = {"title_id": title_id, "slots": []}
+    slots = [s for s in (slots_doc.get("slots") or []) if isinstance(s, dict)]
+    by_id = {s["id"]: s for s in slots if s.get("id")}
+    added_slots: list[str] = []
+    for spec in SPLASH_SLOT_SPECS:
+        sid = spec["id"]
+        if sid in by_id:
+            used = list(by_id[sid].get("used_by") or [])
+            if node_id not in used:
+                used.append(node_id)
+                by_id[sid]["used_by"] = used
+            continue
+        by_id[sid] = {
+            "id": sid,
+            "label": spec["label"],
+            "kind": spec["kind"],
+            "required": False,
+            "status": "draft",
+            "tags": list(spec.get("tags") or []),
+            "used_by": [node_id],
+        }
+        added_slots.append(sid)
+    slots_doc["slots"] = list(by_id.values())
+    slots_doc["title_id"] = title_id
+    dump_yaml(slots_path, slots_doc)
+
+    return {
+        "ok": True,
+        "node_id": node_id,
+        "created_node": created_node,
+        "added_slots": added_slots,
+        "ggd": str(ggd_path),
+        "slots": str(slots_path),
+    }
+
+
 def create_scene_node(
     catalog: Path,
     title_id: str,
@@ -796,7 +1043,8 @@ def create_scene_node(
     edges = list(doc.get("edges") or [])
 
     base = _slug(label)
-    nid = f"node.{kind}.{base.replace('-', '_')}"
+    k = kind if kind in SCENE_KINDS else "scene"
+    nid = f"node.{k}.{base.replace('-', '_')}"
     # unique
     existing = {n.get("id") for n in nodes if isinstance(n, dict)}
     i = 2
@@ -805,13 +1053,17 @@ def create_scene_node(
         nid = f"{orig}_{i}"
         i += 1
 
-    st = scene_type or _scene_type(kind, {})
+    st = scene_type or _scene_type(k, {"splash": k == "ui_screen"})
+    data: dict[str, Any] = {"scene_type": st, "created_in": "studio_flow"}
+    if k == "ui_screen" or st == "menu":
+        data["splash"] = True
+        data["is_menu"] = True
     node = {
         "id": nid,
-        "kind": kind if kind in SCENE_KINDS else "scene",
+        "kind": k,
         "label": label,
         "status": "draft",
-        "data": {"scene_type": st, "created_in": "studio_flow"},
+        "data": data,
         "tags": ["flow", st],
     }
     nodes.append(node)
@@ -829,7 +1081,12 @@ def create_scene_node(
     doc["edges"] = edges
     doc["title_id"] = title_id
     dump_yaml(path, doc)
-    return {"ok": True, "node": node, "path": str(path)}
+
+    splash_info = None
+    if data.get("splash") or k == "ui_screen":
+        splash_info = ensure_splash_scene_and_slots(root, title_id, node_id=nid)
+
+    return {"ok": True, "node": node, "path": str(path), "splash": splash_info}
 
 
 def connect_scenes(

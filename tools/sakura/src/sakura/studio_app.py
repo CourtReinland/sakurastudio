@@ -39,8 +39,10 @@ from sakura.flow_graph import (
     connect_scenes,
     create_scene_node,
     disconnect_scenes,
+    ensure_splash_scene_and_slots,
     save_flow_positions,
 )
+from sakura.project_open import open_target
 from sakura.export_game import export_title_to_game
 from sakura.game_assets import run_tool as run_game_asset_tool, tool_catalog as game_asset_tool_catalog
 from sakura.studio_style import load_studio_style, save_studio_style
@@ -55,7 +57,7 @@ from sakura.voice_map import (
 )
 from sakura.yaml_io import load_yaml
 
-app = FastAPI(title="Sakura Studio", version="0.9.0")
+app = FastAPI(title="Sakura Studio", version="0.9.1")
 
 # Swap categories for dashboard filters
 SWAP_CATEGORIES = {
@@ -215,7 +217,7 @@ def health(catalog: str | None = None) -> dict[str, Any]:
     return {
         "ok": True,
         "catalog": str(root),
-        "version": "0.9.0",
+        "version": "0.9.1",
         "elevenlabs_configured": bool(resolve_api_key()),
         "xai_configured": bool(resolve_xai_api_key()),
         "game_asset_tools": [t["id"] for t in game_asset_tool_catalog()],
@@ -330,6 +332,13 @@ class FlowDisconnectBody(BaseModel):
     title_id: str
     from_id: str
     to_id: str
+
+
+class OpenProjectBody(BaseModel):
+    title_id: str
+    app: str = "folder"
+    path: str | None = None
+    key: str | None = None
 
 
 @app.get("/api/flow")
@@ -470,6 +479,37 @@ def api_flow_disconnect(body: FlowDisconnectBody, catalog: str | None = None) ->
         )
     except ValueError as e:
         raise HTTPException(400, str(e)) from e
+
+
+@app.post("/api/flow/ensure-splash")
+def api_flow_ensure_splash(
+    title: str = Query(...),
+    catalog: str | None = None,
+) -> dict[str, Any]:
+    """Create splash node + default splash slots if missing."""
+    root = _catalog(catalog)
+    try:
+        return ensure_splash_scene_and_slots(root, title)
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
+
+
+@app.post("/api/open")
+def api_open_project(body: OpenProjectBody, catalog: str | None = None) -> dict[str, Any]:
+    """Open IDE / Unity / Unreal / Blender / folder for a title export path."""
+    root = _catalog(catalog)
+    try:
+        return open_target(
+            root,
+            body.title_id,
+            app=body.app,
+            path=body.path,
+            key=body.key,
+        )
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
+    except RuntimeError as e:
+        raise HTTPException(500, str(e)) from e
 
 
 @app.get("/api/studio-style")
@@ -1954,8 +1994,8 @@ STUDIO_HTML = r"""<!DOCTYPE html>
 <body>
   <header>
     <div>
-      <h1>🌸 <span>Sakura</span> Studio <span class="ver" id="buildVer">v0.9.0</span></h1>
-      <div class="muted">Flow workstation · scenes + in-node assets</div>
+      <h1>🌸 <span>Sakura</span> Studio <span class="ver" id="buildVer">v0.9.1</span></h1>
+      <div class="muted">Flow · rubber-band connect · splash slots · open Unity/Blender</div>
     </div>
     <div class="row">
       <div class="field">
@@ -2016,10 +2056,11 @@ STUDIO_HTML = r"""<!DOCTYPE html>
         <strong style="font-size:0.9rem">Scene flow</strong>
         <button type="button" id="btnFlowAdd" title="N">+ Scene</button>
         <button type="button" class="secondary" id="btnFlowConnect" title="C">Connect</button>
+        <button type="button" class="secondary" id="btnFlowSplash">Ensure splash slots</button>
         <button type="button" class="secondary" id="btnFlowReload">Reload</button>
         <button type="button" class="secondary" id="btnFlowAuto">Auto-layout</button>
         <button type="button" class="secondary" id="btnFlowSave">Save layout</button>
-        <span class="muted" style="font-size:0.75rem">+/- expand assets · drag · scroll zoom · pan empty canvas · N add · C connect</span>
+        <span class="muted" style="font-size:0.75rem">Drag out→node to link · +/- assets · N add · C connect</span>
         <div class="legend" id="flowLegend"></div>
       </div>
       <div class="flow-connect-banner" id="flowConnectBanner">Connect mode: click <strong>out</strong> on source, then <strong>in</strong> on target (Esc cancel)</div>
@@ -3130,6 +3171,7 @@ STUDIO_HTML = r"""<!DOCTYPE html>
     let flowSelected = null;
     let flowConnectMode = false;
     let flowConnectFrom = null;
+    let flowRubber = null; // { fromId, x1, y1, x2, y2 }
 
     async function loadFlow() {
       if (!currentTitleId) return;
@@ -3233,9 +3275,20 @@ STUDIO_HTML = r"""<!DOCTYPE html>
       if (code.length) {
         html += `<div class="fn-section"><h4>Code / projects</h4>`;
         for (const item of code) {
+          const app = item.app || item.open || 'ide';
+          const label = app === 'unity' ? 'Unity'
+            : app === 'blender' ? 'Blender'
+            : app === 'unreal' ? 'Unreal'
+            : app === 'dialogue' ? 'Dialogue'
+            : 'Open';
           html += `<div class="fn-asset">
             <span><strong>${escapeHtml(item.label)}</strong><br/><span class="muted">${escapeHtml(item.hint || item.ref || '')}</span></span>
-            <button type="button" class="secondary btn-fn-open" data-open="${escapeHtml(item.open || '')}" style="padding:4px 8px;font-size:0.68rem">Open</button>
+            <button type="button" class="secondary btn-fn-open"
+              data-open="${escapeHtml(item.open || '')}"
+              data-app="${escapeHtml(app)}"
+              data-path="${escapeHtml(item.path || '')}"
+              data-key="${escapeHtml(item.key || '')}"
+              style="padding:4px 8px;font-size:0.68rem">${label}</button>
           </div>`;
         }
         html += `</div>`;
@@ -3292,7 +3345,12 @@ STUDIO_HTML = r"""<!DOCTYPE html>
           selectFlowNode(n.id);
         });
         el.querySelectorAll('.fn-port').forEach(port => {
-          port.addEventListener('pointerdown', (ev) => ev.stopPropagation());
+          port.addEventListener('pointerdown', (ev) => {
+            ev.stopPropagation();
+            if (port.dataset.port === 'out') {
+              startRubberBand(ev, n.id);
+            }
+          });
           port.addEventListener('click', (ev) => {
             ev.stopPropagation();
             onFlowPortClick(n.id, port.dataset.port);
@@ -3326,12 +3384,18 @@ STUDIO_HTML = r"""<!DOCTYPE html>
           btn.addEventListener('click', (ev) => {
             ev.stopPropagation();
             const open = btn.dataset.open;
-            if (open === 'dialogue') document.querySelector('#mainTabs [data-tab="dialogue"]')?.click();
-            else if (open === 'ide' || open === 'engine') {
-              log('Open linked project: use your IDE / Unity / Blender for engine code. Ref noted on node.');
-            } else if (open === 'levels') {
-              log('Level config lives in catalog levels.yaml — edit via agent or Swaps for piece art.');
+            const app = btn.dataset.app || open;
+            const path = btn.dataset.path || '';
+            const key = btn.dataset.key || '';
+            if (open === 'dialogue') {
+              document.querySelector('#mainTabs [data-tab="dialogue"]')?.click();
+              return;
             }
+            if (open === 'levels') {
+              log('Level config: catalog levels.yaml — Swaps for piece art.');
+              return;
+            }
+            openProjectApp(app || 'ide', path, key).catch(err => log(err.message));
           });
         });
         el.addEventListener('pointerdown', (ev) => {
@@ -3371,14 +3435,67 @@ STUDIO_HTML = r"""<!DOCTYPE html>
       }
     }
 
+    function startRubberBand(ev, fromId) {
+      flowConnectMode = true;
+      flowConnectFrom = fromId;
+      updateConnectBanner();
+      const c = nodeCenter(fromId);
+      flowRubber = { fromId, x1: c.x, y1: c.y, x2: c.x, y2: c.y };
+      const move = (e) => {
+        if (!flowRubber) return;
+        // map client coords into flow viewport space
+        const wrap = document.getElementById('flowWrap');
+        if (!wrap) return;
+        const rect = wrap.getBoundingClientRect();
+        const vx = (e.clientX - rect.left - flowPan.x) / flowScale;
+        const vy = (e.clientY - rect.top - flowPan.y) / flowScale;
+        flowRubber.x2 = vx;
+        flowRubber.y2 = vy;
+        drawFlowEdges(
+          document.getElementById('flowEdges'),
+          flowGraph.nodes || [],
+          flowGraph.edges || []
+        );
+      };
+      const up = (e) => {
+        window.removeEventListener('pointermove', move);
+        window.removeEventListener('pointerup', up);
+        const target = document.elementFromPoint(e.clientX, e.clientY);
+        const port = target && target.closest && target.closest('.fn-port[data-port="in"]');
+        const nodeEl = target && target.closest && target.closest('.flow-node');
+        let toId = null;
+        if (port && nodeEl) toId = nodeEl.dataset.id;
+        else if (nodeEl && nodeEl.dataset.id !== fromId) toId = nodeEl.dataset.id;
+        const from = flowRubber && flowRubber.fromId;
+        flowRubber = null;
+        if (from && toId && from !== toId) {
+          connectFlowScenes(from, toId);
+        } else {
+          drawFlowEdges(
+            document.getElementById('flowEdges'),
+            flowGraph.nodes || [],
+            flowGraph.edges || []
+          );
+          // keep connect mode if C was toggled; clear rubber only
+          if (!document.getElementById('btnFlowConnect')?.classList.contains('active')) {
+            // leave banner if still in mode from button
+          }
+        }
+      };
+      window.addEventListener('pointermove', move);
+      window.addEventListener('pointerup', up);
+    }
+
     function updateConnectBanner() {
       const b = document.getElementById('flowConnectBanner');
+      const btn = document.getElementById('btnFlowConnect');
+      if (btn) btn.classList.toggle('active', flowConnectMode);
       if (!b) return;
       b.classList.toggle('on', flowConnectMode);
       if (flowConnectMode) {
         b.innerHTML = flowConnectFrom
-          ? `Connect from <code>${escapeHtml(flowConnectFrom)}</code> — click <strong>in</strong> on target (Esc cancel)`
-          : 'Connect mode: click <strong>out</strong> on source scene';
+          ? `Rubber-band from <code>${escapeHtml(flowConnectFrom)}</code> — drag to target node or click <strong>in</strong> (Esc cancel)`
+          : 'Connect mode: drag from <strong>out →</strong> to another scene (or click out then in)';
       }
     }
 
@@ -3397,10 +3514,28 @@ STUDIO_HTML = r"""<!DOCTYPE html>
         log(r.message || `Connected ${fromId} → ${toId}`);
         flowConnectMode = false;
         flowConnectFrom = null;
+        flowRubber = null;
         updateConnectBanner();
         await loadFlow();
       } catch (e) {
         log('Connect failed: ' + e.message);
+      }
+    }
+
+    async function openProjectApp(app, path, key) {
+      if (!currentTitleId) return;
+      const body = { title_id: currentTitleId, app: app || 'folder' };
+      if (path) body.path = path;
+      if (key) body.key = key;
+      try {
+        const r = await api('/api/open', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(body),
+        });
+        log(r.message || JSON.stringify(r));
+      } catch (e) {
+        log('Open failed: ' + e.message + ' — set title.exports paths in title.yaml');
       }
     }
 
@@ -3485,6 +3620,19 @@ STUDIO_HTML = r"""<!DOCTYPE html>
         text.setAttribute('text-anchor', 'middle');
         text.textContent = e.label || e.kind || '';
         svg.appendChild(text);
+      }
+      // rubber-band while dragging a new connection
+      if (flowRubber) {
+        const path = document.createElementNS(NS, 'path');
+        const { x1, y1, x2, y2 } = flowRubber;
+        const c1x = x1 + (x2 - x1) * 0.4;
+        path.setAttribute('d', `M ${x1} ${y1} C ${c1x} ${y1}, ${c1x} ${y2}, ${x2} ${y2}`);
+        path.setAttribute('stroke', '#ff8fab');
+        path.setAttribute('stroke-width', '2.5');
+        path.setAttribute('fill', 'none');
+        path.setAttribute('stroke-dasharray', '6 4');
+        path.setAttribute('marker-end', 'url(#flowArrow)');
+        svg.appendChild(path);
       }
     }
 
@@ -3765,10 +3913,23 @@ STUDIO_HTML = r"""<!DOCTYPE html>
         loadFlow().catch(e => log(e.message)));
       document.getElementById('btnFlowAdd')?.addEventListener('click', () =>
         addFlowScene().catch(e => log(e.message)));
+      document.getElementById('btnFlowSplash')?.addEventListener('click', async () => {
+        try {
+          const r = await api('/api/flow/ensure-splash?title=' + encodeURIComponent(currentTitleId), {
+            method: 'POST',
+          });
+          log(`Splash: node=${r.node_id} created=${r.created_node} slots+${(r.added_slots||[]).length}`);
+          await loadFlow();
+        } catch (e) { log(e.message); }
+      });
       document.getElementById('btnFlowConnect')?.addEventListener('click', () => {
         flowConnectMode = !flowConnectMode;
-        if (!flowConnectMode) flowConnectFrom = null;
+        if (!flowConnectMode) {
+          flowConnectFrom = null;
+          flowRubber = null;
+        }
         updateConnectBanner();
+        renderFlowGraph();
       });
       document.addEventListener('keydown', (ev) => {
         if (ev.target.matches('input, textarea, select')) return;

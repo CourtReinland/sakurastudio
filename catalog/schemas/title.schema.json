@@ -66,6 +66,24 @@
       "type": "string",
       "enum": ["title", "template"],
       "description": "template softens unbound required slots to warnings"
+    },
+    "exports": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Runtime / tooling paths for Studio deep links and VO export",
+      "properties": {
+        "game_repo": { "type": "string" },
+        "game_audio_root": { "type": "string" },
+        "game_public": { "type": "string" },
+        "unity_project": { "type": "string" },
+        "unreal_project": { "type": "string" },
+        "blender_file": { "type": "string" },
+        "ide": { "type": "string" },
+        "code_paths": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        }
+      }
     }
   }
 }
