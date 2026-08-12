@@ -4,6 +4,7 @@ status: draft
 runtime: unity
 unity:
   min_version: "2022.3"
+# Conventional local checkout path (optional / gitignored). Not vendored here.
 repo_path: projects/sakura-match
 capabilities:
   - match3.grid
@@ -15,8 +16,9 @@ exports:
   bindings_consumer: Resources
   config_consumer: ScriptableObjects
   notes: >
-    Until extracted into engines/unity-match3-kit, the living implementation
-    is titles.sakura_match repo_path. Catalog slots map to TileType + sprite paths.
+    Living Unity implementation is an external checkout (title.repo_path /
+    SAKURA_UNITY_ROOT). Catalog bridge scripts and sample Resources bindings
+    ship under integrations/unity-sakura-match/. Slots map to TileType + sprite paths.
 tags:
   - match3
   - unity

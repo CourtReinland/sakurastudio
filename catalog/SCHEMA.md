@@ -1,10 +1,10 @@
 # Sakura Soft Catalog Schema
 
 **Schema version:** `1.0.0`  
-**Status:** draft (v0 — lock before building the GUI)  
+**Status:** shipped with Sakura Studio GUI (Flow / Assets / Swaps / Dialogue); schema remains the source of truth  
 **Purpose:** single source of truth for titles, design graph, assets, and agent jobs.
 
-This catalog is the **data plane**. Chat is coordination. Engines (Unity, web) are adapters that *consume* catalog IDs — they do not own product meaning.
+This catalog is the **data plane**. Chat is coordination. Engines (Unity, web) are adapters that *consume* catalog IDs — they do not own product meaning. Studio (`sakura studio`) is the primary human surface; agents edit the same YAML.
 
 ---
 
@@ -247,16 +247,18 @@ status: draft
 runtime: unity
 unity:
   min_version: "2022.3"
-repo_path: projects/sakura-match   # until extracted to engines/
+repo_path: projects/sakura-match   # optional local Unity checkout (not vendored)
 capabilities:
   - match3.grid
   - match3.swap
   - match3.cascade
 exports:
   # how catalog maps into runtime (documentary for agents)
-  bindings_consumer: AddressablesOrResources
+  bindings_consumer: Resources
   config_consumer: ScriptableObjects
 ```
+
+In-repo Unity bridge + sample Resources: `integrations/unity-sakura-match/`. Import via `SAKURA_UNITY_ROOT` or `--unity-root` when the checkout is elsewhere.
 
 ### 5.6 Title
 
@@ -270,7 +272,9 @@ brand_id: brand.sakura_soft
 engine_id: engine.unity_match3
 genre_tags: [match3, casual, anime]
 platforms: [ios, android]
-repo_path: projects/sakura-match
+repo_path: projects/sakura-match   # optional external Unity tree
+exports:
+  unity_project: projects/sakura-match
 default_locale: en
 content_files:
   cast: cast.yaml
@@ -589,17 +593,17 @@ The GUI will eventually emit that job YAML from drag-and-drop.
 
 ---
 
-## 11. Minimal viable catalog (what we lock first)
+## 11. Minimal viable catalog (baseline — in place)
 
-For **sakura-match** v0:
+For **sakura-match** (and sibling live titles):
 
 1. `_meta/catalog.yaml`  
 2. `brands/sakura-soft/brand.yaml`  
-3. `engines/unity_match3.yaml`  
-4. `titles/sakura-match/title.yaml`  
-5. Tile slots + bindings + library assets for 5 colors  
-6. GGD with `node.system.board` + sample level  
-7. One example agent job  
+3. `engines/unity_match3.yaml` (+ Three.js tea-house / Midnight Par engines)  
+4. `titles/sakura-match/`, `titles/sakura-tea-house/`, `titles/midnight-par/`  
+5. Tile / piece / CG / dialogue slots + bindings + library assets  
+6. GGD + Flow graph consumed by Studio  
+7. Example agent jobs under `jobs/examples/`  
 
 Otome skeleton lives under `titles/_examples/otome-skeleton/` as a template, not a ship title.
 

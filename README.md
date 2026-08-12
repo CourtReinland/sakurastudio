@@ -15,14 +15,15 @@ Library asset  →  Binding  →  Slot  →  GGD / runtime
 | [`catalog/`](./catalog/) | Source of truth: brands, characters, assets, titles, GGD, slots, bindings |
 | [`tools/sakura/`](./tools/sakura/) | CLI: `validate`, `bind`, `import`, `studio` |
 | [`shared/scripts/`](./shared/scripts/) | Shell wrappers |
-| [`docs/`](./docs/) | Studio design notes (GDD gap analysis, roadmap) |
-| [`projects/`](./projects/) | Optional game runtimes (e.g. Unity match prototype) |
+| [`docs/`](./docs/) | Studio design notes (GDD gap analysis, Flow workstation) |
+| [`integrations/unity-sakura-match/`](./integrations/unity-sakura-match/) | Unity bridge scripts + sample Resources catalog |
+| `projects/` | Optional local game checkouts (gitignored; not vendored) |
 
 ## Quick start
 
 ```bash
 cd tools/sakura
-uv venv && uv pip install -e .
+python3 -m venv .venv && .venv/bin/pip install -e ".[dev]"
 
 # from repo root
 ./shared/scripts/sakura-validate.sh
@@ -35,7 +36,8 @@ uv venv && uv pip install -e .
 sakura validate --catalog catalog
 sakura bind list --title title.sakura_match
 sakura bind set slot.tile.red asset.tile_red_pastel_v2 --title title.sakura_match
-sakura import --title title.sakura_match
+# Unity import needs a local Unity tree (see integrations/unity-sakura-match/README.md)
+sakura import --title title.sakura_match --unity-root /path/to/UnityProject
 sakura studio --catalog catalog
 
 # Refresh Tea House content from a sakura-match clone
@@ -47,21 +49,24 @@ sakura sync-tea-house --catalog catalog --source /path/to/sakura-match
 | Product | Repo | Catalog title |
 |---------|------|----------------|
 | Sakura Tea House (Three.js + otome Ch.1) | [CourtReinland/sakura-match](https://github.com/CourtReinland/sakura-match) | `title.sakura_tea_house` |
-| Unity match-3 sketch | local `projects/sakura-match` | `title.sakura_match` |
+| Midnight Par | [CourtReinland/nightmaregolf](https://github.com/CourtReinland/nightmaregolf) | `title.midnight_par` |
+| Unity match-3 sketch | external checkout → `projects/sakura-match` or `SAKURA_UNITY_ROOT` | `title.sakura_match` |
 
 ## Studio · Flow, Assets, Imagine & style board
 
-- **Flow ★** — node graph of story branches, dialogue, art slots, engine. [`docs/STUDIO-FLOW.md`](./docs/STUDIO-FLOW.md)  
-- **Assets ✦** — Grok Build game-asset skill suite (core / character / tileset / UI / animation frames) → catalog. [`docs/STUDIO-GAME-ASSETS.md`](./docs/STUDIO-GAME-ASSETS.md)  
+- **Flow ★** — scene-centric node graph (rubber-band connect, splash slots). [`docs/FLOW-WORKSTATION.md`](./docs/FLOW-WORKSTATION.md)  
+- **Assets ✦** — Grok Build game-asset skill suite → catalog. [`docs/STUDIO-GAME-ASSETS.md`](./docs/STUDIO-GAME-ASSETS.md)  
 - **Swaps** — drag/drop rebinds, file drop, Imagine generate/edit  
+- **Dialogue** — line ledger + voice assignment  
 - **Style board** — per-title style lock in `studio.yaml` (ON/OFF)  
 
-Set `XAI_API_KEY` (and optionally `ELEVENLABS_API_KEY`) in `.env`.
+Set `XAI_API_KEY` (and optionally `ELEVENLABS_API_KEY`) in `.env`. For Export → Game set `SAKURA_GAME_ROOT`.
 
 ## Design
 
 See [`catalog/SCHEMA.md`](./catalog/SCHEMA.md), [`docs/GDD-DASHBOARD-GAP.md`](./docs/GDD-DASHBOARD-GAP.md),
-[`docs/STUDIO-FLOW.md`](./docs/STUDIO-FLOW.md), [`docs/STUDIO-GAME-ASSETS.md`](./docs/STUDIO-GAME-ASSETS.md),
+[`docs/FLOW-WORKSTATION.md`](./docs/FLOW-WORKSTATION.md), [`docs/STUDIO-FLOW.md`](./docs/STUDIO-FLOW.md),
+[`docs/STUDIO-GAME-ASSETS.md`](./docs/STUDIO-GAME-ASSETS.md),
 and [`docs/STUDIO-IMAGINE.md`](./docs/STUDIO-IMAGINE.md).
 
 ## License

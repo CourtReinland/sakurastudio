@@ -6,8 +6,9 @@ Structured product truth for every title: brands, characters, assets, slots, bin
 |------------|--|
 | Design | [`SCHEMA.md`](./SCHEMA.md) |
 | Machine contracts | [`schemas/`](./schemas/) |
-| Live title | [`titles/sakura-match/`](./titles/sakura-match/) |
+| Live titles | [`titles/sakura-match/`](./titles/sakura-match/), [`titles/sakura-tea-house/`](./titles/sakura-tea-house/), [`titles/midnight-par/`](./titles/midnight-par/) |
 | Otome template | [`titles/_examples/otome-skeleton/`](./titles/_examples/otome-skeleton/) |
+| Unity bridge (sample) | [`../integrations/unity-sakura-match/`](../integrations/unity-sakura-match/) |
 
 ## Mental model
 
@@ -56,6 +57,7 @@ tools/sakura/.venv/bin/sakura validate --catalog catalog
 ## Import + Studio
 
 ```bash
+# Requires a local Unity project (projects/sakura-match or SAKURA_UNITY_ROOT)
 ./shared/scripts/sakura-import.sh --title title.sakura_match
 ./shared/scripts/sakura-studio.sh
 # → http://127.0.0.1:8787/
@@ -66,5 +68,5 @@ Unity runtime loads `Resources/Catalog/sakura_match/bindings.json` via `CatalogB
 Install once:
 
 ```bash
-cd tools/sakura && uv venv && uv pip install -e .
+cd tools/sakura && python3 -m venv .venv && .venv/bin/pip install -e ".[dev]"
 ```

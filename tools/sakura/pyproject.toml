@@ -1,6 +1,6 @@
 [project]
 name = "sakura-catalog"
-version = "0.8.0"
+version = "0.9.1"
 description = "Sakura Soft catalog CLI (validate, bind, import, studio, TTS)"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -15,6 +15,11 @@ dependencies = [
   "python-multipart>=0.0.9",
 ]
 
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0.0",
+]
+
 [project.scripts]
 sakura = "sakura.cli:main"
 
@@ -27,3 +32,7 @@ packages = ["src/sakura"]
 
 [tool.hatch.build.targets.sdist]
 include = ["src/sakura"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

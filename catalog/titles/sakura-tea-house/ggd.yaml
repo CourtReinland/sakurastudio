@@ -351,7 +351,7 @@ edges:
   kind: uses_slot
   from: node.scene.moonlit_door
   to: slot.cg.tea.scene_11_three_hearts
-- id: edge.leads_to.node-ui-screen-title.node-level-1
+- id: edge.leads_to.node_ui_screen_title.node_level_1
   kind: leads_to
   from: node.ui_screen.title
   to: node.level.1

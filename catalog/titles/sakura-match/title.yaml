@@ -10,7 +10,12 @@ genre_tags:
 platforms:
   - ios
   - android
+# Optional local Unity checkout (gitignored). Not vendored in this repo.
+# Bridge scripts + sample Resources: integrations/unity-sakura-match/
+# Override with --unity-root or SAKURA_UNITY_ROOT when importing.
 repo_path: projects/sakura-match
+exports:
+  unity_project: projects/sakura-match
 default_locale: en
 content_files:
   cast: cast.yaml
@@ -22,5 +27,6 @@ gates:
   require_approved_bindings_for_release: true
   require_approved_player_facing_nodes: false
 notes: >
-  First live title on the catalog. Sprint focus: board tiles as slots/bindings
-  so agents stop path-string thrashing.
+  Unity match-3 sketch title. The live Unity tree is an external checkout
+  at projects/sakura-match (or SAKURA_UNITY_ROOT). In-repo bridge code and
+  a sample ResourcesCatalog live under integrations/unity-sakura-match/.

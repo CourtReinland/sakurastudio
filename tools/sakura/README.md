@@ -1,13 +1,13 @@
 # sakura CLI
 
-Catalog tools for Sakura Soft.
+Catalog tools for Sakura Soft (package **sakura-catalog** v0.9.1 — Flow workstation).
 
 ## Install (dev)
 
 ```bash
 cd tools/sakura
-uv pip install -e .
-# or: pip install -e .
+python3 -m venv .venv && .venv/bin/pip install -e ".[dev]"
+# or: pip install -e ".[dev]"
 ```
 
 ## Validate
@@ -68,13 +68,20 @@ Wrappers from SakuraSoft root:
 
 ## Import (Unity)
 
-Copies bound masters into the title’s Unity project and writes a Resources manifest:
+Copies bound masters into a Unity project and writes a Resources manifest.
+The Unity tree is **not vendored** — check it out locally or pass a root:
 
 ```bash
+export SAKURA_UNITY_ROOT=/path/to/UnityProject
 sakura import --title title.sakura_match
-# → projects/sakura-match/Assets/Resources/Catalog/sakura_match/bindings.json
+# or:
+sakura import --title title.sakura_match --unity-root /path/to/UnityProject
+# → <unity>/Assets/Resources/Catalog/sakura_match/bindings.json
 # → …/slots/slot_tile_*.png
 ```
+
+Default relative path from title config: `projects/sakura-match` (gitignored).
+Bridge scripts + sample Resources: [`integrations/unity-sakura-match/`](../../integrations/unity-sakura-match/).
 
 Missing catalog PNGs are synthesized (pastel solids) unless `--no-generate`.
 
@@ -85,9 +92,9 @@ sakura studio --catalog /path/to/catalog
 # open http://127.0.0.1:8787/
 ```
 
-Tabs: Overview · Swaps (drag-drop, Imagine, **style board**) · Story · **Dialogue** · Cast · **Code map**.
+Tabs: **Flow ★** · **Assets ✦** · Swaps (drag-drop, Imagine, style board) · **Dialogue** · Overview · Cast · **Code map**.
 
-See repo [`docs/STUDIO-IMAGINE.md`](../../docs/STUDIO-IMAGINE.md) for Grok Imagine + project style lock.
+See [`docs/FLOW-WORKSTATION.md`](../../docs/FLOW-WORKSTATION.md) and [`docs/STUDIO-IMAGINE.md`](../../docs/STUDIO-IMAGINE.md).
 
 ## Sync Tea House (from sakura-match checkout)
 
@@ -100,4 +107,11 @@ sakura sync-tea-house --catalog catalog --source /tmp/sakura-match
 ```bash
 sakura code-graph --source /tmp/sakura-match --title title.sakura_tea_house \
   --repo CourtReinland/sakura-match
+```
+
+## Tests
+
+```bash
+cd tools/sakura
+.venv/bin/pytest -q
 ```

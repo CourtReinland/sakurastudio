@@ -8,13 +8,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from sakura.loader import load_catalog
-from sakura.yaml_io import load_yaml
+import os
 
-# title_id → default game root + path map rules
-DEFAULT_GAME_ROOTS = {
-    "title.midnight_par": Path("/Users/capricorn/nightmare-golf"),
-}
+from sakura.loader import load_catalog
 
 
 def _utc() -> str:
@@ -24,20 +20,18 @@ def _utc() -> str:
 
 
 def resolve_game_root(title_id: str, explicit: Path | str | None = None) -> Path:
+    """Resolve a game checkout path. No machine-specific defaults.
+
+    Order: explicit argument → SAKURA_GAME_ROOT → NIGHTMARE_GOLF_ROOT (Midnight Par alias).
+    """
     if explicit:
         return Path(explicit).expanduser().resolve()
-    # env
-    import os
-
     env = os.environ.get("SAKURA_GAME_ROOT") or os.environ.get("NIGHTMARE_GOLF_ROOT")
     if env:
         return Path(env).expanduser().resolve()
-    if title_id in DEFAULT_GAME_ROOTS:
-        p = DEFAULT_GAME_ROOTS[title_id]
-        if p.is_dir():
-            return p
     raise FileNotFoundError(
-        f"No game root for {title_id}. Pass game_root or set SAKURA_GAME_ROOT."
+        f"No game root for {title_id}. Pass game_root or set SAKURA_GAME_ROOT "
+        "(or NIGHTMARE_GOLF_ROOT for Midnight Par)."
     )
 
 

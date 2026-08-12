@@ -2,7 +2,7 @@
   "schema_version": "1.0.0",
   "title_id": "title.sakura_match",
   "imported_at": "2026-07-14T02:40:15Z",
-  "source_catalog": "/Users/capricorn/SakuraSoft/catalog",
+  "source_catalog": "catalog",
   "bindings": [
     {
       "slot_id": "slot.tile.red",
