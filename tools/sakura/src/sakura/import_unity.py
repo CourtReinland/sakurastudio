@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import shutil
 from dataclasses import dataclass, field
@@ -69,19 +70,83 @@ def _studio_root(catalog_root: Path) -> Path:
     return catalog_root.parent
 
 
-def _resolve_unity_root(index: CatalogIndex, title_id: str) -> Path:
+def _as_unity_project(path: Path) -> Path | None:
+    """Return path if it looks like a Unity project root (has Assets/)."""
+    if path.is_dir() and (path / "Assets").is_dir():
+        return path
+    return None
+
+
+def _resolve_unity_root(
+    index: CatalogIndex,
+    title_id: str,
+    *,
+    unity_root: Path | str | None = None,
+) -> Path:
+    """Resolve Unity project for import.
+
+    Order: explicit ``unity_root`` → ``SAKURA_UNITY_ROOT`` env →
+    ``title.exports.unity_project`` → ``title.repo_path`` (relative to studio root).
+
+    The Unity tree is not vendored; in-repo bridge samples live under
+    ``integrations/unity-sakura-match/``.
+    """
+    if unity_root:
+        p = Path(unity_root).expanduser().resolve()
+        found = _as_unity_project(p)
+        if found:
+            return found
+        raise FileNotFoundError(f"Not a Unity project (no Assets/): {p}")
+
+    env = os.environ.get("SAKURA_UNITY_ROOT")
+    if env:
+        p = Path(env).expanduser().resolve()
+        found = _as_unity_project(p)
+        if found:
+            return found
+        raise FileNotFoundError(
+            f"SAKURA_UNITY_ROOT is set but is not a Unity project (no Assets/): {p}"
+        )
+
     title = index.titles[title_id].data
-    repo = title.get("repo_path")
-    if not repo:
-        raise ValueError(f"Title {title_id} has no repo_path for Unity import")
+    exports = title.get("exports") if isinstance(title.get("exports"), dict) else {}
+    candidates = []
+    for key in ("unity_project",):
+        if exports.get(key):
+            candidates.append(str(exports[key]))
+    if title.get("repo_path"):
+        candidates.append(str(title["repo_path"]))
+
+    if not candidates:
+        raise ValueError(
+            f"Title {title_id} has no repo_path / exports.unity_project for Unity import. "
+            "Pass --unity-root or set SAKURA_UNITY_ROOT."
+        )
+
     studio = _studio_root(index.root)
-    unity = (studio / str(repo)).resolve()
-    if not unity.is_dir():
-        raise FileNotFoundError(f"Unity project not found: {unity}")
-    assets = unity / "Assets"
-    if not assets.is_dir():
-        raise FileNotFoundError(f"Not a Unity project (no Assets/): {unity}")
-    return unity
+    tried: list[str] = []
+    for rel in candidates:
+        raw = Path(rel).expanduser()
+        unity = raw if raw.is_absolute() else (studio / raw).resolve()
+        tried.append(str(unity))
+        found = _as_unity_project(unity)
+        if found:
+            return found
+
+    raise FileNotFoundError(
+        "Unity project not found. Tried: "
+        + ", ".join(tried)
+        + ". Checkout a Unity tree (e.g. projects/sakura-match), pass --unity-root, "
+        "or set SAKURA_UNITY_ROOT. Bridge scripts live in integrations/unity-sakura-match/."
+    )
+
+
+def _source_catalog_label(catalog_root: Path) -> str:
+    """Portable catalog label for written manifests (avoid absolute home paths)."""
+    try:
+        return str(catalog_root.resolve().relative_to(_studio_root(catalog_root).resolve()))
+    except ValueError:
+        return catalog_root.name or "catalog"
 
 
 def _master_file(asset_data: dict[str, Any]) -> dict[str, Any] | None:
@@ -164,6 +229,7 @@ def import_title(
     generate_missing: bool = True,
     dry_run: bool = False,
     include_examples: bool = False,
+    unity_root: Path | str | None = None,
 ) -> ImportResult:
     root = discover_catalog_root(catalog)
     index = load_catalog(root, include_examples=include_examples)
@@ -181,7 +247,7 @@ def import_title(
         )
 
     try:
-        unity = _resolve_unity_root(index, title_id)
+        unity = _resolve_unity_root(index, title_id, unity_root=unity_root)
     except (ValueError, FileNotFoundError) as e:
         return ImportResult(False, str(e))
 
@@ -256,7 +322,7 @@ def import_title(
         "schema_version": "1.0.0",
         "title_id": title_id,
         "imported_at": _utc_now(),
-        "source_catalog": str(index.root),
+        "source_catalog": _source_catalog_label(index.root),
         "bindings": manifest_bindings,
     }
 

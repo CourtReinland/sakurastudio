@@ -1,7 +1,20 @@
 #!/bin/bash
 # Clean up all agent worktrees
+#
+# Uses SAKURA_AGENT_PROJECT or SAKURA_UNITY_ROOT (default: ./projects/sakura-match).
 
-PROJECT_DIR="$HOME/SakuraSoft/projects/sakura-match"
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+
+PROJECT_DIR="${SAKURA_AGENT_PROJECT:-${SAKURA_UNITY_ROOT:-$REPO_ROOT/projects/sakura-match}}"
+
+if [ ! -d "$PROJECT_DIR/.git" ] && [ ! -f "$PROJECT_DIR/.git" ]; then
+    echo "ERROR: Not a git checkout: $PROJECT_DIR"
+    echo "Set SAKURA_AGENT_PROJECT or SAKURA_UNITY_ROOT to your Unity/game checkout."
+    exit 1
+fi
 
 cd "$PROJECT_DIR"
 

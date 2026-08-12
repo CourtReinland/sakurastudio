@@ -1,6 +1,6 @@
 # Midnight Par / Nightmare Golf — character pipeline diagnosis
 
-**Game:** [CourtReinland/nightmaregolf](https://github.com/CourtReinland/nightmaregolf) (`/Users/capricorn/nightmare-golf`)  
+**Game:** [CourtReinland/nightmaregolf](https://github.com/CourtReinland/nightmaregolf) (local checkout via `SAKURA_GAME_ROOT` / `NIGHTMARE_GOLF_ROOT`)  
 **Catalog title:** `title.midnight_par`  
 **Date:** 2026-07-19  
 

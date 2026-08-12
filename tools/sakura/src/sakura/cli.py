@@ -216,6 +216,12 @@ def _add_import(sub: argparse._SubParsersAction) -> None:
     imp.add_argument("--catalog", type=Path, default=None)
     imp.add_argument("--title", type=str, default=None, help="e.g. title.sakura_match")
     imp.add_argument(
+        "--unity-root",
+        type=Path,
+        default=None,
+        help="Unity project root (overrides title repo_path / SAKURA_UNITY_ROOT)",
+    )
+    imp.add_argument(
         "--no-generate",
         action="store_true",
         help="Do not synthesize missing PNG masters",
@@ -421,6 +427,7 @@ def cmd_import(args: argparse.Namespace) -> int:
             generate_missing=not args.no_generate,
             dry_run=args.dry_run,
             include_examples=args.examples,
+            unity_root=args.unity_root,
         )
     except Exception as e:  # noqa: BLE001
         print(f"ERROR: import failed: {e}", file=sys.stderr)

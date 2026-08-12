@@ -39,16 +39,20 @@ Flow is the **main surface** of Sakura Studio: one node = one player-facing **sc
 
 ### Deep links (`title.yaml` → `exports`)
 
+Paths are optional local checkouts (not vendored). Unity import also honors `SAKURA_UNITY_ROOT` / `--unity-root`.
+
 ```yaml
 exports:
-  game_repo: ../sakura-match          # IDE / folder
-  unity_project: projects/sakura-match
+  game_repo: ../sakura-match          # IDE / folder (external clone)
+  unity_project: projects/sakura-match  # optional local Unity tree (gitignored)
   blender_file: art/tea_house.blend
   unreal_project: /abs/path/MyGame
   code_paths:
     vn: ../sakura-match/src/ui
     title_ui: ../sakura-match/src/app
 ```
+
+Bridge scripts for the Unity sketch: `integrations/unity-sakura-match/`.
 
 `POST /api/open` with `{ title_id, app: "unity"|"blender"|"ide"|"folder", key?, path? }`.
 

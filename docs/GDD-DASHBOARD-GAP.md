@@ -16,8 +16,8 @@
 | **High concept / pillars** | Consent-first otome, puzzle=fiction | No (copy) | Listed on Overview |
 | **Characters** | Keeper, Ren, Mizu, Akira, shadow, creditor | Portraits / expressions yes | Cast tab + portrait slots |
 | **Rooms / spaces** | Entry hall, ledger nook, moon door | BG art yes | Listed; BG slots drag-drop |
-| **Plot arcs / routes** | Ren / Mizu / Akira romance + plot spine | Structure rarely; labels yes | Story tab (list + graph) |
-| **Scenes + choices** | 11 scenes, choice node ids | Lines + stills yes | Story list; line/CG slots |
+| **Plot arcs / routes** | Ren / Mizu / Akira romance + plot spine | Structure rarely; labels yes | Flow ★ (scene graph) |
+| **Scenes + choices** | 11 scenes, choice node ids | Lines + stills yes | Flow ★; line/CG slots; Dialogue |
 | **Level → story map** | Levels 1–11 verbs, goals, timers | Level config + gem art | Game pieces + listed map |
 | **Gems / pieces** | Tea leaf, flower, lantern, coin, charm, wagashi | **Yes** | Swaps → pieces |
 | **Cinematic stills** | scene-01…scene-11 assets | **Yes** | Swaps → cinematics |
@@ -47,14 +47,18 @@
 
 ```text
 [ Project dropdown: GitHub repos ∪ catalog titles ]
+    ├── Flow ★       scene graph (arcs/scenes/choices + nested assets)
+    ├── Assets ✦     generate game art → catalog
+    ├── Swaps        drag-drop: art / pieces / lines / story beats
+    ├── Dialogue     line ledger + voices
     ├── Overview     engine, brand, gates, health
-    ├── Swaps ★      drag-drop: art / pieces / lines / story beats
-    ├── Story        arcs, scenes, choices (list + light graph)
     ├── Cast         characters + portrait slots
-    └── Meta         levels map, audio, progression (lists)
+    └── Code map     graphify-style import graph
 ```
 
 ★ = primary creative surface (what agents and you thrash on daily).
+
+**Story tab absorbed:** the old GGD list/table Story panel was removed; Flow owns arcs/scenes/graph and Dialogue owns the line ledger.
 
 ---
 
@@ -93,11 +97,12 @@ When a GitHub repo is selected:
 
 ## 6. Implementation priority
 
-1. **Done:** multi-tab UI, GitHub repo list, Overview (engine), Story/Cast, Swaps drag-drop, tea-house seed  
+1. **Done:** multi-tab UI, GitHub repo list, Overview (engine), Cast, Swaps drag-drop, tea-house seed  
 2. **Done:** dialogue ledger (§13) → `dialogue.yaml` + `slot.line.tea.*` + `localization/en.yaml`  
 3. **Done:** `public/assets` wired as catalog library (gems, BGs, portraits, cinematics) + bindings  
 4. **Done:** Graphify-inspired **Code map** tab (`code_graph.json`, god nodes + communities)  
-5. **Later:** two-way export back into Three.js `content.ts` / Addressables; agent job emit from drag-drop  
+5. **Done:** Flow ★ workstation (scene nodes, rubber-band connect, splash slots) — replaces Story list tab  
+6. **Later:** two-way export back into Three.js `content.ts` / Addressables; agent job emit from drag-drop  
 
 ---
 
@@ -106,5 +111,5 @@ When a GitHub repo is selected:
 | GitHub | Catalog `title_id` | Engine |
 |--------|--------------------|--------|
 | `CourtReinland/sakura-match` | `title.sakura_tea_house` | `engine.threejs_tea_house` |
-| (local Unity sketch) | `title.sakura_match` | `engine.unity_match3` |
+| (external Unity sketch / `SAKURA_UNITY_ROOT`) | `title.sakura_match` | `engine.unity_match3` |
 | `CourtReinland/sakurastudio` | — (this repo) | n/a |

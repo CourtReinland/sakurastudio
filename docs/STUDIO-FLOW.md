@@ -1,6 +1,8 @@
-# Sakura Studio · Flow graph (node editor)
+# Sakura Studio · Flow graph
 
-v0.6.0+ — Nuke/Fusion-style **branch / chain** view of a title: story beats, player choices, art slots, bound assets, and the game engine.
+Canonical workstation docs: **[`FLOW-WORKSTATION.md`](./FLOW-WORKSTATION.md)** (v0.9 scene-centric Flow).
+
+This page is a short index of edge kinds and layout persistence. Prefer the workstation doc for controls (rubber-band connect, splash slots, Open Unity/Blender).
 
 ## Open it
 
@@ -8,50 +10,30 @@ v0.6.0+ — Nuke/Fusion-style **branch / chain** view of a title: story beats, p
 2. Select a catalog title (e.g. Sakura Tea House).
 3. Tab **Flow ★**.
 
-## What the connectors mean
+## Progression connectors
 
-Edges are labeled in plain language so the graph reads as a sentence:
+Edges are labeled in plain language:
 
 | Edge kind | On-canvas phrase | Meaning |
 |-----------|------------------|---------|
-| `leads_to` | **then opens** | Level/scene continues to the next beat |
+| `leads_to` | **then** / **Play** | Scene continues to the next beat |
 | `unlocks` | **unlocks** | Scene unlocks a romance route, etc. |
-| `contains` | **contains** | Route contains a scene |
-| `uses_slot` | **uses art slot** | Scene/system needs a catalog slot |
-| `binds` | **shows asset** | Slot is bound to a library asset |
-| `has_dialogue` | **plays dialogue** | Scene has a dialogue ledger |
-| `choice` | **player chooses** | Dialogue choice point |
-| `option` | **player picks** / option | Branch the player can take |
-| `runs` | **runs system** | Engine runs a gameplay system |
+| `contains` | (folded into progression) | Route contains a scene |
+| `choice` / `option` | choice labels | Player branch |
 
-Example reading of a chain:
+Nested **assets** (graphics, dialogue, cast, code refs) live inside each scene node — expand with **+**.
 
-> **Level 1** *then opens* **scene “A Visitor at Dusk”** *plays dialogue* **Dialogue hub** *player chooses* **welcome choice** *player picks* **warm welcome**…  
-> Scene *uses art slot* **portrait Ren** *shows asset* **asset.portrait…**  
-> **Three.js engine** *runs system* **Match-3 board** *uses art slot* **gem flower**…
-
-## Layers
-
-Toggle **story · dialogue · art · engine · cast** to hide noise while you rework a spine.
-
-- **story** — routes, levels, scenes, endings  
-- **dialogue** — dialogue hubs, choices, options (optional detail)  
-- **art** — slots + bound assets (previews on asset nodes)  
-- **engine** — engine pack + systems  
-
-**Dialogue detail** checkbox: when off, only dialogue *hubs* (one per scene) appear, not every choice/option.
-
-## Rearrange & save
+## Rearrange & connect
 
 | Action | How |
 |--------|-----|
 | Move node | Drag the card |
-| Pan canvas | Drag empty space (or middle-mouse) |
-| Zoom | Scroll wheel |
+| Pan / zoom | Drag empty canvas · scroll |
+| Connect A → B | Drag from out-port → target (rubber-band), or **C** then out/in |
+| Disconnect | × on outbound link in detail panel |
+| Add scene | **+ Scene** or **N** |
 | Auto column layout | **Auto-layout** |
-| Persist positions | **Save layout** |
-
-Positions are written to the title’s Studio prefs:
+| Persist positions | **Save layout** → `studio.yaml` |
 
 ```yaml
 # catalog/titles/<title>/studio.yaml
@@ -61,34 +43,20 @@ flow:
     node.scene.visitor_dusk: {x: 280.0, y: 128.0}
 ```
 
-Same file as the style board (`style:` key is preserved).
-
-## Data sources
-
-| Source | Contribution |
-|--------|----------------|
-| `ggd.yaml` | Primary nodes + `leads_to` / `unlocks` / `uses_slot` / … |
-| `dialogue.yaml` | Dialogue hubs; choices/options when detail is on |
-| `slots.yaml` + `bindings.yaml` | Slot nodes + asset nodes + `binds` edges |
-| `title.yaml` + engines | Engine node + `runs` into systems |
-
-API:
+## APIs
 
 ```http
-GET  /api/flow?title=title.sakura_tea_house&dialogue_detail=true
+GET  /api/flow?title=title.sakura_tea_house
+POST /api/flow/scene
+POST /api/flow/connect
+POST /api/flow/disconnect
 POST /api/flow/layout     { "title_id", "positions": { "node…": {"x","y"} } }
 POST /api/flow/auto-layout?title=…&persist=true
 ```
 
-## Not yet (next iterations)
-
-- Draw new edges in UI (edit GGD from canvas)
-- Collapse / expand groups (whole route as super-node)
-- Live preview scrub along a path  
-- Two-way sync with external tools (Blender/Nuke)
-
 ## Related
 
+- [`FLOW-WORKSTATION.md`](./FLOW-WORKSTATION.md) — main Flow surface  
 - [`STUDIO-IMAGINE.md`](./STUDIO-IMAGINE.md) — art generate/edit + style board  
 - [`GDD-DASHBOARD-GAP.md`](./GDD-DASHBOARD-GAP.md) — product map  
 - [`catalog/SCHEMA.md`](../catalog/SCHEMA.md) — GGD node/edge kinds  

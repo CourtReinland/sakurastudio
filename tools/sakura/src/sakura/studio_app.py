@@ -11,6 +11,7 @@ from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile
 from fastapi.responses import HTMLResponse, Response
 from pydantic import BaseModel, Field
 
+from sakura import __version__
 from sakura.asset_write import create_image_asset
 from sakura.bind import bind_set, bind_set_status, bind_unbind, resolve_title_id
 from sakura.code_graph import load_title_code_graph
@@ -57,7 +58,7 @@ from sakura.voice_map import (
 )
 from sakura.yaml_io import load_yaml
 
-app = FastAPI(title="Sakura Studio", version="0.9.1")
+app = FastAPI(title="Sakura Studio", version=__version__)
 
 # Swap categories for dashboard filters
 SWAP_CATEGORIES = {
@@ -217,7 +218,7 @@ def health(catalog: str | None = None) -> dict[str, Any]:
     return {
         "ok": True,
         "catalog": str(root),
-        "version": "0.9.1",
+        "version": __version__,
         "elevenlabs_configured": bool(resolve_api_key()),
         "xai_configured": bool(resolve_xai_api_key()),
         "game_asset_tools": [t["id"] for t in game_asset_tool_catalog()],
@@ -2127,7 +2128,6 @@ STUDIO_HTML = r"""<!DOCTYPE html>
       <div class="library" id="library"></div>
       <div class="cards" id="swapCards"></div>
     </section>
-    <section id="panel-story" class="panel"></section>
     <section id="panel-dialogue" class="panel"></section>
     <section id="panel-cast" class="panel"></section>
     <section id="panel-code" class="panel"></section>
@@ -2223,7 +2223,6 @@ STUDIO_HTML = r"""<!DOCTYPE html>
            <p class="muted">${opt.textContent}</p></div>`;
         document.getElementById('swapCards').innerHTML = '';
         document.getElementById('library').innerHTML = '';
-        document.getElementById('panel-story').innerHTML = '';
         document.getElementById('panel-dialogue').innerHTML = '';
         document.getElementById('panel-cast').innerHTML = '';
         document.getElementById('panel-code').innerHTML = '';
@@ -2235,7 +2234,7 @@ STUDIO_HTML = r"""<!DOCTYPE html>
       }
       currentTitleId = titleId;
       await Promise.all([
-        loadOverview(), loadFlow(), loadAssets(), loadSwaps(), loadStory(), loadDialogue(), loadCast(), loadCode(),
+        loadOverview(), loadFlow(), loadAssets(), loadSwaps(), loadDialogue(), loadCast(), loadCode(),
       ]);
     }
 
@@ -2273,7 +2272,7 @@ STUDIO_HTML = r"""<!DOCTYPE html>
             <div class="stat" style="min-width:70px"><b>${o.stats?.bindings || 0}</b><span class="muted">Bound</span></div>
           </div>
         </div>
-        <div class="muted" style="margin-top:8px">Tabs: Overview (detail) · Story (arcs/scenes) · Dialogue · Cast · Code map · Swaps (drag-drop cards)</div>
+        <div class="muted" style="margin-top:8px">Tabs: Flow ★ · Assets · Swaps · Dialogue · Overview · Cast · Code map</div>
       `;
     }
 
@@ -4320,37 +4319,6 @@ STUDIO_HTML = r"""<!DOCTYPE html>
       });
     })();
 
-    /* ---- story ---- */
-    async function loadStory() {
-      if (!currentTitleId) return;
-      const g = await api('/api/ggd?examples=true&title=' + encodeURIComponent(currentTitleId));
-      const kinds = ['route', 'scene', 'level', 'ending', 'choice', 'gate', 'system', 'cg_moment'];
-      let html = `<p class="muted">${g.nodes.length} nodes · ${g.edges.length} edges — Graphify-style product graph (list view)</p>`;
-      for (const kind of kinds) {
-        const list = (g.by_kind && g.by_kind[kind]) || [];
-        if (!list.length) continue;
-        html += `<div class="card" style="margin-bottom:10px"><h3>${kind} (${list.length})</h3><table>
-          <thead><tr><th>Id</th><th>Label</th><th>Status</th><th>Data</th></tr></thead><tbody>`;
-        for (const n of list) {
-          const data = n.data ? JSON.stringify(n.data) : '';
-          html += `<tr>
-            <td class="muted" style="font-size:0.75rem">${n.id}</td>
-            <td>${n.label || ''}</td>
-            <td><span class="badge ${badgeStatus(n.status)}">${n.status || '—'}</span></td>
-            <td class="muted" style="font-size:0.72rem;max-width:280px;word-break:break-all">${data}</td>
-          </tr>`;
-        }
-        html += `</tbody></table></div>`;
-      }
-      // remaining kinds
-      for (const [kind, list] of Object.entries(g.by_kind || {})) {
-        if (kinds.includes(kind) || !list.length) continue;
-        html += `<div class="card" style="margin-bottom:10px"><h3>${kind} (${list.length})</h3>
-          <ul class="muted">${list.map(n => `<li>${n.label || n.id}</li>`).join('')}</ul></div>`;
-      }
-      document.getElementById('panel-story').innerHTML = html || '<div class="empty">No GGD yet</div>';
-    }
-
     /* ---- dialogue ledger (editable + ElevenLabs) ---- */
     let elevenVoices = [];
     let voiceMapCache = {};
@@ -4836,7 +4804,8 @@ STUDIO_HTML = r"""<!DOCTYPE html>
         const flags = [];
         if (xaiConfigured) flags.push('Imagine ready');
         else flags.push('set XAI_API_KEY for Imagine');
-        log('Studio v0.8.0 — video-first anim · Export→Game · Flow characters. ' + flags.join(' · '));
+        const verLabel = (document.getElementById('buildVer') && document.getElementById('buildVer').textContent) || 'v0.9.1';
+        log('Studio ' + verLabel + ' — Flow workstation · rubber-band connect · Export→Game. ' + flags.join(' · '));
         loadAssets().catch(() => {});
       } catch (e) {
         log('ERROR: ' + e.message);
