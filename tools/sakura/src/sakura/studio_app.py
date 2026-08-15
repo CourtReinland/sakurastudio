@@ -53,6 +53,7 @@ from sakura.moodboards import (
     resolve_moodboard_file,
 )
 from sakura.studio_style import load_studio_style, save_studio_style
+from sakura.title_assets import filter_assets_for_title, title_slug_tags
 from sakura.tts import generate_line_audio
 from sakura.validate import run_validate, summarize
 from sakura.voice_map import (
@@ -829,15 +830,29 @@ def api_bindings(
             "kind": e.data.get("kind"),
             "tags": e.data.get("tags") or [],
             "status": e.data.get("status"),
+            "title_id": e.data.get("title_id"),
+            "paths": [
+                str(f.get("path"))
+                for f in (e.data.get("files") or [])
+                if isinstance(f, dict) and f.get("path")
+            ],
             "preview_url": f"/api/asset-file?asset_id={aid}",
         }
         for aid, e in sorted(index.assets.items())
     ]
 
+    bound_ids = {
+        b.get("asset_id")
+        for b in bindings
+        if isinstance(b, dict) and isinstance(b.get("asset_id"), str)
+    }
+    assets_for_title = filter_assets_for_title(index, title_id, bound_ids=bound_ids)
+
     return {
         "title_id": title_id,
         "rows": rows,
         "assets": assets,
+        "assets_for_title": assets_for_title,
         "categories": {k: v["label"] for k, v in SWAP_CATEGORIES.items()},
     }
 
@@ -1006,10 +1021,12 @@ async def api_asset_upload(
             base_name=base,
             mime=mime,
             filename=file.filename,
+            tags=title_slug_tags(title_id) if title_id else None,
             provenance={
                 "source": "internal",
                 "tool": "studio_upload",
                 "author": "studio",
+                **({"title_id": title_id} if title_id else {}),
             },
             status="review",
         )
@@ -1246,11 +1263,13 @@ def api_imagine(body: ImagineBody, catalog: str | None = None) -> dict[str, Any]
             label=body.label,
             base_name=base_name,
             mime=mime,
+            tags=title_slug_tags(body.title_id) if body.title_id else None,
             provenance={
                 "source": "generated",
                 "tool": tool,
                 "prompt": body.prompt.strip(),
                 "author": "studio",
+                **({"title_id": body.title_id} if body.title_id else {}),
                 **(
                     {"style_asset_id": style_board.get("asset_id")}
                     if style_injected and style_board
@@ -2156,6 +2175,10 @@ STUDIO_HTML = r"""<!DOCTYPE html>
     }
     .canvas-pick-grid img {
       width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 6px; background: #100c16;
+      pointer-events: none;
+    }
+    .canvas-pick-grid button, .canvas-pick-grid .canvas-pick-tile {
+      cursor: grab;
     }
   </style>
 </head>
@@ -2368,6 +2391,7 @@ STUDIO_HTML = r"""<!DOCTYPE html>
     let projects = [];
     let swapCategory = 'all';
     let dragAssetId = null;
+    let dragMoodPath = null;
 
     function log(msg) {
       const t = new Date().toLocaleTimeString();
@@ -2459,6 +2483,9 @@ STUDIO_HTML = r"""<!DOCTYPE html>
         document.getElementById('assetToolResult').innerHTML = 'Pick a catalog title first.';
         const bindSlot = document.getElementById('canvasBindSlot');
         if (bindSlot) bindSlot.innerHTML = '<option value="">— no slot —</option>';
+        canvasTitleAssets = [];
+        canvasTitleIdLoaded = null;
+        closeCanvasPicker();
         log('Selected unmapped project: ' + opt.textContent);
         return;
       }
@@ -3329,16 +3356,57 @@ STUDIO_HTML = r"""<!DOCTYPE html>
     let canvasHistory = [];
     let canvasMoodItems = [];
     let canvasSlots = [];
+    let canvasTitleAssets = [];
+    let canvasTitleIdLoaded = null;
     let canvasBusy = false;
     let canvasPinSeq = 1;
 
+    function titleScopeKeys(titleId) {
+      const raw = String(titleId || '').replace(/^title\\./, '');
+      const parts = raw.replace(/-/g, '_').split('_').filter(Boolean);
+      const brandless = parts.filter(p => p !== 'sakura');
+      const slugs = new Set();
+      if (raw) { slugs.add(raw); slugs.add(raw.replace(/_/g, '-')); }
+      if (brandless.length) {
+        const j = brandless.join('_');
+        slugs.add(j);
+        slugs.add(j.replace(/_/g, '-'));
+      }
+      const shorts = new Set();
+      if (brandless[0]) shorts.add(brandless[0]);
+      if (brandless.length) shorts.add(brandless[brandless.length - 1]);
+      if (parts.length) shorts.add(parts[parts.length - 1]);
+      return { slugs, shorts: new Set([...shorts].filter(s => s.length >= 3)) };
+    }
+
+    function assetBelongsToCurrentTitle(a) {
+      if (!currentTitleId || !a) return true;
+      if (a.title_id === currentTitleId) return true;
+      if (a.provenance && a.provenance.title_id === currentTitleId) return true;
+      const keys = titleScopeKeys(currentTitleId);
+      const tags = a.tags || [];
+      if (tags.some(t => keys.slugs.has(String(t)))) return true;
+      const id = String(a.id || '');
+      for (const s of keys.shorts) {
+        if (id.includes('.' + s + '.') || id.endsWith('.' + s)) return true;
+      }
+      const blob = ((a.paths || []).join(' ') + ' ' + (a.path || '')).toLowerCase();
+      for (const slug of keys.slugs) {
+        if (slug && blob.includes(String(slug).toLowerCase())) return true;
+      }
+      return false;
+    }
+
+    function isVisualAsset(a) {
+      const k = (a && a.kind) || '';
+      return !String(k).startsWith('audio') && k !== 'font' && k !== 'other';
+    }
+
     function visualLibraryAssets() {
-      const assets = Object.values(swapAssetsById);
-      const visual = assets.filter(a => {
-        const k = a.kind || '';
-        return !String(k).startsWith('audio') && k !== 'font' && k !== 'other';
-      });
-      return visual.length ? visual : assets;
+      const source = canvasTitleAssets.length
+        ? canvasTitleAssets
+        : Object.values(swapAssetsById);
+      return source.filter(a => isVisualAsset(a) && assetBelongsToCurrentTitle(a));
     }
 
     function canvasPinKey(pin) {
@@ -3369,6 +3437,7 @@ STUDIO_HTML = r"""<!DOCTYPE html>
       }
       if (!canvasPins.length) {
         host.innerHTML = '<div class="empty" style="padding:16px">Drop a catalog asset, moodboards/ image, or local file</div>';
+        wireCanvasDnd(host, 'rail');
         return;
       }
       host.innerHTML = '';
@@ -3403,6 +3472,7 @@ STUDIO_HTML = r"""<!DOCTYPE html>
         };
         host.appendChild(el);
       });
+      wireCanvasDnd(host, 'rail');
     }
 
     function addCanvasPin(pin) {
@@ -3420,9 +3490,15 @@ STUDIO_HTML = r"""<!DOCTYPE html>
       return true;
     }
 
+    function rememberTitleAsset(asset) {
+      if (!asset || !asset.id) return;
+      if (!canvasTitleAssets.some(a => a.id === asset.id)) canvasTitleAssets.push(asset);
+      swapAssetsById[asset.id] = { ...(swapAssetsById[asset.id] || {}), ...asset };
+    }
+
     function pinCatalogAsset(assetId, role) {
       if (!assetId || !assetId.startsWith('asset.')) return false;
-      const meta = swapAssetsById[assetId] || {};
+      const meta = swapAssetsById[assetId] || canvasTitleAssets.find(a => a.id === assetId) || {};
       return addCanvasPin({
         kind: 'asset',
         asset_id: assetId,
@@ -3464,12 +3540,14 @@ STUDIO_HTML = r"""<!DOCTYPE html>
         }
         const aid = data.asset?.asset_id;
         if (aid) {
-          swapAssetsById[aid] = {
+          rememberTitleAsset({
             id: aid,
             label: data.asset.label,
             kind: data.asset.kind,
             preview_url: data.asset.preview_url,
-          };
+            title_id: currentTitleId,
+            tags: data.asset.tags || [],
+          });
           pinCatalogAsset(aid, role || 'subject');
           if (!canvasStage) promoteCanvasAsset(aid, data.asset.preview_url, 'upload');
         }
@@ -3499,10 +3577,12 @@ STUDIO_HTML = r"""<!DOCTYPE html>
           <span class="muted">Catalog assets · moodboards/ · local files. Results save as new asset.studio.*</span>
         </div>`;
         if (meta) meta.textContent = 'No generation yet';
+        wireCanvasDnd(stage, 'stage');
         return;
       }
       stage.innerHTML = `<img src="${canvasStage.preview_url}" alt="stage" />`;
       if (meta) meta.textContent = canvasStage.asset_id + (canvasStage.note ? ' · ' + canvasStage.note : '');
+      wireCanvasDnd(stage, 'stage');
     }
 
     function renderCanvasHistory() {
@@ -3542,19 +3622,23 @@ STUDIO_HTML = r"""<!DOCTYPE html>
       let items = [];
       if (mode === 'catalog') {
         items = visualLibraryAssets().map(a => ({
+          kind: 'asset',
+          asset_id: a.id,
           preview_url: a.preview_url,
           label: a.id.replace(/^asset\\./, ''),
-          onclick: () => pinCatalogAsset(a.id, 'subject'),
+          pin: () => pinCatalogAsset(a.id, 'subject'),
         }));
       } else {
         items = canvasMoodItems.map(m => ({
+          kind: 'moodboard',
+          path: m.path,
           preview_url: m.preview_url,
           label: (m.folder ? m.folder + '/' : '') + m.name,
-          onclick: () => pinMoodboard(m, 'style'),
+          pin: () => pinMoodboard(m, 'style'),
         }));
       }
       if (!items.length) {
-        p.innerHTML = `<div class="muted">${mode === 'mood' ? 'No images in moodboards/ yet — drop files there or use + File' : 'No catalog image assets'}</div>`;
+        p.innerHTML = `<div class="muted">${mode === 'mood' ? 'No images in moodboards/ yet — drop files there or use + File' : 'No catalog image assets for this title'}</div>`;
         p.classList.add('open');
         return;
       }
@@ -3563,8 +3647,37 @@ STUDIO_HTML = r"""<!DOCTYPE html>
       items.forEach(it => {
         const b = document.createElement('button');
         b.type = 'button';
-        b.innerHTML = `<img src="${it.preview_url}" alt="" onerror="this.style.opacity=0.2" /><div>${it.label}</div>`;
-        b.onclick = () => { it.onclick(); };
+        b.className = 'canvas-pick-tile';
+        b.draggable = true;
+        b.innerHTML = `<img src="${it.preview_url}" alt="" draggable="false" onerror="this.style.opacity=0.2" /><div>${it.label}</div>`;
+        b.addEventListener('dragstart', (ev) => {
+          b._dragging = true;
+          ev.stopPropagation();
+          if (it.kind === 'asset') {
+            dragAssetId = it.asset_id;
+            dragMoodPath = null;
+            try {
+              ev.dataTransfer.setData('text/plain', it.asset_id);
+              ev.dataTransfer.setData('application/x-sakura-asset', it.asset_id);
+            } catch (_) {}
+          } else {
+            dragMoodPath = it.path;
+            dragAssetId = null;
+            try {
+              ev.dataTransfer.setData('text/plain', 'moodboard:' + it.path);
+              ev.dataTransfer.setData('application/x-sakura-moodboard', it.path);
+            } catch (_) {}
+          }
+          ev.dataTransfer.effectAllowed = 'copy';
+        });
+        b.addEventListener('dragend', () => {
+          setTimeout(() => { b._dragging = false; }, 0);
+        });
+        b.onclick = () => {
+          if (b._dragging) return;
+          it.pin();
+          closeCanvasPicker();
+        };
         grid.appendChild(b);
       });
       p.innerHTML = '';
@@ -3655,12 +3768,14 @@ STUDIO_HTML = r"""<!DOCTYPE html>
         const aid = r.asset?.asset_id;
         if (aid) {
           const preview = (r.preview_url || r.asset.preview_url || ('/api/asset-file?asset_id=' + encodeURIComponent(aid))) + '&t=' + Date.now();
-          swapAssetsById[aid] = {
+          rememberTitleAsset({
             id: aid,
             label: r.asset.label,
             kind: r.asset.kind,
             preview_url: preview,
-          };
+            title_id: currentTitleId,
+            tags: r.asset.tags || [],
+          });
           canvasHistory.unshift({
             asset_id: aid,
             preview_url: preview,
@@ -3697,21 +3812,47 @@ STUDIO_HTML = r"""<!DOCTYPE html>
       ev.preventDefault();
       ev.stopPropagation();
       const dt = ev.dataTransfer;
+      const role = target === 'stage' ? 'subject' : 'style';
       const files = dt && dt.files && dt.files.length ? [...dt.files] : [];
-      for (const f of files) await pinLocalFile(f, target === 'stage' ? 'subject' : 'style');
+      let pinned = false;
+      for (const f of files) {
+        await pinLocalFile(f, role);
+        pinned = true;
+      }
       if (!files.length) {
+        let mood = '';
         let id = '';
-        try { id = dt.getData('application/x-sakura-asset') || dt.getData('text/plain'); } catch (_) {}
+        try {
+          mood = dt.getData('application/x-sakura-moodboard') || '';
+          const plain = dt.getData('text/plain') || '';
+          if (!mood && plain.startsWith('moodboard:')) mood = plain.slice('moodboard:'.length);
+          id = dt.getData('application/x-sakura-asset') || '';
+          if (!id && plain.startsWith('asset.')) id = plain;
+        } catch (_) {}
+        mood = (mood || dragMoodPath || '').trim();
         id = (id || dragAssetId || '').trim();
-        if (id && id.startsWith('asset.')) {
-          pinCatalogAsset(id, target === 'stage' ? 'subject' : 'style');
+        if (mood) {
+          const item = canvasMoodItems.find(m => m.path === mood) || {
+            path: mood,
+            preview_url: '/api/moodboard-file?path=' + encodeURIComponent(mood),
+            name: mood.split('/').pop(),
+          };
+          pinMoodboard(item, role);
+          pinned = true;
+        } else if (id && id.startsWith('asset.')) {
+          pinCatalogAsset(id, role);
+          pinned = true;
           if (target === 'stage') promoteCanvasAsset(id, null, 'pin');
         }
+      }
+      if (!pinned) {
+        log('Canvas drop ignored — no catalog asset, moodboard path, or image file in the payload');
       }
     }
 
     function wireCanvasDnd(el, target) {
-      if (!el || el._canvasDnd) return;
+      if (!el) return;
+      if (el._canvasDnd) return;
       el._canvasDnd = true;
       el.addEventListener('dragover', (ev) => {
         ev.preventDefault();
@@ -3735,16 +3876,27 @@ STUDIO_HTML = r"""<!DOCTYPE html>
           ? 'Set XAI_API_KEY in SakuraSoft/.env'
           : 'Generate = new look · Iterate = edit last output + selected refs · max 3 images';
       }
+      if (canvasTitleIdLoaded !== currentTitleId) {
+        canvasTitleAssets = [];
+        canvasTitleIdLoaded = currentTitleId;
+        closeCanvasPicker();
+      }
       if (currentTitleId) {
         try {
           const data = await api('/api/bindings?examples=true&title=' + encodeURIComponent(currentTitleId));
           for (const a of (data.assets || [])) swapAssetsById[a.id] = a;
+          const scoped = data.assets_for_title || [];
+          canvasTitleAssets = scoped.length
+            ? scoped
+            : (data.assets || []).filter(a => assetBelongsToCurrentTitle(a));
           canvasSlots = (data.rows || [])
             .map(r => r.slot)
             .filter(s => s && ['cg', 'bg', 'portrait', 'ui', 'sprite', 'texture', 'icon'].includes(s.kind));
         } catch (e) {
           log('Canvas library: ' + e.message);
         }
+      } else {
+        canvasTitleAssets = [];
       }
       fillCanvasSlots();
       try {
