@@ -40,6 +40,10 @@ def test_canvas_tab_in_studio_html() -> None:
     assert "assets_for_title" in html
     assert "closeCanvasPicker()" in html
     assert "b.draggable = true" in html
+    # STUDIO_HTML is a raw string: one backslash so the browser sees /^title\./
+    assert "replace(/^title\\./, '')" in html
+    assert "replace(/^title\\\\./, '')" not in html
+    assert "canvasTitleAssets.filter(isVisualAsset)" in html
 
 
 def test_moodboard_list_and_safe_resolve(tmp_path: Path) -> None:

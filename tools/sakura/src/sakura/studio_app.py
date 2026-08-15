@@ -3362,7 +3362,7 @@ STUDIO_HTML = r"""<!DOCTYPE html>
     let canvasPinSeq = 1;
 
     function titleScopeKeys(titleId) {
-      const raw = String(titleId || '').replace(/^title\\./, '');
+      const raw = String(titleId || '').replace(/^title\./, '');
       const parts = raw.replace(/-/g, '_').split('_').filter(Boolean);
       const brandless = parts.filter(p => p !== 'sakura');
       const slugs = new Set();
@@ -3403,10 +3403,10 @@ STUDIO_HTML = r"""<!DOCTYPE html>
     }
 
     function visualLibraryAssets() {
-      const source = canvasTitleAssets.length
-        ? canvasTitleAssets
-        : Object.values(swapAssetsById);
-      return source.filter(a => isVisualAsset(a) && assetBelongsToCurrentTitle(a));
+      if (canvasTitleAssets.length) {
+        return canvasTitleAssets.filter(isVisualAsset);
+      }
+      return Object.values(swapAssetsById).filter(a => isVisualAsset(a) && assetBelongsToCurrentTitle(a));
     }
 
     function canvasPinKey(pin) {
