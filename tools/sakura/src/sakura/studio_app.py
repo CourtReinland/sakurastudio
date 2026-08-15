@@ -46,6 +46,12 @@ from sakura.flow_graph import (
 from sakura.project_open import open_target
 from sakura.export_game import export_title_to_game
 from sakura.game_assets import run_tool as run_game_asset_tool, tool_catalog as game_asset_tool_catalog
+from sakura.moodboards import (
+    list_moodboard_images,
+    list_recent_studio_assets,
+    load_moodboard_bytes,
+    resolve_moodboard_file,
+)
 from sakura.studio_style import load_studio_style, save_studio_style
 from sakura.tts import generate_line_audio
 from sakura.validate import run_validate, summarize
@@ -175,12 +181,14 @@ class ImagineRefImage(BaseModel):
 
 
 class ImagineReference(BaseModel):
-    """Ordered edit reference — catalog asset or inline base64 image."""
-    kind: str = "asset"  # asset | file
+    """Ordered edit reference — catalog asset, mood-board file, or inline image."""
+    kind: str = "asset"  # asset | file | moodboard
     asset_id: str | None = None
+    path: str | None = None  # moodboards/ relative path
     data_base64: str | None = None
     mime: str = "image/png"
     name: str | None = None
+    role: str | None = None  # subject | style (prompt hint only)
 
 
 class ImagineBody(BaseModel):
@@ -553,6 +561,43 @@ def api_set_studio_style(body: StyleBoardBody, catalog: str | None = None) -> di
             f"({'ACTIVE' if style['active'] else 'inactive'})"
         ),
     }
+
+
+@app.get("/api/moodboards")
+def api_moodboards(catalog: str | None = None) -> dict[str, Any]:
+    """List image files under repo ``moodboards/`` (Canvas pins)."""
+    root = _catalog(catalog)
+    items = list_moodboard_images(root)
+    return {
+        "ok": True,
+        "root": str(root.parent / "moodboards"),
+        "count": len(items),
+        "items": items,
+    }
+
+
+@app.get("/api/moodboard-file")
+def api_moodboard_file(path: str, catalog: str | None = None) -> Response:
+    root = _catalog(catalog)
+    try:
+        file_path = resolve_moodboard_file(root, path)
+    except FileNotFoundError as e:
+        raise HTTPException(404, str(e)) from e
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
+    mime = mimetypes.guess_type(str(file_path))[0] or "image/png"
+    return Response(content=file_path.read_bytes(), media_type=mime)
+
+
+@app.get("/api/studio-recent")
+def api_studio_recent(
+    limit: int = 24,
+    catalog: str | None = None,
+) -> dict[str, Any]:
+    """Recent ``asset.studio.*`` generations for Canvas history."""
+    root = _catalog(catalog)
+    items = list_recent_studio_assets(root, limit=limit)
+    return {"ok": True, "items": items, "count": len(items)}
 
 
 @app.get("/api/projects")
@@ -1071,6 +1116,16 @@ def api_imagine(body: ImagineBody, catalog: str | None = None) -> dict[str, Any]
                     if not ref.data_base64:
                         raise HTTPException(400, "reference.file kind needs data_base64")
                     refs.append(_decode_b64(ref.data_base64, ref.mime or "image/png"))
+                elif kind in {"moodboard", "board"}:
+                    rel = ref.path or ref.name
+                    if not rel:
+                        raise HTTPException(400, "reference.moodboard kind needs path")
+                    try:
+                        refs.append(load_moodboard_bytes(root, rel))
+                    except FileNotFoundError as e:
+                        raise HTTPException(404, str(e)) from e
+                    except ValueError as e:
+                        raise HTTPException(400, str(e)) from e
                 else:
                     raise HTTPException(400, f"Unknown reference kind: {ref.kind}")
         else:
@@ -1150,6 +1205,18 @@ def api_imagine(body: ImagineBody, catalog: str | None = None) -> dict[str, Any]
                 raise HTTPException(400, "At most 3 reference images allowed")
 
             prompt = body.prompt.strip()
+            style_roles = [
+                r.role
+                for r in (body.references or [])
+                if (r.role or "").lower() == "style"
+            ]
+            if style_roles:
+                prompt = (
+                    f"{prompt}\n\n"
+                    "[Canvas refs] Images marked style are style-only — match line, "
+                    "palette, shading, and finish. Do not copy those subjects. "
+                    "Images marked subject keep identity and composition."
+                )
             if style_injected:
                 prompt = (
                     f"{prompt}\n\n"
@@ -2013,13 +2080,90 @@ STUDIO_HTML = r"""<!DOCTYPE html>
     .empty { color: var(--muted); padding: 24px; text-align: center; }
     .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
     @media (max-width: 800px) { .two-col { grid-template-columns: 1fr; } }
+    /* ---- Imagine Style Canvas ---- */
+    main:has(#panel-canvas.active) { max-width: 1400px; }
+    .canvas-shell {
+      display: grid; grid-template-columns: 272px 1fr; gap: 12px; min-height: 68vh;
+    }
+    @media (max-width: 1000px) { .canvas-shell { grid-template-columns: 1fr; } }
+    .canvas-rail, .canvas-stage-col {
+      background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+      padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; min-width: 0;
+    }
+    .canvas-rail h3, .canvas-stage-col h3 { margin: 0; font-size: 0.9rem; }
+    .canvas-pins {
+      display: flex; flex-direction: column; gap: 8px; overflow: auto; max-height: 52vh;
+      min-height: 120px; padding: 4px; border: 1px dashed var(--border); border-radius: 10px;
+      background: #100c16;
+    }
+    .canvas-pins.drop-target { border-color: var(--accent); border-style: solid; }
+    .canvas-pin {
+      display: grid; grid-template-columns: 56px 1fr auto; gap: 8px; align-items: center;
+      background: var(--panel2); border: 1px solid var(--border); border-radius: 10px; padding: 6px;
+    }
+    .canvas-pin.active-send { border-color: var(--accent); box-shadow: 0 0 0 1px #ff8fab66; }
+    .canvas-pin.overflow { opacity: 0.5; }
+    .canvas-pin img {
+      width: 56px; height: 56px; object-fit: cover; border-radius: 8px; background: #100c16;
+    }
+    .canvas-pin .pin-meta { min-width: 0; font-size: 0.7rem; color: var(--muted); }
+    .canvas-pin .pin-meta strong {
+      display: block; color: var(--text); font-size: 0.75rem;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .canvas-pin .pin-role { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+    .canvas-pin .pin-role label { margin: 0; font-size: 0.65rem; color: var(--muted); cursor: pointer; }
+    .canvas-stage {
+      flex: 1; min-height: 360px; border: 1px dashed var(--border); border-radius: 12px;
+      background: #100c16; display: grid; place-items: center; overflow: hidden; position: relative;
+    }
+    .canvas-stage.drop-target { border-color: var(--accent); border-style: solid; }
+    .canvas-stage img {
+      max-width: 100%; max-height: min(58vh, 640px); object-fit: contain; display: block;
+    }
+    .canvas-stage .empty-stage {
+      text-align: center; color: var(--muted); padding: 28px 20px; line-height: 1.45; max-width: 420px;
+    }
+    .canvas-history {
+      display: flex; gap: 8px; overflow-x: auto; padding: 6px 0; min-height: 78px;
+    }
+    .canvas-hist {
+      flex: 0 0 72px; width: 72px; cursor: pointer; text-align: center;
+      font-size: 0.6rem; color: var(--muted);
+    }
+    .canvas-hist img {
+      width: 72px; height: 72px; object-fit: cover; border-radius: 8px;
+      border: 1px solid var(--border); background: #100c16;
+    }
+    .canvas-hist.current img { border-color: var(--accent); box-shadow: 0 0 0 2px #ff8fab55; }
+    .canvas-prompt {
+      background: var(--panel2); border: 1px solid var(--border); border-radius: 10px; padding: 8px;
+    }
+    .canvas-prompt textarea {
+      width: 100%; min-height: 64px; resize: vertical; background: #100c16; color: var(--text);
+      border: 1px solid var(--border); border-radius: 6px; padding: 8px; font-family: inherit; font-size: 0.85rem;
+    }
+    .canvas-picker {
+      display: none; margin-top: 6px; padding: 8px; border: 1px solid var(--border);
+      border-radius: 10px; background: #160f1c; max-height: 280px; overflow: auto;
+    }
+    .canvas-picker.open { display: block; }
+    .canvas-pick-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 6px;
+    }
+    .canvas-pick-grid button {
+      padding: 4px; background: var(--panel2); border-color: var(--border); font-size: 0.58rem;
+    }
+    .canvas-pick-grid img {
+      width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 6px; background: #100c16;
+    }
   </style>
 </head>
 <body>
   <header>
     <div>
       <h1>🌸 <span>Sakura</span> Studio <span class="ver" id="buildVer">v0.9.1</span></h1>
-      <div class="muted">Flow · rubber-band connect · splash slots · open Unity/Blender</div>
+      <div class="muted">Flow · Canvas · Imagine style lock · splash slots</div>
     </div>
     <div class="row">
       <div class="field">
@@ -2037,6 +2181,7 @@ STUDIO_HTML = r"""<!DOCTYPE html>
     <div class="tabs" id="mainTabs">
       <button type="button" data-tab="flow" class="active">Flow ★</button>
       <button type="button" data-tab="assets">Assets ✦</button>
+      <button type="button" data-tab="canvas">Canvas</button>
       <button type="button" data-tab="swaps">Swaps</button>
       <button type="button" data-tab="dialogue">Dialogue</button>
       <button type="button" data-tab="overview">Overview</button>
@@ -2096,6 +2241,88 @@ STUDIO_HTML = r"""<!DOCTYPE html>
         </div>
       </div>
       <div class="flow-detail" id="flowDetail">Select a scene node. Expand (+) to edit assets in place. Connect scenes for player progression.</div>
+    </section>
+    <section id="panel-canvas" class="panel">
+      <div class="canvas-shell">
+        <aside class="canvas-rail" id="canvasRail">
+          <h3>Mood board</h3>
+          <div class="muted" id="canvasPinHint">Pin 1–N refs. Max 3 sent per Imagine edit (active outlined).</div>
+          <div class="canvas-pins" id="canvasPins"></div>
+          <div class="row">
+            <button type="button" class="secondary" id="btnCanvasPinCatalog">+ Catalog</button>
+            <button type="button" class="secondary" id="btnCanvasPinMood">+ Moodboards</button>
+            <button type="button" class="secondary" id="btnCanvasPinFile">+ File</button>
+          </div>
+          <input type="file" id="canvasFileInput" accept="image/png,image/jpeg,image/webp,image/gif" multiple hidden />
+          <div class="canvas-picker" id="canvasPicker"></div>
+          <div class="style-board" id="canvasStyleBoard" style="margin:4px 0 0;padding:8px">
+            <div id="canvasStyleThumb" class="style-thumb placeholder">style</div>
+            <div class="style-meta">
+              <strong>Style lock</strong>
+              <div class="muted" id="canvasStyleStatus">Shared with Swaps</div>
+            </div>
+            <div class="field" style="min-width:140px">
+              <label for="canvasStyleAsset">Style asset</label>
+              <select id="canvasStyleAsset"><option value="">— none —</option></select>
+            </div>
+            <label class="toggle off" id="canvasStyleToggleLabel">
+              <input type="checkbox" id="canvasStyleEnabled" />
+              <span id="canvasStyleToggleText">Style lock OFF</span>
+            </label>
+          </div>
+        </aside>
+        <div class="canvas-stage-col">
+          <div class="row" style="justify-content:space-between">
+            <h3>Imagine canvas</h3>
+            <span class="muted" id="canvasStageMeta">No generation yet</span>
+          </div>
+          <div class="canvas-stage" id="canvasStage">
+            <div class="empty-stage" id="canvasEmpty">
+              Generate a look, or drop a style / subject reference.<br/>
+              <span class="muted">Catalog assets · moodboards/ · local files. Results save as new asset.studio.*</span>
+            </div>
+          </div>
+          <div>
+            <div class="muted" style="margin-bottom:4px">History — click to stage · “use as next ref” pins the look</div>
+            <div class="canvas-history" id="canvasHistory"></div>
+          </div>
+          <div class="canvas-prompt">
+            <textarea id="canvasPrompt" placeholder="Describe the Tea House look… e.g. dusk lacquer tea room, warm lanterns, soft pastel, no text"></textarea>
+            <div class="row" style="margin-top:8px">
+              <select id="canvasRatio" title="Aspect ratio">
+                <option value="1:1">1:1</option>
+                <option value="16:9">16:9</option>
+                <option value="9:16">9:16</option>
+                <option value="4:3">4:3</option>
+                <option value="3:4">3:4</option>
+                <option value="auto">auto</option>
+              </select>
+              <select id="canvasModel" title="Model">
+                <option value="fast">fast</option>
+                <option value="quality">quality</option>
+              </select>
+              <select id="canvasKind" title="Asset kind">
+                <option value="cg">cg</option>
+                <option value="bg">bg</option>
+                <option value="sprite">sprite</option>
+                <option value="portrait">portrait</option>
+                <option value="ui">ui</option>
+              </select>
+              <button type="button" id="btnCanvasGen">Generate</button>
+              <button type="button" class="secondary" id="btnCanvasIterate">Iterate</button>
+            </div>
+            <div class="row" style="margin-top:8px">
+              <div class="field" style="min-width:220px">
+                <label for="canvasBindSlot">Bind stage to slot (optional)</label>
+                <select id="canvasBindSlot"><option value="">— no slot —</option></select>
+              </div>
+              <button type="button" class="secondary" id="btnCanvasBind">Bind to slot</button>
+              <button type="button" class="secondary" id="btnCanvasUseRef">Use stage as next ref</button>
+            </div>
+            <div class="muted" id="canvasImagineHint" style="margin-top:6px">Generate = new look · Iterate = edit last output + selected refs</div>
+          </div>
+        </div>
+      </div>
     </section>
     <section id="panel-swaps" class="panel">
       <div class="style-board" id="styleBoard">
@@ -2174,6 +2401,7 @@ STUDIO_HTML = r"""<!DOCTYPE html>
       btn.classList.add('active');
       document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
       document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
+      if (btn.dataset.tab === 'canvas') loadCanvas().catch(e => log(e.message));
     });
 
     document.querySelectorAll('.cat-filter').forEach(btn => {
@@ -2229,12 +2457,15 @@ STUDIO_HTML = r"""<!DOCTYPE html>
         document.getElementById('flowNodes').innerHTML = '';
         document.getElementById('flowEdges').innerHTML = '';
         document.getElementById('assetToolResult').innerHTML = 'Pick a catalog title first.';
+        const bindSlot = document.getElementById('canvasBindSlot');
+        if (bindSlot) bindSlot.innerHTML = '<option value="">— no slot —</option>';
         log('Selected unmapped project: ' + opt.textContent);
         return;
       }
       currentTitleId = titleId;
       await Promise.all([
         loadOverview(), loadFlow(), loadAssets(), loadSwaps(), loadDialogue(), loadCast(), loadCode(),
+        loadCanvas(),
       ]);
     }
 
@@ -2272,7 +2503,7 @@ STUDIO_HTML = r"""<!DOCTYPE html>
             <div class="stat" style="min-width:70px"><b>${o.stats?.bindings || 0}</b><span class="muted">Bound</span></div>
           </div>
         </div>
-        <div class="muted" style="margin-top:8px">Tabs: Flow ★ · Assets · Swaps · Dialogue · Overview · Cast · Code map</div>
+        <div class="muted" style="margin-top:8px">Tabs: Flow ★ · Assets · Canvas · Swaps · Dialogue · Overview · Cast · Code map</div>
       `;
     }
 
@@ -2347,16 +2578,8 @@ STUDIO_HTML = r"""<!DOCTYPE html>
       }
     }
 
-    function renderStyleBoard() {
-      const sel = document.getElementById('styleAssetSelect');
-      const en = document.getElementById('styleEnabled');
-      const thumb = document.getElementById('styleThumb');
-      const status = document.getElementById('styleStatus');
-      const toggleLabel = document.getElementById('styleToggleLabel');
-      const toggleText = document.getElementById('styleToggleText');
+    function fillStyleAssetSelect(sel, prev) {
       if (!sel) return;
-
-      const prev = styleBoard.asset_id || '';
       const assets = Object.values(swapAssetsById);
       const visual = assets.filter(a => {
         const k = a.kind || '';
@@ -2373,57 +2596,99 @@ STUDIO_HTML = r"""<!DOCTYPE html>
         opt.selected = true;
         sel.appendChild(opt);
       }
+    }
 
-      en.checked = !!styleBoard.enabled;
-      toggleLabel.classList.toggle('on', !!styleBoard.enabled && !!styleBoard.asset_id);
-      toggleLabel.classList.toggle('off', !(styleBoard.enabled && styleBoard.asset_id));
-      toggleText.textContent = styleBoard.enabled
+    function setStyleThumb(elId, preview) {
+      const old = document.getElementById(elId);
+      if (!old) return;
+      if (preview) {
+        const img = document.createElement('img');
+        img.id = elId;
+        img.className = 'style-thumb';
+        img.src = preview;
+        img.alt = 'style';
+        old.replaceWith(img);
+      } else if (old.tagName === 'IMG') {
+        const div = document.createElement('div');
+        div.id = elId;
+        div.className = 'style-thumb placeholder';
+        div.textContent = 'style';
+        old.replaceWith(div);
+      } else {
+        old.className = 'style-thumb placeholder';
+        old.textContent = 'style';
+      }
+    }
+
+    function renderStyleBoard() {
+      const sel = document.getElementById('styleAssetSelect');
+      const en = document.getElementById('styleEnabled');
+      const status = document.getElementById('styleStatus');
+      const toggleLabel = document.getElementById('styleToggleLabel');
+      const toggleText = document.getElementById('styleToggleText');
+      const canvasSel = document.getElementById('canvasStyleAsset');
+      const canvasEn = document.getElementById('canvasStyleEnabled');
+      const canvasStatus = document.getElementById('canvasStyleStatus');
+      const canvasToggleLabel = document.getElementById('canvasStyleToggleLabel');
+      const canvasToggleText = document.getElementById('canvasStyleToggleText');
+      if (!sel && !canvasSel) return;
+
+      const prev = styleBoard.asset_id || '';
+      fillStyleAssetSelect(sel, prev);
+      fillStyleAssetSelect(canvasSel, prev);
+
+      const locked = !!styleBoard.enabled && !!styleBoard.asset_id;
+      if (en) en.checked = !!styleBoard.enabled;
+      if (canvasEn) canvasEn.checked = !!styleBoard.enabled;
+      if (toggleLabel) {
+        toggleLabel.classList.toggle('on', locked);
+        toggleLabel.classList.toggle('off', !locked);
+      }
+      if (canvasToggleLabel) {
+        canvasToggleLabel.classList.toggle('on', locked);
+        canvasToggleLabel.classList.toggle('off', !locked);
+      }
+      const lockText = styleBoard.enabled
         ? (styleBoard.asset_id ? 'Style lock ON' : 'Style lock ON (pick asset)')
         : 'Style lock OFF';
+      if (toggleText) toggleText.textContent = lockText;
+      if (canvasToggleText) canvasToggleText.textContent = lockText;
 
       const preview = styleBoard.asset?.preview_url
         || (styleBoard.asset_id ? '/api/asset-file?asset_id=' + encodeURIComponent(styleBoard.asset_id) : null);
-      const host = document.getElementById('styleThumb')?.parentElement || document.getElementById('styleBoard');
-      const old = document.getElementById('styleThumb');
-      if (old) {
-        if (preview) {
-          const img = document.createElement('img');
-          img.id = 'styleThumb';
-          img.className = 'style-thumb';
-          img.src = preview;
-          img.alt = 'style';
-          old.replaceWith(img);
-        } else if (old.tagName === 'IMG') {
-          const div = document.createElement('div');
-          div.id = 'styleThumb';
-          div.className = 'style-thumb placeholder';
-          div.textContent = 'style';
-          old.replaceWith(div);
-        } else {
-          old.className = 'style-thumb placeholder';
-          old.textContent = 'style';
-        }
-      }
-      status.textContent = styleBoard.active
+      setStyleThumb('styleThumb', preview);
+      setStyleThumb('canvasStyleThumb', preview);
+
+      const statusText = styleBoard.active
         ? `ACTIVE · ${styleBoard.asset_id} · injected on Imagine + Edit`
         : (styleBoard.enabled
-          ? 'Enabled but no asset — pick a style asset and Save'
+          ? 'Enabled but no asset — pick a style asset'
           : 'OFF · Imagine runs without project style ref');
+      if (status) status.textContent = statusText;
+      if (canvasStatus) canvasStatus.textContent = styleBoard.active
+        ? `ACTIVE · shared with Swaps · ${styleBoard.asset_id}`
+        : 'Shared with Swaps · ' + (styleBoard.enabled ? 'pick an asset' : 'lock OFF');
     }
 
-    async function saveStyleBoard() {
+    async function saveStyleBoard(source) {
       if (!currentTitleId) { log('No title selected'); return; }
-      const sel = document.getElementById('styleAssetSelect');
-      const en = document.getElementById('styleEnabled');
+      const swapsSel = document.getElementById('styleAssetSelect');
+      const swapsEn = document.getElementById('styleEnabled');
+      const canvasSel = document.getElementById('canvasStyleAsset');
+      const canvasEn = document.getElementById('canvasStyleEnabled');
+      const sel = source === 'canvas' ? canvasSel : swapsSel;
+      const en = source === 'canvas' ? canvasEn : swapsEn;
+      const assetId = (sel && sel.value) || (swapsSel && swapsSel.value) || '';
+      const enabled = !!(en ? en.checked : (swapsEn && swapsEn.checked));
       try {
         const r = await api('/api/studio-style', {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({
             title_id: currentTitleId,
-            enabled: !!en.checked,
-            asset_id: sel.value || null,
-            clear_asset: !sel.value,
+            enabled,
+            asset_id: assetId || null,
+            clear_asset: !assetId,
           }),
         });
         styleBoard = r.style || styleBoard;
@@ -2434,20 +2699,28 @@ STUDIO_HTML = r"""<!DOCTYPE html>
       }
     }
 
-    document.getElementById('btnStyleSave').onclick = () => saveStyleBoard();
-    document.getElementById('styleEnabled').addEventListener('change', () => {
-      // optimistic label; persist on Save (or auto-save toggle)
-      saveStyleBoard();
-    });
-    document.getElementById('styleAssetSelect').addEventListener('change', () => {
-      // preview immediately from library
-      const id = document.getElementById('styleAssetSelect').value;
+    function previewStyleAsset(id) {
       if (id && swapAssetsById[id]) {
         styleBoard = { ...styleBoard, asset_id: id, asset: swapAssetsById[id] };
       } else if (!id) {
         styleBoard = { ...styleBoard, asset_id: null, asset: null, active: false };
       }
       renderStyleBoard();
+    }
+
+    document.getElementById('btnStyleSave').onclick = () => saveStyleBoard('swaps');
+    document.getElementById('styleEnabled').addEventListener('change', () => {
+      saveStyleBoard('swaps');
+    });
+    document.getElementById('styleAssetSelect').addEventListener('change', () => {
+      previewStyleAsset(document.getElementById('styleAssetSelect').value);
+    });
+    document.getElementById('canvasStyleEnabled').addEventListener('change', () => {
+      saveStyleBoard('canvas');
+    });
+    document.getElementById('canvasStyleAsset').addEventListener('change', () => {
+      previewStyleAsset(document.getElementById('canvasStyleAsset').value);
+      saveStyleBoard('canvas');
     });
 
     async function loadSwaps() {
@@ -3048,6 +3321,471 @@ STUDIO_HTML = r"""<!DOCTYPE html>
         if (r.ok) { await loadSwaps(); await loadOverview(); }
       } catch (e) { log('ERROR: ' + e.message); }
     }
+
+    /* ---- Imagine Style Canvas ---- */
+    const MAX_CANVAS_SEND = 3;
+    let canvasPins = [];
+    let canvasStage = null;
+    let canvasHistory = [];
+    let canvasMoodItems = [];
+    let canvasSlots = [];
+    let canvasBusy = false;
+    let canvasPinSeq = 1;
+
+    function visualLibraryAssets() {
+      const assets = Object.values(swapAssetsById);
+      const visual = assets.filter(a => {
+        const k = a.kind || '';
+        return !String(k).startsWith('audio') && k !== 'font' && k !== 'other';
+      });
+      return visual.length ? visual : assets;
+    }
+
+    function canvasPinKey(pin) {
+      if (pin.kind === 'asset') return 'asset:' + pin.asset_id;
+      if (pin.kind === 'moodboard') return 'mood:' + pin.path;
+      if (pin.kind === 'file') return 'file:' + (pin.name || pin.id);
+      return pin.id;
+    }
+
+    function activeCanvasSendSet() {
+      const selected = canvasPins.filter(p => p.send);
+      const subjects = selected.filter(p => p.role !== 'style');
+      const styles = selected.filter(p => p.role === 'style');
+      return [...subjects, ...styles].slice(0, MAX_CANVAS_SEND);
+    }
+
+    function renderCanvasPins() {
+      const host = document.getElementById('canvasPins');
+      const hint = document.getElementById('canvasPinHint');
+      if (!host) return;
+      const active = activeCanvasSendSet();
+      const activeIds = new Set(active.map(p => p.id));
+      const sendCount = canvasPins.filter(p => p.send).length;
+      if (hint) {
+        hint.textContent = sendCount
+          ? `${sendCount} marked to send · ${active.length} of ${MAX_CANVAS_SEND} will go to Imagine`
+          : 'Pin 1–N refs. Check send on up to 3 (subject first, then style).';
+      }
+      if (!canvasPins.length) {
+        host.innerHTML = '<div class="empty" style="padding:16px">Drop a catalog asset, moodboards/ image, or local file</div>';
+        return;
+      }
+      host.innerHTML = '';
+      canvasPins.forEach((pin) => {
+        const isActive = activeIds.has(pin.id);
+        const overflow = pin.send && !isActive;
+        const el = document.createElement('div');
+        el.className = 'canvas-pin' + (isActive ? ' active-send' : '') + (overflow ? ' overflow' : '');
+        el.innerHTML = `
+          <img src="${pin.preview_url}" alt="" draggable="false" onerror="this.style.opacity=0.25" />
+          <div class="pin-meta">
+            <strong title="${pin.label || ''}">${pin.label || pin.kind}</strong>
+            <span>${pin.kind}${overflow ? ' · not sent (max 3)' : (isActive ? ' · sending' : '')}</span>
+            <div class="pin-role">
+              <label><input type="radio" name="pin-role-${pin.id}" value="subject" ${pin.role !== 'style' ? 'checked' : ''}/> subject</label>
+              <label><input type="radio" name="pin-role-${pin.id}" value="style" ${pin.role === 'style' ? 'checked' : ''}/> style</label>
+              <label><input type="checkbox" data-send ${pin.send ? 'checked' : ''}/> send</label>
+            </div>
+          </div>
+          <button type="button" class="secondary pin-x" title="Unpin">×</button>
+        `;
+        el.querySelectorAll('input[type=radio]').forEach(r => {
+          r.onchange = () => { pin.role = r.value; renderCanvasPins(); };
+        });
+        el.querySelector('[data-send]').onchange = (ev) => {
+          pin.send = !!ev.target.checked;
+          renderCanvasPins();
+        };
+        el.querySelector('.pin-x').onclick = () => {
+          canvasPins = canvasPins.filter(p => p.id !== pin.id);
+          renderCanvasPins();
+        };
+        host.appendChild(el);
+      });
+    }
+
+    function addCanvasPin(pin) {
+      const key = canvasPinKey(pin);
+      if (canvasPins.some(p => canvasPinKey(p) === key)) {
+        log('Already pinned: ' + (pin.label || key));
+        return false;
+      }
+      pin.id = pin.id || ('pin' + (canvasPinSeq++));
+      if (pin.role !== 'style') pin.role = 'subject';
+      if (pin.send == null) pin.send = canvasPins.filter(p => p.send).length < MAX_CANVAS_SEND;
+      canvasPins.push(pin);
+      renderCanvasPins();
+      log('Pinned ' + pin.kind + ': ' + (pin.label || pin.asset_id || pin.path || pin.name));
+      return true;
+    }
+
+    function pinCatalogAsset(assetId, role) {
+      if (!assetId || !assetId.startsWith('asset.')) return false;
+      const meta = swapAssetsById[assetId] || {};
+      return addCanvasPin({
+        kind: 'asset',
+        asset_id: assetId,
+        preview_url: meta.preview_url || ('/api/asset-file?asset_id=' + encodeURIComponent(assetId)),
+        label: (meta.label || assetId.replace(/^asset\\./, '')).slice(0, 40),
+        role: role || 'subject',
+      });
+    }
+
+    function pinMoodboard(item, role) {
+      if (!item || !item.path) return false;
+      return addCanvasPin({
+        kind: 'moodboard',
+        path: item.path,
+        preview_url: item.preview_url,
+        label: (item.folder ? item.folder + '/' : '') + (item.name || item.path),
+        role: role || 'style',
+      });
+    }
+
+    async function pinLocalFile(file, role) {
+      if (!file) return;
+      const isImg = (file.type || '').startsWith('image/') || /\\.(png|jpe?g|webp|gif)$/i.test(file.name || '');
+      if (!isImg) { log('Skip non-image: ' + file.name); return; }
+      log('Uploading ' + file.name + ' → catalog…');
+      const fd = new FormData();
+      fd.append('file', file);
+      if (currentTitleId) fd.append('title_id', currentTitleId);
+      fd.append('bind', 'false');
+      fd.append('force', 'true');
+      fd.append('kind', document.getElementById('canvasKind')?.value || 'cg');
+      try {
+        const res = await fetch('/api/assets/upload', { method: 'POST', body: fd });
+        let data = {};
+        try { data = await res.json(); } catch (_) {}
+        if (!res.ok) {
+          const detail = data.detail;
+          throw new Error(typeof detail === 'string' ? detail : (data.message || res.statusText));
+        }
+        const aid = data.asset?.asset_id;
+        if (aid) {
+          swapAssetsById[aid] = {
+            id: aid,
+            label: data.asset.label,
+            kind: data.asset.kind,
+            preview_url: data.asset.preview_url,
+          };
+          pinCatalogAsset(aid, role || 'subject');
+          if (!canvasStage) promoteCanvasAsset(aid, data.asset.preview_url, 'upload');
+        }
+        log(data.message || ('Imported ' + aid));
+      } catch (e) {
+        log('Canvas upload failed: ' + e.message);
+      }
+    }
+
+    function promoteCanvasAsset(assetId, previewUrl, note) {
+      canvasStage = {
+        asset_id: assetId,
+        preview_url: (previewUrl || '/api/asset-file?asset_id=' + encodeURIComponent(assetId)) +
+          (previewUrl && previewUrl.includes('t=') ? '' : ('&t=' + Date.now())),
+        note: note || '',
+      };
+      renderCanvasStage();
+    }
+
+    function renderCanvasStage() {
+      const stage = document.getElementById('canvasStage');
+      const meta = document.getElementById('canvasStageMeta');
+      if (!stage) return;
+      if (!canvasStage) {
+        stage.innerHTML = `<div class="empty-stage" id="canvasEmpty">
+          Generate a look, or drop a style / subject reference.<br/>
+          <span class="muted">Catalog assets · moodboards/ · local files. Results save as new asset.studio.*</span>
+        </div>`;
+        if (meta) meta.textContent = 'No generation yet';
+        return;
+      }
+      stage.innerHTML = `<img src="${canvasStage.preview_url}" alt="stage" />`;
+      if (meta) meta.textContent = canvasStage.asset_id + (canvasStage.note ? ' · ' + canvasStage.note : '');
+    }
+
+    function renderCanvasHistory() {
+      const host = document.getElementById('canvasHistory');
+      if (!host) return;
+      if (!canvasHistory.length) {
+        host.innerHTML = '<div class="muted" style="padding:8px">Generations land here</div>';
+        return;
+      }
+      host.innerHTML = '';
+      canvasHistory.forEach((h, idx) => {
+        const el = document.createElement('div');
+        el.className = 'canvas-hist' + (canvasStage && canvasStage.asset_id === h.asset_id ? ' current' : '');
+        el.title = h.prompt || h.asset_id;
+        el.innerHTML = `<img src="${h.preview_url}" alt="" /><div>${h.mode || 'gen'}</div>`;
+        el.onclick = () => {
+          promoteCanvasAsset(h.asset_id, h.preview_url, h.mode || 'history');
+          log('Staged ' + h.asset_id);
+        };
+        host.appendChild(el);
+      });
+    }
+
+    function closeCanvasPicker() {
+      const p = document.getElementById('canvasPicker');
+      if (p) { p.classList.remove('open'); p.innerHTML = ''; }
+    }
+
+    function openCanvasPicker(mode) {
+      const p = document.getElementById('canvasPicker');
+      if (!p) return;
+      if (p.classList.contains('open') && p.dataset.mode === mode) {
+        closeCanvasPicker();
+        return;
+      }
+      p.dataset.mode = mode;
+      let items = [];
+      if (mode === 'catalog') {
+        items = visualLibraryAssets().map(a => ({
+          preview_url: a.preview_url,
+          label: a.id.replace(/^asset\\./, ''),
+          onclick: () => pinCatalogAsset(a.id, 'subject'),
+        }));
+      } else {
+        items = canvasMoodItems.map(m => ({
+          preview_url: m.preview_url,
+          label: (m.folder ? m.folder + '/' : '') + m.name,
+          onclick: () => pinMoodboard(m, 'style'),
+        }));
+      }
+      if (!items.length) {
+        p.innerHTML = `<div class="muted">${mode === 'mood' ? 'No images in moodboards/ yet — drop files there or use + File' : 'No catalog image assets'}</div>`;
+        p.classList.add('open');
+        return;
+      }
+      const grid = document.createElement('div');
+      grid.className = 'canvas-pick-grid';
+      items.forEach(it => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.innerHTML = `<img src="${it.preview_url}" alt="" onerror="this.style.opacity=0.2" /><div>${it.label}</div>`;
+        b.onclick = () => { it.onclick(); };
+        grid.appendChild(b);
+      });
+      p.innerHTML = '';
+      p.appendChild(grid);
+      p.classList.add('open');
+    }
+
+    function fillCanvasSlots() {
+      const sel = document.getElementById('canvasBindSlot');
+      if (!sel) return;
+      const prev = sel.value;
+      const opts = ['<option value="">— no slot —</option>'];
+      for (const s of canvasSlots) {
+        opts.push(`<option value="${s.id}">${s.label || s.id}</option>`);
+      }
+      sel.innerHTML = opts.join('');
+      if (prev && [...sel.options].some(o => o.value === prev)) sel.value = prev;
+    }
+
+    function refsForImagine(includeStage) {
+      const refs = [];
+      if (includeStage && canvasStage && canvasStage.asset_id) {
+        refs.push({ kind: 'asset', asset_id: canvasStage.asset_id, role: 'subject' });
+      }
+      for (const pin of activeCanvasSendSet()) {
+        if (refs.length >= MAX_CANVAS_SEND) break;
+        if (pin.kind === 'asset') {
+          if (refs.some(r => r.kind === 'asset' && r.asset_id === pin.asset_id)) continue;
+          refs.push({ kind: 'asset', asset_id: pin.asset_id, role: pin.role || 'subject' });
+        } else if (pin.kind === 'moodboard') {
+          refs.push({ kind: 'moodboard', path: pin.path, name: pin.path, role: pin.role || 'style' });
+        } else if (pin.kind === 'file' && pin.data_base64) {
+          refs.push({
+            kind: 'file',
+            data_base64: pin.data_base64,
+            mime: pin.mime || 'image/png',
+            name: pin.name || null,
+            role: pin.role || 'subject',
+          });
+        }
+      }
+      return refs.slice(0, MAX_CANVAS_SEND);
+    }
+
+    async function runCanvasImagine(mode) {
+      const promptEl = document.getElementById('canvasPrompt');
+      const prompt = (promptEl?.value || '').trim();
+      if (!prompt) { log('Enter a Canvas prompt first'); promptEl?.focus(); return; }
+      if (canvasBusy) return;
+
+      const includeStage = mode === 'edit';
+      if (mode === 'edit' && !canvasStage && !activeCanvasSendSet().length && !(styleBoard && styleBoard.active)) {
+        log('Iterate needs a staged image, a sent pin, or style lock');
+        return;
+      }
+
+      let refs = refsForImagine(includeStage);
+      let apiMode = mode;
+      if (mode === 'generate' && refs.length) apiMode = 'edit';
+      if (mode === 'generate' && !refs.length && styleBoard && styleBoard.active) apiMode = 'generate';
+
+      const body = {
+        prompt,
+        mode: apiMode,
+        title_id: currentTitleId,
+        aspect_ratio: document.getElementById('canvasRatio')?.value || '1:1',
+        model: document.getElementById('canvasModel')?.value || 'fast',
+        kind: document.getElementById('canvasKind')?.value || 'cg',
+        bind: false,
+        force: true,
+        use_style_board: true,
+        label: prompt.slice(0, 48),
+      };
+      if (refs.length) body.references = refs;
+
+      canvasBusy = true;
+      const buttons = ['btnCanvasGen', 'btnCanvasIterate'].map(id => document.getElementById(id));
+      buttons.forEach(b => { if (b) b.classList.add('busy'); });
+      const styleNote = (styleBoard && styleBoard.active) ? ' · style lock' : '';
+      log(`Canvas ${apiMode}` + (refs.length ? ` (${refs.length} ref(s))` : '') + styleNote + '…');
+      try {
+        const r = await api('/api/imagine', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(body),
+        });
+        log(r.message || JSON.stringify(r));
+        const aid = r.asset?.asset_id;
+        if (aid) {
+          const preview = (r.preview_url || r.asset.preview_url || ('/api/asset-file?asset_id=' + encodeURIComponent(aid))) + '&t=' + Date.now();
+          swapAssetsById[aid] = {
+            id: aid,
+            label: r.asset.label,
+            kind: r.asset.kind,
+            preview_url: preview,
+          };
+          canvasHistory.unshift({
+            asset_id: aid,
+            preview_url: preview,
+            prompt,
+            mode: r.mode || apiMode,
+          });
+          canvasHistory = canvasHistory.slice(0, 24);
+          promoteCanvasAsset(aid, preview, r.mode || apiMode);
+          renderCanvasHistory();
+          renderStyleBoard();
+        }
+      } catch (e) {
+        log('Canvas Imagine failed: ' + e.message);
+      } finally {
+        canvasBusy = false;
+        buttons.forEach(b => { if (b) b.classList.remove('busy'); });
+      }
+    }
+
+    async function bindCanvasStage() {
+      if (!currentTitleId) { log('No title selected'); return; }
+      if (!canvasStage || !canvasStage.asset_id) { log('Generate or stage an image first'); return; }
+      const slotId = document.getElementById('canvasBindSlot')?.value;
+      if (!slotId) { log('Pick a Tea House slot to bind'); return; }
+      await doBind(slotId, canvasStage.asset_id);
+    }
+
+    function useStageAsRef() {
+      if (!canvasStage || !canvasStage.asset_id) { log('Nothing on stage'); return; }
+      pinCatalogAsset(canvasStage.asset_id, 'subject');
+    }
+
+    async function handleCanvasDrop(ev, target) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      const dt = ev.dataTransfer;
+      const files = dt && dt.files && dt.files.length ? [...dt.files] : [];
+      for (const f of files) await pinLocalFile(f, target === 'stage' ? 'subject' : 'style');
+      if (!files.length) {
+        let id = '';
+        try { id = dt.getData('application/x-sakura-asset') || dt.getData('text/plain'); } catch (_) {}
+        id = (id || dragAssetId || '').trim();
+        if (id && id.startsWith('asset.')) {
+          pinCatalogAsset(id, target === 'stage' ? 'subject' : 'style');
+          if (target === 'stage') promoteCanvasAsset(id, null, 'pin');
+        }
+      }
+    }
+
+    function wireCanvasDnd(el, target) {
+      if (!el || el._canvasDnd) return;
+      el._canvasDnd = true;
+      el.addEventListener('dragover', (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        if (ev.dataTransfer) ev.dataTransfer.dropEffect = 'copy';
+        el.classList.add('drop-target');
+      });
+      el.addEventListener('dragleave', (ev) => {
+        if (!el.contains(ev.relatedTarget)) el.classList.remove('drop-target');
+      });
+      el.addEventListener('drop', async (ev) => {
+        el.classList.remove('drop-target');
+        await handleCanvasDrop(ev, target);
+      });
+    }
+
+    async function loadCanvas() {
+      const hint = document.getElementById('canvasImagineHint');
+      if (hint) {
+        hint.textContent = xaiConfigured === false
+          ? 'Set XAI_API_KEY in SakuraSoft/.env'
+          : 'Generate = new look · Iterate = edit last output + selected refs · max 3 images';
+      }
+      if (currentTitleId) {
+        try {
+          const data = await api('/api/bindings?examples=true&title=' + encodeURIComponent(currentTitleId));
+          for (const a of (data.assets || [])) swapAssetsById[a.id] = a;
+          canvasSlots = (data.rows || [])
+            .map(r => r.slot)
+            .filter(s => s && ['cg', 'bg', 'portrait', 'ui', 'sprite', 'texture', 'icon'].includes(s.kind));
+        } catch (e) {
+          log('Canvas library: ' + e.message);
+        }
+      }
+      fillCanvasSlots();
+      try {
+        const mood = await api('/api/moodboards');
+        canvasMoodItems = mood.items || [];
+      } catch (e) {
+        canvasMoodItems = [];
+        log('Moodboards: ' + e.message);
+      }
+      if (!canvasHistory.length) {
+        try {
+          const rec = await api('/api/studio-recent?limit=16');
+          canvasHistory = (rec.items || []).map(it => ({
+            asset_id: it.asset_id || it.id,
+            preview_url: it.preview_url,
+            prompt: it.label || '',
+            mode: 'studio',
+          }));
+        } catch (_) { /* optional */ }
+      }
+      await loadStyleBoard();
+      renderCanvasPins();
+      renderCanvasStage();
+      renderCanvasHistory();
+    }
+
+    document.getElementById('btnCanvasPinCatalog').onclick = () => openCanvasPicker('catalog');
+    document.getElementById('btnCanvasPinMood').onclick = () => openCanvasPicker('mood');
+    document.getElementById('btnCanvasPinFile').onclick = () => document.getElementById('canvasFileInput')?.click();
+    document.getElementById('canvasFileInput').addEventListener('change', async (ev) => {
+      const files = [...(ev.target.files || [])];
+      ev.target.value = '';
+      for (const f of files) await pinLocalFile(f, 'subject');
+    });
+    document.getElementById('btnCanvasGen').onclick = () => runCanvasImagine('generate');
+    document.getElementById('btnCanvasIterate').onclick = () => runCanvasImagine('edit');
+    document.getElementById('btnCanvasBind').onclick = () => bindCanvasStage();
+    document.getElementById('btnCanvasUseRef').onclick = () => useStageAsRef();
+    wireCanvasDnd(document.getElementById('canvasPins'), 'rail');
+    wireCanvasDnd(document.getElementById('canvasStage'), 'stage');
+    wireCanvasDnd(document.getElementById('canvasRail'), 'rail');
 
     /* ---- Game asset tools (Grok Build skill suite port) ---- */
     let gameAssetTools = [];
@@ -4805,7 +5543,7 @@ STUDIO_HTML = r"""<!DOCTYPE html>
         if (xaiConfigured) flags.push('Imagine ready');
         else flags.push('set XAI_API_KEY for Imagine');
         const verLabel = (document.getElementById('buildVer') && document.getElementById('buildVer').textContent) || 'v0.9.1';
-        log('Studio ' + verLabel + ' — Flow workstation · rubber-band connect · Export→Game. ' + flags.join(' · '));
+        log('Studio ' + verLabel + ' — Flow · Canvas · Imagine style lock. ' + flags.join(' · '));
         loadAssets().catch(() => {});
       } catch (e) {
         log('ERROR: ' + e.message);

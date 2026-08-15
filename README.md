@@ -56,9 +56,10 @@ sakura sync-tea-house --catalog catalog --source /path/to/sakura-match
 
 - **Flow ★** — scene-centric node graph (rubber-band connect, splash slots). [`docs/FLOW-WORKSTATION.md`](./docs/FLOW-WORKSTATION.md)  
 - **Assets ✦** — Grok Build game-asset skill suite → catalog. [`docs/STUDIO-GAME-ASSETS.md`](./docs/STUDIO-GAME-ASSETS.md)  
+- **Canvas** — Grok Imagine style canvas: mood-board refs, generate / iterate, shared style lock  
 - **Swaps** — drag/drop rebinds, file drop, Imagine generate/edit  
 - **Dialogue** — line ledger + voice assignment  
-- **Style board** — per-title style lock in `studio.yaml` (ON/OFF)  
+- **Style board** — per-title style lock in `studio.yaml` (ON/OFF; shared by Canvas + Swaps)  
 
 Set `XAI_API_KEY` (and optionally `ELEVENLABS_API_KEY`) in `.env`. For Export → Game set `SAKURA_GAME_ROOT`.
 

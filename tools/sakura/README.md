@@ -92,7 +92,7 @@ sakura studio --catalog /path/to/catalog
 # open http://127.0.0.1:8787/
 ```
 
-Tabs: **Flow ★** · **Assets ✦** · Swaps (drag-drop, Imagine, style board) · **Dialogue** · Overview · Cast · **Code map**.
+Tabs: **Flow ★** · **Assets ✦** · **Canvas** (Imagine mood board) · Swaps (drag-drop, Imagine, style board) · **Dialogue** · Overview · Cast · **Code map**.
 
 See [`docs/FLOW-WORKSTATION.md`](../../docs/FLOW-WORKSTATION.md) and [`docs/STUDIO-IMAGINE.md`](../../docs/STUDIO-IMAGINE.md).
 
