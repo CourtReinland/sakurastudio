@@ -32,7 +32,7 @@ def default_studio_doc(title_id: str) -> dict[str, Any]:
         "style": {
             "enabled": False,
             "asset_id": None,
-            "notes": "Project-wide style lock for Grok Imagine. Toggle enabled on/off in Studio Swaps.",
+            "notes": "Project-wide style lock for Grok Imagine. Toggle in Studio Canvas or Swaps.",
         },
     }
 
@@ -129,7 +129,7 @@ def save_studio_style(
     style.setdefault("asset_id", None)
     style.setdefault(
         "notes",
-        "Project-wide style lock for Grok Imagine. Toggle enabled on/off in Studio Swaps.",
+        "Project-wide style lock for Grok Imagine. Toggle in Studio Canvas or Swaps.",
     )
     doc["style"] = style
     dump_yaml(path, doc)

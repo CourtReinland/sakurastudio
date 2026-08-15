@@ -1,29 +1,70 @@
 # Sakura Studio · Grok Imagine & style board
 
-How art generation, edit-with-refs, and the **project style board** work in Studio (v0.5.3+).
+How art generation, edit-with-refs, the **Canvas** tab, and the **project style board** work in Studio (v0.5.3+).
 
 ## Quick start
 
 1. Put `XAI_API_KEY` in `SakuraSoft/.env` (from [console.x.ai](https://console.x.ai)).
 2. Launch Studio: `./shared/scripts/sakura-studio.sh` → http://127.0.0.1:8787/
-3. Open **Swaps ★**, pick a project title.
-4. (Optional) Set **Project style board** → choose a style asset → toggle **Style lock ON**.
-5. On a slot: **Imagine** (new) or **Edit…** (refine with references).
+3. Project dropdown defaults to **Sakura Tea House** (`title.sakura_tea_house`) when present.
+4. Open **Canvas** to iterate a look against mood-board / style refs (first-party; no grok.com iframe).
+5. Or open **Swaps**, pick a slot: **Imagine** (new) or **Edit…** (refine with references).
+6. (Optional) Set **Style lock** on Canvas or Swaps — they share one `studio.yaml` board.
 
 ## Architecture
 
 ```text
-Prompt (+ refs)  →  Studio API  →  xAI Imagine  →  catalog asset  →  slot bind
+Prompt (+ refs)  →  Studio API  →  xAI Imagine  →  catalog asset  →  optional slot bind
                          ↑
               title studio.yaml style board (optional)
 ```
 
-| Mode | When | Refs |
-|------|------|------|
-| **Imagine** | Text → new art | None, **or** style board alone if lock is ON |
-| **Edit…** | Refine existing | 1–3 images (content + optional extras); style board appended if ON |
+| Surface | Mode | Refs |
+|---------|------|------|
+| **Canvas · Generate** | Text → new art | None, selected mood-board pins, **or** style lock alone |
+| **Canvas · Iterate** | Edit last stage + pins | Stage image + up to 3 send-checked pins (subject first, then style) |
+| **Swaps · Imagine** | Text → new art | None, **or** style board alone if lock is ON |
+| **Swaps · Edit…** | Refine existing | 1–3 images; style board appended if ON |
 
-Results are always **new** library assets (`asset.studio.*`) under `catalog/assets/`, then bound to the slot. Originals are not overwritten.
+Results are always **new** library assets (`asset.studio.*`) under `catalog/assets/`. Originals are never overwritten. Canvas leaves bind optional; Swaps auto-binds the slot.
+
+## Canvas tab
+
+Desktop layout (~1280+): **mood-board rail** (left) · **center stage** · **prompt bar** · **history strip**.
+
+### Mood board
+
+Pin 1–N references from:
+
+- Catalog image assets (**+ Catalog**)
+- Repo `moodboards/` files — Gemini / Suki / pixiv refs (**+ Moodboards**)
+- Local files (**+ File** or drag/drop) — uploaded as a new catalog asset, then pinned
+
+Each pin has **subject** vs **style** and a **send** checkbox. xAI Imagine edit accepts at most **3** images. Extra pins stay on the board; the active 3 are outlined. Style pins are sent after subjects. Style lock (if ON) is still injected last by the server and may replace the 3rd ref.
+
+### Stage, generate, iterate
+
+- Empty stage invites generate or a dropped ref.
+- **Generate** — no refs (or style-lock / selected pins only).
+- **Iterate** — edit the staged output plus selected refs.
+- Quality toggle: `fast` (`grok-imagine-image`) vs `quality` (`grok-imagine-image-quality`).
+- History thumbs promote to stage; **Use stage as next ref** pins the look.
+
+### Actions
+
+- Every run **saves** a new `asset.studio.*` (same `/api/imagine` path as Swaps).
+- Optional **Bind to slot** for a Tea House CG / BG / piece / UI slot.
+- **Style lock** writes `catalog/titles/<title>/studio.yaml` via `GET/POST /api/studio-style` — shared with Swaps.
+
+### Extra APIs (Canvas only)
+
+```http
+GET /api/moodboards
+GET /api/moodboard-file?path=gemini/ref.png
+GET /api/studio-recent?limit=16
+```
+
+`POST /api/imagine` `references[]` also accepts `{ "kind": "moodboard", "path": "…", "role": "style" }`.
 
 ## Project style board
 
@@ -45,11 +86,11 @@ style:
 
 ### UI
 
-Top of **Swaps**:
+**Canvas** rail and top of **Swaps** share the same lock:
 
 - **Style asset** dropdown (library)
 - **Style lock ON/OFF** toggle (auto-saves)
-- **Save style** (also persists dropdown selection)
+- **Save style** on Swaps (also persists dropdown selection)
 - Thumbnail when an asset is set
 
 ### Behaviour when lock is **ON** and `asset_id` is set
@@ -122,11 +163,12 @@ No image inputs on pure generate.
 
 Documented multi-image uses: combine subjects, **transfer styles**, compose scenes. Order matters; default aspect follows the **first** image.
 
-### Also in Imagine (not in Swaps UI yet)
+### Also in Imagine (not in Canvas / Swaps UI yet)
 
-- Multi-turn edit (chain outputs)
 - Image → video, reference-to-video, video edit/extend
 - Files API persistence of inputs/outputs
+
+Canvas covers multi-turn stills (history → stage → iterate). Video stays on the Assets / game-asset tools path.
 
 ## Studio ↔ catalog files
 
@@ -136,6 +178,7 @@ Documented multi-image uses: combine subjects, **transfer styles**, compose scen
 | `catalog/assets/files/studio/` | Uploaded / generated binaries |
 | `catalog/titles/*/bindings.yaml` | Slot → asset |
 | `catalog/titles/*/studio.yaml` | Style board + future Studio prefs |
+| `moodboards/` | Loose style/content refs for Canvas (not catalog assets) |
 
 ## Auth note
 
