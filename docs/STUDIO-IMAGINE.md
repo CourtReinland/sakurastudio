@@ -36,7 +36,7 @@ Desktop layout (~1280+): **mood-board rail** (left) · **center stage** · **pro
 
 Pin 1–N references from:
 
-- Catalog image assets (**+ Catalog**)
+- Catalog image assets (**+ Catalog**) — title-scoped to the project dropdown (Tea House ≠ Midnight Par); picker tiles are draggable onto the stage/rail, or click to pin and close
 - Repo `moodboards/` files — Gemini / Suki / pixiv refs (**+ Moodboards**)
 - Local files (**+ File** or drag/drop) — uploaded as a new catalog asset, then pinned
 

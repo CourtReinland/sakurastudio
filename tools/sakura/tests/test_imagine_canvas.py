@@ -35,6 +35,11 @@ def test_canvas_tab_in_studio_html() -> None:
     assert "/api/imagine" in html
     assert 'data-tab="swaps"' in html
     assert 'data-tab="flow"' in html
+    assert "application/x-sakura-asset" in html
+    assert "application/x-sakura-moodboard" in html
+    assert "assets_for_title" in html
+    assert "closeCanvasPicker()" in html
+    assert "b.draggable = true" in html
 
 
 def test_moodboard_list_and_safe_resolve(tmp_path: Path) -> None:
@@ -132,6 +137,47 @@ def test_studio_recent_lists_studio_assets(catalog_root: Path) -> None:
     data = r.json()
     assert data["ok"] is True
     assert "items" in data
+
+
+def test_title_scoped_assets_exclude_other_games(catalog_root: Path) -> None:
+    from sakura.loader import load_catalog
+    from sakura.title_assets import filter_assets_for_title, title_scope_keys
+
+    keys = title_scope_keys("title.sakura_tea_house")
+    assert "tea_house" in keys["slugs"]
+    assert "tea" in keys["shorts"]
+
+    index = load_catalog(catalog_root, include_examples=True)
+    tea = filter_assets_for_title(index, "title.sakura_tea_house")
+    tea_ids = {a["id"] for a in tea}
+    assert any(".tea." in i for i in tea_ids)
+    assert any("tea_house" in (a.get("tags") or []) for a in tea)
+    assert not any(".par." in i for i in tea_ids)
+    assert not any(i.startswith("asset.tile_") for i in tea_ids)
+
+    par = filter_assets_for_title(index, "title.midnight_par")
+    par_ids = {a["id"] for a in par}
+    assert any(".par." in i for i in par_ids)
+    assert not any(".tea." in i for i in par_ids)
+
+    client = TestClient(app)
+    r = client.get(
+        "/api/bindings",
+        params={
+            "title": "title.sakura_tea_house",
+            "catalog": str(catalog_root),
+            "examples": True,
+        },
+    )
+    assert r.status_code == 200
+    data = r.json()
+    assert "assets_for_title" in data
+    assert len(data["assets"]) > len(data["assets_for_title"])
+    scoped = {a["id"] for a in data["assets_for_title"]}
+    assert any(".tea." in i for i in scoped)
+    assert not any(".par." in i for i in scoped)
+    # Swaps still receives the full library
+    assert any(".par." in a["id"] for a in data["assets"])
 
 
 def test_imagine_moodboard_ref_requires_path(catalog_root: Path) -> None:
